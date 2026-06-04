@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night-base: #0a0612;
+  --color-night-deep: #140a26;
+  --color-night-panel: #1d1235;
+  --color-neon-magenta: #ff2bd6;
+  --color-neon-violet: #8b5cff;
+  --color-neon-cyan: #18e0ff;
+  --color-neon-gold: #ffcf4d;
+  --color-neon-green: #00d44a;
+  --font-display: "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-night-base text-slate-100 antialiased;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(139, 92, 255, 0.18), transparent 45%),
+      radial-gradient(circle at 85% 10%, rgba(255, 43, 214, 0.16), transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(24, 224, 255, 0.12), transparent 55%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-neon-violet/30 bg-night-panel/70 backdrop-blur-sm;
+    box-shadow: 0 0 20px rgba(139, 92, 255, 0.18), 0 0 1px rgba(139, 92, 255, 0.35), 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .neon-heading {
+    @apply font-display font-bold tracking-tight;
+    text-shadow: 0 0 12px rgba(255, 43, 214, 0.45), 0 0 28px rgba(255, 43, 214, 0.3);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-neon-magenta px-5 py-3 font-semibold text-night-base transition hover:bg-neon-violet hover:text-white;
+  }
+
+  .install-step {
+    @apply flex gap-4 rounded-xl border border-neon-violet/20 bg-night-deep/60 p-4;
+  }
+
+  .neon-logo {
+    filter: drop-shadow(0 0 10px rgba(255, 43, 214, 0.55)) drop-shadow(0 0 24px rgba(139, 92, 255, 0.45));
+  }
+}
+
+@layer utilities {
+  .neon-layer {
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    overflow: hidden;
+    pointer-events: none;
+    animation: neonFadeIn 3s ease-out both;
+  }
+
+  .neon-column {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .neon-track {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-self: flex-start;
+    will-change: transform;
+  }
+
+  .neon-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .neon-glyph {
+    color: var(--glow);
+    filter: drop-shadow(0 0 4px var(--glow)) drop-shadow(0 0 14px var(--glow));
+  }
+
+  .neon-scrim {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse 70% 62% at 50% 44%,
+      rgba(10, 6, 18, 0.78),
+      rgba(10, 6, 18, 0.5) 55%,
+      rgba(10, 6, 18, 0.12) 100%
+    );
+  }
+}
+
+@keyframes neonFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes reelUp {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+@keyframes reelDown {
+  from { transform: translateY(-50%); }
+  to { transform: translateY(0); }
+}
