@@ -3,7 +3,7 @@
 // The carousel tints its controls with the game's accent colour (data-accent),
 // supports clickable position dots, and opens a zoomable full-screen lightbox.
 
-const IMAGE_BASE = '/pages/minigames-emporium/game-images';
+const IMAGE_BASE = '/game-images';
 const MAX_IMAGES = 50;
 const DEFAULT_ACCENT = '#18e0ff';
 const ZOOM_SCALE = 2.5;
