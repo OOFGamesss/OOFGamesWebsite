@@ -1,10 +1,9 @@
-// Builds a screenshot carousel inside any [data-game-id] element by probing for
-// sequentially numbered images (1.png, 2.png, ...) in the game's image folder.
+// Builds a screenshot carousel inside any [data-game-id] element from the game's
+// build-generated manifest.json (an ordered list of screenshot filenames).
 // The carousel tints its controls with the game's accent colour (data-accent),
 // supports clickable position dots, and opens a zoomable full-screen lightbox.
 
 const IMAGE_BASE = '/game-images';
-const MAX_IMAGES = 50;
 const DEFAULT_ACCENT = '#18e0ff';
 const ZOOM_SCALE = 2.5;
 
@@ -72,26 +71,15 @@ function ensureStyles() {
   document.head.appendChild(style);
 }
 
-function imageExists(src) {
-  return new Promise((resolve) => {
-    const probe = new Image();
-    probe.onload = () => resolve(true);
-    probe.onerror = () => resolve(false);
-    probe.src = src;
-  });
-}
-
 async function discoverImages(gameId) {
-  const found = [];
-
-  for (let index = 1; index <= MAX_IMAGES; index += 1) {
-    const fileName = `${index}.png`;
-    const exists = await imageExists(`${IMAGE_BASE}/${gameId}/${fileName}`);
-    if (!exists) break;
-    found.push(fileName);
+  try {
+    const res = await fetch(`${IMAGE_BASE}/${gameId}/manifest.json`);
+    if (!res.ok) return [];
+    const images = await res.json();
+    return Array.isArray(images) ? images : [];
+  } catch {
+    return [];
   }
-
-  return found;
 }
 
 function openLightbox(gameId, images, startIndex, accent) {

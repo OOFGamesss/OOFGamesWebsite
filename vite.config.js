@@ -1,14 +1,39 @@
 // Vite multi-page build configuration covering the hub and all plugin/game pages.
 
+import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import tailwindcss from '@tailwindcss/vite';
 
 const root = resolve(import.meta.dirname);
 
+function gameImageManifests() {
+  const generateManifests = () => {
+    const baseDir = resolve(root, 'public/game-images');
+    if (!existsSync(baseDir)) return;
+
+    for (const entry of readdirSync(baseDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+
+      const gameDir = resolve(baseDir, entry.name);
+      const images = readdirSync(gameDir)
+        .filter((name) => /^\d+\.png$/i.test(name))
+        .sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+
+      writeFileSync(resolve(gameDir, 'manifest.json'), JSON.stringify(images));
+    }
+  };
+
+  return {
+    name: 'game-image-manifests',
+    buildStart: generateManifests,
+    configureServer: generateManifests
+  };
+}
+
 export default defineConfig({
   root,
-  plugins: [tailwindcss()],
+  plugins: [tailwindcss(), gameImageManifests()],
   build: {
     rollupOptions: {
       input: {
