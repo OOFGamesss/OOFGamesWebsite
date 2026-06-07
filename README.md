@@ -15,8 +15,28 @@ Browser → oofgames.fyi      → GitHub Pages (this repo, static CDN)
 Browser → api.oofgames.fyi  → Backend API (separate service)
 ```
 
-The API base URL is auto-selected by hostname in [`js/api-client.js`](js/api-client.js):
+The API base URL is auto-selected by hostname in [`src/api/api-client.js`](src/api/api-client.js):
 production calls go to `https://api.oofgames.fyi`, local dev to `http://127.0.0.1:8000`.
+
+## Project structure
+
+Vite's `root` is `src/`, so paths under it serve from the web root (e.g. `src/pages/gamba-where/` → `/pages/gamba-where/`).
+
+```
+frontend/
+├── public/                   # static assets served at / (images, game-images)
+├── src/                      # application source (Vite root)
+│   ├── index.html, 404.html  # top-level entry pages
+│   ├── api/                  # network requests & HTTP client
+│   ├── assets/               # raw CSS / local style assets
+│   ├── components/           # reusable JS components (carousel, widgets)
+│   ├── pages/                # plugin & game pages (multi-page entries)
+│   ├── utils/                # reusable helpers (e.g. card-hover)
+│   └── main.js               # hub entry script
+├── dist/                     # production build output
+├── package.json
+└── vite.config.js            # multi-page build config
+```
 
 ## Local development
 

@@ -5,11 +5,14 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import tailwindcss from '@tailwindcss/vite';
 
-const root = resolve(import.meta.dirname);
+const projectRoot = resolve(import.meta.dirname);
+const root = resolve(projectRoot, 'src');
+const publicDir = resolve(projectRoot, 'public');
+const outDir = resolve(projectRoot, 'dist');
 
 function gameImageManifests() {
   const generateManifests = () => {
-    const baseDir = resolve(root, 'public/game-images');
+    const baseDir = resolve(publicDir, 'game-images');
     if (!existsSync(baseDir)) return;
 
     for (const entry of readdirSync(baseDir, { withFileTypes: true })) {
@@ -33,8 +36,11 @@ function gameImageManifests() {
 
 export default defineConfig({
   root,
+  publicDir,
   plugins: [tailwindcss(), gameImageManifests()],
   build: {
+    outDir,
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         hub: resolve(root, 'index.html'),
