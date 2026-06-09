@@ -19,6 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      # 1. Add the configure-pages step
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - uses: actions/setup-node@v4
         with:
@@ -32,8 +36,7 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Add CNAME file
-        run: echo "oofgames.fyi" > dist/CNAME
+      # 2. The manual CNAME step has been removed
 
       - uses: actions/upload-pages-artifact@v3
         with:
