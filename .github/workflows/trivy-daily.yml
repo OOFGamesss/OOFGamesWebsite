@@ -17,10 +17,15 @@ jobs:
 
       - name: Run Trivy Vulnerability Scanner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        env:
+          # This frontend's entire npm tree is devDependencies (build tooling).
+          # Trivy skips dev deps by default, so without this it scans nothing for
+          # npm. npm audit catches them because it includes dev deps by default.
+          TRIVY_INCLUDE_DEV_DEPS: true
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'table'
-          exit-code: '1' 
-          ignore-unfixed: false 
+          exit-code: '1'
+          ignore-unfixed: false
           severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'

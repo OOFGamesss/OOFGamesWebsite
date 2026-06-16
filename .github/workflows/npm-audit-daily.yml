@@ -1,0 +1,28 @@
+name: Daily npm Audit (frontend packages)
+
+# Complements trivy-daily.yml. The frontend's npm tree is entirely
+# devDependencies (build tooling); npm audit includes dev deps by default and
+# reads the GitHub Advisory DB directly, so it tends to surface new advisories
+# sooner than Trivy's synced database. Runs against package-lock.json only — no
+# node_modules install required.
+
+on:
+  schedule:
+    - cron: '30 0 * * *'   # offset from the Trivy scan (00:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      # Prints the full report (all severities) and fails the job on high or
+      # critical findings. --audit-level only affects the exit code, not output;
+      # lower the threshold to 'moderate' if you want stricter gating.
+      - name: Run npm audit (incl. dev dependencies)
+        run: npm audit --audit-level=high
