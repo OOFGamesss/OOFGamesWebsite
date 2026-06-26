@@ -263,7 +263,7 @@
           </li>
         </ol>
         <div class="my-4 flex items-center gap-3 rounded border border-slate-700 bg-slate-900 px-4 py-3">
-          <code class="flex-1 break-all text-sm text-neon-cyan">https://raw.githubusercontent.com/OOFGamesss/OOFGamesPlugins/main/pluginmaster.json</code>
+          <code class="flex-1 break-all text-sm text-neon-cyan">https://puni.sh/api/repository/oof-games</code>
           <button
             id="copy-repo-url"
             class="shrink-0 rounded border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-300 transition hover:border-neon-cyan hover:text-neon-cyan"
@@ -317,7 +317,7 @@
     <script type="module" src="/components/game-carousel.js"></script>
     <script type="module">
       document.getElementById('copy-repo-url').addEventListener('click', () => {
-        const url = 'https://raw.githubusercontent.com/OOFGamesss/OOFGamesPlugins/main/pluginmaster.json';
+        const url = 'https://puni.sh/api/repository/oof-games';
         navigator.clipboard.writeText(url).then(() => {
           const btn = document.getElementById('copy-repo-url');
           btn.textContent = 'Copied!';
