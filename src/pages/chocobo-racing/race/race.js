@@ -58,7 +58,7 @@ function phaseLabel(phase) {
     case 'BetsClosed': return 'Betting Closed';
     case 'Racing': return 'Racing';
     case 'Finished': return 'Finished';
-    case 'Idle': return 'Lobby';
+    case 'Idle': return 'Taking Banks';
     default: return phase || '-';
   }
 }
