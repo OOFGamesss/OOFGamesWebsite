@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Watch and bet on a live Chocobo Race." />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/png" href="/images/chocoboracing.png" />
+    <title>Live Race | Chocobo Racing</title>
+    <script>
+      (function () {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var s = params.get('s');
+          if (s) {
+            history.replaceState(null, '', '/pages/chocobo-racing/race/' + s + window.location.hash);
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/assets/style.css" />
+    <style>
+      #track-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        background: radial-gradient(circle at 50% 38%, #1a0f30 0%, #0a0612 100%);
+      }
+      #track-loader .track-loader__ring {
+        width: 66px;
+        height: 66px;
+        border-radius: 999px;
+        border: 5px solid rgba(255, 207, 77, 0.18);
+        border-top-color: #ffcf4d;
+        border-right-color: #ffcf4d;
+        animation: track-loader-spin 0.8s linear infinite;
+      }
+      #track-loader .track-loader__text {
+        margin: 0;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        color: #ffe9a8;
+        text-shadow: 0 0 14px rgba(255, 207, 77, 0.45);
+      }
+      @keyframes track-loader-spin { to { transform: rotate(360deg); } }
+    </style>
+    <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare Web Analytics beacon; Cloudflare updates the script server-side, so an SRI hash cannot be pinned. -->
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "1ae0789372b64fc5acc3abedf41cf4b3"}'></script><!-- End Cloudflare Web Analytics -->
+  </head>
+  <body>
+    <main class="race-main">
+      <div id="track-loader" class="track-loader">
+        <div class="track-loader__ring"></div>
+        <p class="track-loader__text">Loading the track…</p>
+      </div>
+
+      <header class="panel race-header">
+        <div class="race-header__title">
+          <img src="/images/chocoboracing.png" alt="" class="race-header__logo" />
+          <div>
+            <h1 class="neon-heading race-header__h1">Chocobo Racing</h1>
+            <p id="host-line" class="race-header__sub">Connecting…</p>
+          </div>
+        </div>
+        <div id="track-stats" class="track-stats">
+          <div class="track-stat"><span class="track-stat__label">Round</span><span id="stat-round" class="track-stat__value">-</span></div>
+          <div class="track-stat track-stat--payout"><span class="track-stat__label">Payout Odds</span><span id="stat-payout" class="track-stat__value">-</span></div>
+          <div id="stat-perfect-wrap" class="track-stat track-stat--perfect hidden"><span class="track-stat__label">Perfect Race</span><span id="stat-perfect" class="track-stat__value">-</span></div>
+          <div class="track-stat"><span class="track-stat__label">Track</span><span id="stat-track" class="track-stat__value">-</span></div>
+        </div>
+        <div class="race-header__player">
+          <span id="conn-dot" class="conn-dot" title="Live connection"></span>
+          <button id="open-join" class="btn-primary btn-sm">Enter PIN to bet</button>
+          <div id="player-box" class="player-box hidden">
+            <span id="player-name" class="player-box__name">-</span>
+            <div class="header-bank">
+              <span class="header-bank__label">Available to bet</span>
+              <span id="bank-amount" class="header-bank__amount">-</span>
+              <span class="header-bank__sub">Bank <b id="bank-balance">-</b> · in bets <b id="bank-pending">-</b></span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section id="code-entry" class="panel code-entry hidden">
+        <h2>Join a race</h2>
+        <p>Enter the race code your host shared, or open the link they gave you.</p>
+        <form id="code-form">
+          <input id="code-input" type="text" autocomplete="off" placeholder="race code" class="cr-input" />
+          <button type="submit" class="btn-primary">Watch race</button>
+        </form>
+      </section>
+
+      <div id="race-view" class="race-view hidden">
+        <div class="col-left">
+          <section id="your-bets-card" class="panel hidden">
+            <div class="card-head"><h2>My Bets</h2></div>
+            <div id="your-bets" class="bets-table scroll-area"></div>
+          </section>
+          <section class="panel">
+            <div class="card-head"><h2>All Bets</h2><span id="all-bets-count" class="card-head__hint">0</span></div>
+            <div id="all-bets" class="bets-table scroll-area"></div>
+          </section>
+        </div>
+
+        <section class="col-center panel track-panel">
+          <div id="track" class="track">
+            <div class="track__sky"></div>
+            <div class="track__rail"></div>
+            <div class="track__grass"></div>
+            <div id="track-venue" class="track__venue hidden">
+              <div class="track__venue-scroll">
+                <span class="track__venue-cell"></span>
+                <span class="track__venue-cell"></span>
+              </div>
+            </div>
+            <div class="track__rail track__rail--bottom"></div>
+            <span class="track__live">LIVE</span>
+            <span id="yalms" class="yalms"></span>
+            <div id="runners-layer" class="runners-layer"></div>
+            <div class="track__finishline"></div>
+            <div id="standings" class="standings"></div>
+            <div id="track-status" class="track-status hidden"><span class="track-status__text">-</span></div>
+            <div id="podium-overlay" class="podium-overlay hidden"></div>
+          </div>
+        </section>
+
+        <div class="col-right">
+          <section class="panel">
+            <div class="card-head"><h2>Last Race Results</h2></div>
+            <div id="last-results" class="results-list scroll-area"></div>
+          </section>
+          <section class="panel">
+            <div class="card-head"><h2>Race Stats</h2></div>
+            <div id="race-stats" class="stats scroll-area"></div>
+          </section>
+        </div>
+
+        <div id="player-area" class="col-bottom hidden">
+          <section id="runners-card" class="panel runners-card">
+            <div class="card-head"><h2>Runners</h2><span class="card-head__hint">Tap a chocobo to add it to your slip</span></div>
+            <div id="runner-list" class="runner-list"></div>
+          </section>
+
+          <div class="bottom-right">
+            <aside id="betslip" class="panel betslip">
+            <div class="betslip__head">
+              <span>Bet Slip <span id="slip-count" class="chip">0</span></span>
+              <span id="slip-summary-mini" class="betslip__mini"></span>
+            </div>
+            <div class="betslip__body">
+              <div id="slip-empty" class="betslip__empty">Select chocobos to start a bet slip.</div>
+              <div id="slip-lines" class="slip-lines"></div>
+              <div id="slip-controls" class="slip-controls hidden">
+                <label class="slip-all">Stake on all
+                  <span class="stepper">
+                    <input id="stake-all" type="text" inputmode="numeric" class="cr-input" placeholder="Gil" />
+                    <span class="stepper__arrows">
+                      <button type="button" class="stepper__btn" data-dir="1" aria-label="Add 1,000">▲</button>
+                      <button type="button" class="stepper__btn" data-dir="-1" aria-label="Subtract 1,000">▼</button>
+                    </span>
+                  </span>
+                </label>
+                <div class="slip-summary">
+                  <div><span>Total stake</span><b id="slip-total">0</b></div>
+                  <div><span>Potential return</span><b id="slip-return" class="text-gold">0</b></div>
+                </div>
+                <button id="place-bet" class="btn-primary betslip__place">Place Bet</button>
+                <p id="slip-msg" class="slip-msg hidden"></p>
+                <p id="slip-login-hint" class="slip-hint hidden">Enter your PIN above to place bets.</p>
+              </div>
+            </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div id="pin-modal" class="modal hidden">
+      <div class="panel modal__card">
+        <div class="modal__head">
+          <h2>Enter your PIN</h2>
+          <button id="pin-close" class="modal__close" aria-label="Close">✕</button>
+        </div>
+        <form id="pin-form">
+          <input id="pin-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" placeholder="••••••" class="cr-input pin-input" />
+          <button type="submit" class="btn-primary">Join &amp; bet</button>
+          <p id="pin-msg" class="slip-msg hidden"></p>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="/components/neon-background.js"></script>
+    <script type="module" src="./race.js"></script>
+  </body>
+</html>

@@ -216,6 +216,44 @@
       </section>
     </main>
 
+    <div id="race-ended-modal" class="fixed inset-0 z-50 flex items-center justify-center px-4" style="display:none; background:rgba(5,3,12,0.78);">
+      <div class="panel w-full max-w-sm p-7 text-center">
+        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full text-3xl" style="background:rgba(255,43,214,0.14);">🏁</div>
+        <h2 class="neon-heading text-2xl font-black" style="color:#ff5db1;">Uh-oh!</h2>
+        <p class="mt-1 text-lg font-semibold text-slate-100">Looks like the race is over!</p>
+        <p id="race-ended-reason" class="mt-3 text-sm text-slate-400">This race has finished or is no longer available.</p>
+        <button id="race-ended-close" class="btn-primary mt-6 w-full">Got it</button>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          if (!params.has('ended')) return;
+          var reasons = {
+            host_ended: 'The host has closed this session.',
+            expired: 'This race timed out after a period of inactivity.',
+            replaced: 'The host has started a new race session.',
+            notfound: "We couldn't find that race - it may have already finished."
+          };
+          var modal = document.getElementById('race-ended-modal');
+          var msg = document.getElementById('race-ended-reason');
+          var reason = params.get('ended') || '';
+          if (msg && reasons[reason]) msg.textContent = reasons[reason];
+          if (modal) modal.style.display = 'flex';
+          params.delete('ended');
+          var qs = params.toString();
+          history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+          function close() { if (modal) modal.style.display = 'none'; }
+          var btn = document.getElementById('race-ended-close');
+          if (btn) btn.addEventListener('click', close);
+          if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+          document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+        } catch (e) {}
+      })();
+    </script>
+
     <script>
       var tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';

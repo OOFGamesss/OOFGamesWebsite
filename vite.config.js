@@ -34,10 +34,30 @@ function gameImageManifests() {
   };
 }
 
+function chocoboRaceDevFallback() {
+  const racePrefix = '/pages/chocobo-racing/race/';
+  const raceIndex = '/pages/chocobo-racing/race/index.html';
+  return {
+    name: 'chocobo-race-dev-fallback',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const url = req.url || '';
+        if (url.startsWith(racePrefix) && !url.startsWith(raceIndex)) {
+          const rest = url.slice(racePrefix.length);
+          if (rest && !rest.startsWith('?') && !rest.split('?')[0].includes('.')) {
+            req.url = raceIndex;
+          }
+        }
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
   root,
   publicDir,
-  plugins: [tailwindcss(), gameImageManifests()],
+  plugins: [tailwindcss(), gameImageManifests(), chocoboRaceDevFallback()],
   build: {
     outDir,
     emptyOutDir: true,
@@ -47,6 +67,7 @@ export default defineConfig({
         notFound: resolve(root, '404.html'),
         gambaWhere: resolve(root, 'pages/gamba-where/index.html'),
         chocoboRacing: resolve(root, 'pages/chocobo-racing/index.html'),
+        chocoboRace: resolve(root, 'pages/chocobo-racing/race/index.html'),
         minigamesEmporium: resolve(root, 'pages/minigames-emporium/index.html'),
         eightBallPool: resolve(root, 'pages/minigames-emporium/games/8ballpool/index.html'),
         bar777: resolve(root, 'pages/minigames-emporium/games/bar777/index.html'),
@@ -56,7 +77,7 @@ export default defineConfig({
         dealornodeal: resolve(root, 'pages/minigames-emporium/games/dealornodeal/index.html'),
         drt: resolve(root, 'pages/minigames-emporium/games/drt/index.html'),
         gamblederby: resolve(root, 'pages/minigames-emporium/games/gamblederby/index.html'),
-        hotshots: resolve(root, 'pages/minigames-emporium/games/hotshots/index.html'),
+        higherlower: resolve(root, 'pages/minigames-emporium/games/higherlower/index.html'),
         minefieldgambit: resolve(root, 'pages/minigames-emporium/games/minefieldgambit/index.html'),
         raffle: resolve(root, 'pages/minigames-emporium/games/raffle/index.html'),
         raidboss: resolve(root, 'pages/minigames-emporium/games/raidboss/index.html'),
