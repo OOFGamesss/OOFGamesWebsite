@@ -444,7 +444,7 @@ function renderRunnerList(s) {
 
 function toggleSelect(num) {
   if (selection.has(num)) selection.delete(num);
-  else selection.set(num, digitsOf(el('stake-all')?.value || ''));
+  else selection.set(num, '');
   renderRunnerList(currentState);
   renderSlip();
 }
@@ -649,7 +649,7 @@ function applyCallCounts(data) {
 
 function handleMessage(msg) {
   switch (msg.type) {
-    case 'state': renderAll(msg.data); break;
+    case 'state': renderAll(msg.data); if (token) refreshMe(); break;
     case 'call_counts': applyCallCounts(msg.data); break;
     case 'result':
       if (currentState) { currentState.winningChocobo = msg.data.winningChocobo; currentState.phase = 'Finished'; renderAll(currentState); }
