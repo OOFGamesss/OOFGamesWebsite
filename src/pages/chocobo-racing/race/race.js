@@ -650,7 +650,7 @@ function renderAll(s) {
   if (lastPhase && lastPhase !== 'Racing' && phase === 'Racing') startCountdown();
   lastPhase = phase;
 
-  audio.setBgm(finishPending || phase !== 'Finished');
+  audio.setBgm(phase === 'Racing' || finishPending);
 
   renderHeader(s);
   ensureTrack(s);
