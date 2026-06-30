@@ -18,6 +18,9 @@
         } catch (e) {}
       })();
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" />
     <link rel="stylesheet" href="/assets/style.css" />
     <style>
       #track-loader {
@@ -128,6 +131,23 @@
             <div id="standings" class="standings"></div>
             <div id="track-status" class="track-status hidden"><span class="track-status__text">-</span></div>
             <div id="podium-overlay" class="podium-overlay hidden"></div>
+            <div id="countdown" class="countdown hidden" aria-hidden="true"></div>
+            <div class="track-audio">
+              <div class="track-audio__row">
+                <button id="toggle-music" type="button" class="audio-btn" aria-pressed="true" title="Music">
+                  <span class="audio-btn__on" aria-hidden="true">♪</span>
+                  <span class="audio-btn__off" aria-hidden="true">♪</span>
+                </button>
+                <input id="vol-music" class="audio-vol" type="range" min="0" max="100" value="100" aria-label="Music volume" />
+              </div>
+              <div class="track-audio__row">
+                <button id="toggle-sfx" type="button" class="audio-btn" aria-pressed="true" title="Sound effects">
+                  <span class="audio-btn__on" aria-hidden="true">🔊</span>
+                  <span class="audio-btn__off" aria-hidden="true">🔈</span>
+                </button>
+                <input id="vol-sfx" class="audio-vol" type="range" min="0" max="100" value="100" aria-label="Sound effects volume" />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -170,6 +190,7 @@
                 <div class="slip-summary">
                   <div><span>Total stake</span><b id="slip-total">0</b></div>
                   <div><span>Potential return</span><b id="slip-return" class="text-gold">0</b></div>
+                  <div id="slip-after-row" class="hidden"><span>Balance after bet</span><b id="slip-after">0</b></div>
                 </div>
                 <button id="place-bet" class="btn-primary betslip__place">Place Bet</button>
                 <p id="slip-msg" class="slip-msg hidden"></p>
@@ -196,7 +217,7 @@
       </div>
     </div>
 
-    <script type="module" src="/components/neon-background.js"></script>
+    <script type="module" src="/components/console-guard.js"></script><script type="module" src="/components/neon-background.js"></script>
     <script type="module" src="./race.js"></script>
   </body>
 </html>

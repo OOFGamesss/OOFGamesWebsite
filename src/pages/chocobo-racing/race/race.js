@@ -7,6 +7,7 @@
 
 import './race.css';
 import { getState, login, me, placeBet, raceSocketUrl, uuid } from '../../../api/chocobo-racing-client.js';
+import audio from './race-audio.js';
 
 const RACE_PREFIX = '/pages/chocobo-racing/race/';
 
@@ -107,6 +108,19 @@ let venueSig = '';
 let ws = null;
 let reconnectDelay = 1000;
 let ended = false;
+
+let lastPhase = null;
+let countdownActive = false;
+let countdownTimers = [];
+let finishPending = false;
+let finishTimer = null;
+let prevRankByNumber = null;
+
+const COUNT_STEP_MS = 800;
+const GO_HOLD_MS = 600;
+const FINISH_REVEAL_MS = 1800;
+const COUNTDOWN_COLORS = ['#ffd23f', '#4dd2ff', '#ff6ec7', '#7aa7ff'];
+let countdownColorIdx = 0;
 
 const laneColor = (n) => LANE_COLORS[(n - 1) % LANE_COLORS.length];
 const chocoboName = (n) => {
@@ -212,13 +226,13 @@ function ensureTrack(s) {
 
 function updateRunners(s) {
   const track = el('track');
-  const racing = s.phase === 'Racing';
+  const racing = s.phase === 'Racing' && !countdownActive;
   track.classList.toggle('is-racing', racing);
   const finish = s.finishLine || 1;
   (s.chocobos || []).forEach((c) => {
     const r = track.querySelector(`.runner[data-runner="${c.number}"]`);
     if (!r) return;
-    const p = Math.max(0, Math.min(1, finish ? c.position / finish : 0));
+    const p = countdownActive ? 0 : Math.max(0, Math.min(1, finish ? c.position / finish : 0));
     r.style.left = `calc((100% - 86px) * ${p} + 6px)`;
 
     r.style.top = `${racing ? r.dataset.packTop : r.dataset.laneTop}px`;
@@ -496,6 +510,13 @@ function updateSlipState() {
   const ret = Math.floor(total * oddsValue());
   if (el('slip-total')) el('slip-total').textContent = fmtGil(total);
   if (el('slip-return')) el('slip-return').textContent = fmtGil(ret);
+  const after = available - total;
+  const afterEl = el('slip-after');
+  if (afterEl) {
+    afterEl.textContent = fmtGil(after);
+    afterEl.classList.toggle('text-magenta', after < 0);
+  }
+  if (el('slip-after-row')) el('slip-after-row').classList.toggle('hidden', !token);
   el('slip-summary-mini').textContent = selection.size ? `${selection.size} pick${selection.size === 1 ? '' : 's'} · ${fmtGil(total)}` : '';
   const betting = currentState?.phase === 'Betting';
   const place = el('place-bet');
@@ -624,17 +645,27 @@ function hideLoader() {
 function renderAll(s) {
   hideLoader();
   currentState = s;
+
+  const phase = s.phase;
+  if (lastPhase && lastPhase !== 'Racing' && phase === 'Racing') startCountdown();
+  lastPhase = phase;
+
+  audio.setBgm(finishPending || phase !== 'Finished');
+
   renderHeader(s);
   ensureTrack(s);
   renderVenue(s);
   updateRunners(s);
   renderStandings(s);
-  renderPodiumOverlay(s);
   renderRunnerList(s);
   renderAllBets(s);
-  renderLastResults(s.results);
-  renderStats(s);
   updateSlipState();
+
+  if (!finishPending) {
+    renderPodiumOverlay(s);
+    renderLastResults(s.results);
+    renderStats(s);
+  }
 }
 
 function applyCallCounts(data) {
@@ -644,7 +675,101 @@ function applyCallCounts(data) {
   if (data.winningChocobo != null) currentState.winningChocobo = data.winningChocobo;
   if (data.phase) currentState.phase = data.phase;
   if (data.finishLine) currentState.finishLine = data.finishLine;
+  if (currentState.phase === 'Racing' && !countdownActive && !finishPending) detectOvertakes(currentState);
   renderAll(currentState);
+}
+
+function rankOrder(s) {
+  return [...(s.chocobos || [])].sort((a, b) => (b.position - a.position) || (a.number - b.number));
+}
+
+function detectOvertakes(s) {
+  const newRank = new Map();
+  rankOrder(s).forEach((c, i) => newRank.set(c.number, i));
+  if (prevRankByNumber) {
+    let movedUp = 0;
+    for (const [num, rank] of newRank) {
+      const prev = prevRankByNumber.get(num);
+      if (prev != null && rank < prev) movedUp++;
+    }
+    const voices = Math.min(movedUp, 4);
+    for (let i = 0; i < voices; i++) setTimeout(() => audio.playKweh(), i * 80);
+  }
+  prevRankByNumber = newRank;
+}
+
+function startCountdown() {
+  clearCountdown();
+  countdownActive = true;
+  finishPending = false;
+  prevRankByNumber = null;
+  countdownColorIdx = 0;
+  audio.playHorn();
+
+  const overlay = el('countdown');
+  if (currentState) updateRunners(currentState);
+  if (!overlay) { finishCountdown(); return; }
+  overlay.classList.remove('hidden');
+
+  const steps = ['3', '2', '1', 'Go!'];
+  steps.forEach((label, i) => {
+    countdownTimers.push(setTimeout(() => showCountdownStep(label, i === steps.length - 1), i * COUNT_STEP_MS));
+  });
+  countdownTimers.push(setTimeout(finishCountdown, (steps.length - 1) * COUNT_STEP_MS + GO_HOLD_MS));
+}
+
+function showCountdownStep(label, isGo) {
+  const overlay = el('countdown');
+  if (!overlay) return;
+  const chars = [...label]
+    .map((ch) => {
+      const color = COUNTDOWN_COLORS[countdownColorIdx++ % COUNTDOWN_COLORS.length];
+      const glyph = ch === ' ' ? '&nbsp;' : ch;
+      return `<span class="countdown__char" style="color:${color}">${glyph}</span>`;
+    })
+    .join('');
+  overlay.innerHTML = `<span class="countdown__num ${isGo ? 'is-go' : ''}">${chars}</span>`;
+}
+
+function finishCountdown() {
+  countdownActive = false;
+  const overlay = el('countdown');
+  if (overlay) { overlay.classList.add('hidden'); overlay.innerHTML = ''; }
+  if (currentState) renderAll(currentState);
+}
+
+function clearCountdown() {
+  countdownTimers.forEach(clearTimeout);
+  countdownTimers = [];
+}
+
+function beginFinish(winningChocobo) {
+  currentState.winningChocobo = winningChocobo;
+  currentState.phase = 'Finished';
+  prevRankByNumber = null;
+  const w = (currentState.chocobos || []).find((c) => c.number === winningChocobo);
+  if (w && currentState.finishLine) w.position = currentState.finishLine;
+  finishPending = true;
+  renderAll(currentState);
+  scheduleFinishReveal();
+}
+
+function scheduleFinishReveal() {
+  if (finishTimer) clearTimeout(finishTimer);
+  const winnerEl = el('track').querySelector(`.runner[data-runner="${currentState.winningChocobo}"]`);
+  let done = false;
+  const reveal = () => {
+    if (done) return;
+    done = true;
+    if (winnerEl) winnerEl.removeEventListener('transitionend', onEnd);
+    clearTimeout(finishTimer);
+    finishPending = false;
+    audio.playWin();
+    if (currentState) renderAll(currentState);
+  };
+  function onEnd(e) { if (e.propertyName === 'left') reveal(); }
+  if (winnerEl) winnerEl.addEventListener('transitionend', onEnd);
+  finishTimer = setTimeout(reveal, FINISH_REVEAL_MS);
 }
 
 function handleMessage(msg) {
@@ -652,7 +777,7 @@ function handleMessage(msg) {
     case 'state': renderAll(msg.data); if (token) refreshMe(); break;
     case 'call_counts': applyCallCounts(msg.data); break;
     case 'result':
-      if (currentState) { currentState.winningChocobo = msg.data.winningChocobo; currentState.phase = 'Finished'; renderAll(currentState); }
+      if (currentState) beginFinish(msg.data.winningChocobo);
       refreshMe();
       break;
     case 'session_ended': redirectEnded(msg.data && msg.data.reason); break;
@@ -773,10 +898,38 @@ function wireUi() {
   el('place-bet').addEventListener('click', placeBets);
 }
 
+function renderAudioControls() {
+  const apply = (btn, slider, on, vol, label) => {
+    if (btn) {
+      btn.classList.toggle('is-off', !on);
+      btn.setAttribute('aria-pressed', String(on));
+      btn.title = on ? `${label} on` : `${label} off`;
+    }
+    if (slider) slider.value = String(Math.round(vol * 100));
+  };
+  apply(el('toggle-music'), el('vol-music'), audio.musicOn, audio.musicVol, 'Music');
+  apply(el('toggle-sfx'), el('vol-sfx'), audio.sfxOn, audio.sfxVol, 'Sound effects');
+}
+
+function wireAudio() {
+  audio.onChange = renderAudioControls;
+  const m = el('toggle-music');
+  const s = el('toggle-sfx');
+  const vm = el('vol-music');
+  const vs = el('vol-sfx');
+  if (m) m.addEventListener('click', () => audio.toggleMusic());
+  if (s) s.addEventListener('click', () => audio.toggleSfx());
+  if (vm) vm.addEventListener('input', () => audio.setMusicVolume(parseInt(vm.value, 10) / 100));
+  if (vs) vs.addEventListener('input', () => audio.setSfxVolume(parseInt(vs.value, 10) / 100));
+  renderAudioControls();
+}
+
 async function init() {
   if (!sessionId) { showCodeEntry(); return; }
   el('race-view').classList.remove('hidden');
+  audio.init();
   wireUi();
+  wireAudio();
   renderPlayer();
   probeSpriteSheet();
   probeBackdrop();
