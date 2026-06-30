@@ -544,6 +544,7 @@ async function placeBets() {
     else errors.push(`#${line.num}: ${res.error}`);
   }
   el('place-bet').disabled = false;
+  el('stake-all').value = '';
   if (anyOk) await refreshMe();
   renderRunnerList(currentState);
   renderSlip();
@@ -687,13 +688,9 @@ function detectOvertakes(s) {
   const newRank = new Map();
   rankOrder(s).forEach((c, i) => newRank.set(c.number, i));
   if (prevRankByNumber) {
-    let movedUp = 0;
     for (const [num, rank] of newRank) {
-      const prev = prevRankByNumber.get(num);
-      if (prev != null && rank < prev) movedUp++;
+      if (rank === 0 && prevRankByNumber.get(num) !== 0) { audio.playKweh(); break; }
     }
-    const voices = Math.min(movedUp, 4);
-    for (let i = 0; i < voices; i++) setTimeout(() => audio.playKweh(), i * 80);
   }
   prevRankByNumber = newRank;
 }
