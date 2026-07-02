@@ -5,10 +5,12 @@ const LS_MUSIC_VOL = 'cr_music_vol';
 const LS_SFX_VOL = 'cr_sfx_vol';
 
 const THEME_BASE = 0.5;
+const LOBBY_BASE = 0.5;
 const WIN_BASE = 0.6;
 const HORN_BASE = 0.8;
 const KWEH_BASE = 0.7;
 const MAX_KWEH_VOICES = 4;
+const LOBBY_FADE_MS = 3000;
 
 function loadBool(key, fallback) {
   try {
@@ -42,15 +44,22 @@ const audio = {
   onChange: null,
 
   theme: null,
+  lobby: null,
   win: null,
   horn: null,
   kwehVoices: [],
   kwehSlot: 0,
+  lobbyOn: false,
+  lobbyFadeTimer: null,
 
   init() {
     this.theme = new Audio(`${AUDIO_BASE}/theme.mp3`);
     this.theme.loop = true;
     this.theme.preload = 'auto';
+
+    this.lobby = new Audio(`${AUDIO_BASE}/lobby.mp3`);
+    this.lobby.loop = true;
+    this.lobby.preload = 'auto';
 
     this.win = new Audio(`${AUDIO_BASE}/win.mp3`);
     this.win.preload = 'auto';
@@ -76,10 +85,12 @@ const audio = {
     if (this.unlocked) return;
     this.unlocked = true;
     this.applyTheme();
+    if (this.lobbyOn) this.resumeLobby();
   },
 
   applyVolumes() {
     if (this.theme) this.theme.volume = THEME_BASE * this.musicVol;
+    if (this.lobby && this.lobbyFadeTimer === null) this.lobby.volume = LOBBY_BASE * this.musicVol;
     if (this.win) this.win.volume = WIN_BASE * this.musicVol;
     if (this.horn) this.horn.volume = HORN_BASE * this.sfxVol;
     for (const a of this.kwehVoices) a.volume = KWEH_BASE * this.sfxVol;
@@ -102,6 +113,56 @@ const audio = {
       this.theme.play().catch(() => {});
     } else {
       this.theme.pause();
+    }
+  },
+
+  setLobby(on) {
+    on = !!on;
+    if (on === this.lobbyOn) return;
+    this.lobbyOn = on;
+    if (on) this.startLobby();
+    else this.fadeOutLobby();
+  },
+
+  startLobby() {
+    if (!this.lobby) return;
+    this.cancelLobbyFade();
+    this.lobby.volume = LOBBY_BASE * this.musicVol;
+    try { this.lobby.currentTime = 0; } catch {}
+    if (this.musicOn && this.unlocked) this.lobby.play().catch(() => {});
+  },
+
+  resumeLobby() {
+    if (!this.lobby) return;
+    this.cancelLobbyFade();
+    this.lobby.volume = LOBBY_BASE * this.musicVol;
+    if (this.musicOn && this.unlocked && this.lobbyOn) this.lobby.play().catch(() => {});
+  },
+
+  fadeOutLobby() {
+    if (!this.lobby) return;
+    this.cancelLobbyFade();
+    if (this.lobby.paused) { this.lobby.volume = 0; return; }
+    const startVol = this.lobby.volume;
+    const startTime = (typeof performance !== 'undefined' ? performance : Date).now();
+    const step = () => {
+      const t = ((typeof performance !== 'undefined' ? performance : Date).now() - startTime) / LOBBY_FADE_MS;
+      if (t >= 1) {
+        this.lobby.volume = 0;
+        this.lobby.pause();
+        this.lobbyFadeTimer = null;
+        return;
+      }
+      this.lobby.volume = startVol * (1 - t);
+      this.lobbyFadeTimer = requestAnimationFrame(step);
+    };
+    this.lobbyFadeTimer = requestAnimationFrame(step);
+  },
+
+  cancelLobbyFade() {
+    if (this.lobbyFadeTimer !== null) {
+      cancelAnimationFrame(this.lobbyFadeTimer);
+      this.lobbyFadeTimer = null;
     }
   },
 
@@ -137,6 +198,12 @@ const audio = {
     save(LS_MUSIC_ON, this.musicOn ? '1' : '0');
     this.unlock();
     this.applyTheme();
+    if (this.musicOn) {
+      if (this.lobbyOn) this.resumeLobby();
+    } else {
+      this.cancelLobbyFade();
+      if (this.lobby) this.lobby.pause();
+    }
     if (!this.musicOn && this.win) this.win.pause();
     if (this.onChange) this.onChange();
   },

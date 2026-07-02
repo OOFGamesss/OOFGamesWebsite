@@ -671,6 +671,7 @@ function renderAll(s) {
   lastPhase = phase;
 
   audio.setBgm(phase === 'Racing' || finishPending);
+  audio.setLobby(phase === 'Idle' || phase === 'Betting');
 
   renderHeader(s);
   ensureTrack(s);
