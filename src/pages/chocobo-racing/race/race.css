@@ -432,7 +432,7 @@
 .howto-btn span { font-weight: 800; }
 
 .howto-card { max-width: 28rem; gap: 18px; }
-.howto-card__title { text-align: center; font-family: "Lilita One", "Trebuchet MS", "Segoe UI", sans-serif; font-weight: 400; font-size: 1.5rem; color: var(--color-neon-gold,#ffcf4d); text-shadow: 0 0 12px rgba(255,207,77,0.4); }
+.howto-card__title { text-align: center; font-family: "Lilita One", "Trebuchet MS", "Segoe UI", sans-serif; font-weight: 400; font-size: 2.2rem; color: var(--color-neon-gold,#ffcf4d); text-shadow: 0 0 12px rgba(255,207,77,0.4); }
 .howto-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
 .howto-steps li { display: flex; align-items: flex-start; gap: 12px; }
 .howto-steps__num { flex: 0 0 auto; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 999px; font-weight: 800; font-size: 0.9rem; color: #0a0612; background-image: linear-gradient(var(--color-neon-gold,#ffcf4d), #ffb020); box-shadow: 0 0 10px rgba(255,207,77,0.45); }
