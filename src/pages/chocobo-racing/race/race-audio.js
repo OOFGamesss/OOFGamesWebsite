@@ -22,7 +22,7 @@ function loadBool(key, fallback) {
 function loadVol(key) {
   try {
     const v = parseFloat(localStorage.getItem(key));
-    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
+    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5;
   } catch {
     return 1;
   }
@@ -88,6 +88,11 @@ const audio = {
   setBgm(on) {
     this.wantTheme = !!on;
     this.applyTheme();
+  },
+
+  restartTheme() {
+    if (!this.theme) return;
+    try { this.theme.currentTime = 0; } catch {}
   },
 
   applyTheme() {

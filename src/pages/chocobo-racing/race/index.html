@@ -78,6 +78,9 @@
           <div class="track-stat"><span class="track-stat__label">Track</span><span id="stat-track" class="track-stat__value">-</span></div>
         </div>
         <div class="race-header__player">
+          <button id="open-howto" type="button" class="howto-btn btn-sm" aria-haspopup="dialog">
+            <span aria-hidden="true">?</span> How to Play
+          </button>
           <span id="conn-dot" class="conn-dot" title="Live connection"></span>
           <button id="open-join" class="btn-primary btn-sm">Enter PIN to bet</button>
           <div id="player-box" class="player-box hidden">
@@ -138,14 +141,14 @@
                   <span class="audio-btn__on" aria-hidden="true">♪</span>
                   <span class="audio-btn__off" aria-hidden="true">♪</span>
                 </button>
-                <input id="vol-music" class="audio-vol" type="range" min="0" max="100" value="100" aria-label="Music volume" />
+                <input id="vol-music" class="audio-vol" type="range" min="0" max="100" value="50" aria-label="Music volume" />
               </div>
               <div class="track-audio__row">
                 <button id="toggle-sfx" type="button" class="audio-btn" aria-pressed="true" title="Sound effects">
                   <span class="audio-btn__on" aria-hidden="true">🔊</span>
                   <span class="audio-btn__off" aria-hidden="true">🔈</span>
                 </button>
-                <input id="vol-sfx" class="audio-vol" type="range" min="0" max="100" value="100" aria-label="Sound effects volume" />
+                <input id="vol-sfx" class="audio-vol" type="range" min="0" max="100" value="50" aria-label="Sound effects volume" />
               </div>
             </div>
           </div>
@@ -192,6 +195,7 @@
                   <div><span>Potential return</span><b id="slip-return" class="text-gold">0</b></div>
                   <div id="slip-after-row" class="hidden"><span>Balance after bet</span><b id="slip-after">0</b></div>
                 </div>
+                <button id="max-bet" type="button" class="betslip__maxbet">Max Bet</button>
                 <button id="place-bet" class="btn-primary betslip__place">Place Bet</button>
                 <p id="slip-msg" class="slip-msg hidden"></p>
                 <p id="slip-login-hint" class="slip-hint hidden">Enter your PIN above to place bets.</p>
@@ -202,6 +206,50 @@
         </div>
       </div>
     </main>
+
+    <div id="howto-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="howto-title">
+      <div class="panel modal__card howto-card">
+        <h2 id="howto-title" class="howto-card__title">How to Play</h2>
+        <ol class="howto-steps">
+          <li>
+            <span class="howto-steps__num">1</span>
+            <div>
+              <strong>Trade Gil to your host</strong>
+              <p>Hand over some in-game Gil to your race host so you're ready to bet.</p>
+            </div>
+          </li>
+          <li>
+            <span class="howto-steps__num">2</span>
+            <div>
+              <strong>Get your PIN</strong>
+              <p>Your host will give you a 6-digit PIN. Tap "Enter PIN to bet" at the top of the page and enter it to log in.</p>
+            </div>
+          </li>
+          <li>
+            <span class="howto-steps__num">3</span>
+            <div>
+              <strong>Pick your chocobos</strong>
+              <p>Head to the Runners section and tap each chocobo you fancy backing.</p>
+            </div>
+          </li>
+          <li>
+            <span class="howto-steps__num">4</span>
+            <div>
+              <strong>Set your stakes</strong>
+              <p>Open your Bet Slip and type in how much Gil you want to bet on each chocobo you picked.</p>
+            </div>
+          </li>
+          <li>
+            <span class="howto-steps__num">5</span>
+            <div>
+              <strong>Place your bet</strong>
+              <p>Hit "Place Bet", then sit back and wait for the race to begin!</p>
+            </div>
+          </li>
+        </ol>
+        <button id="howto-close" type="button" class="btn-primary howto-card__cta">Let's Play!</button>
+      </div>
+    </div>
 
     <div id="pin-modal" class="modal hidden">
       <div class="panel modal__card">

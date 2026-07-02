@@ -115,6 +115,7 @@ let countdownTimers = [];
 let finishPending = false;
 let finishTimer = null;
 let prevRankByNumber = null;
+let announcedWinner = null;
 
 const COUNT_STEP_MS = 800;
 const GO_HOLD_MS = 600;
@@ -527,6 +528,21 @@ function updateSlipState() {
   updatePlayerArea();
 }
 
+function maxBet() {
+  const nums = [...selection.keys()].sort((a, b) => a - b);
+  if (nums.length === 0) return;
+  const pot = Math.max(0, Math.floor(available));
+  const base = Math.floor(pot / nums.length);
+  let remainder = pot - base * nums.length;
+  for (const n of nums) {
+    let amt = base;
+    if (remainder > 0) { amt += 1; remainder -= 1; }
+    selection.set(n, String(amt));
+  }
+  el('stake-all').value = '';
+  renderSlip();
+}
+
 async function placeBets() {
   if (!token) { openModal(); return; }
   if (currentState?.phase !== 'Betting') { slipMsg('Betting is closed.', true); return; }
@@ -621,6 +637,9 @@ function logout() {
 function openModal() { el('pin-modal').classList.remove('hidden'); el('pin-input').focus(); }
 function closeModal() { el('pin-modal').classList.add('hidden'); el('pin-msg').classList.add('hidden'); el('pin-input').value = ''; }
 
+function openHowTo() { el('howto-modal').classList.remove('hidden'); }
+function closeHowTo() { el('howto-modal').classList.add('hidden'); }
+
 async function submitPin(e) {
   e.preventDefault();
   const pin = el('pin-input').value.trim();
@@ -700,7 +719,9 @@ function startCountdown() {
   countdownActive = true;
   finishPending = false;
   prevRankByNumber = null;
+  announcedWinner = null;
   countdownColorIdx = 0;
+  audio.restartTheme();
   audio.playHorn();
 
   const overlay = el('countdown');
@@ -741,6 +762,8 @@ function clearCountdown() {
 }
 
 function beginFinish(winningChocobo) {
+  if (announcedWinner === winningChocobo) return;
+  announcedWinner = winningChocobo;
   currentState.winningChocobo = winningChocobo;
   currentState.phase = 'Finished';
   prevRankByNumber = null;
@@ -850,6 +873,9 @@ function wireUi() {
   el('pin-form').addEventListener('submit', submitPin);
   digitsOnly(el('pin-input'), 6);
 
+  el('open-howto').addEventListener('click', openHowTo);
+  el('howto-close').addEventListener('click', closeHowTo);
+
   el('runner-list').addEventListener('click', (e) => {
     const row = e.target.closest('.runner-row');
     if (row) toggleSelect(parseInt(row.dataset.num, 10));
@@ -892,6 +918,7 @@ function wireUi() {
     renderSlip();
   });
 
+  el('max-bet').addEventListener('click', maxBet);
   el('place-bet').addEventListener('click', placeBets);
 }
 
@@ -941,6 +968,7 @@ async function init() {
   }
   renderAll(res.data);
   if (token) await refreshMe();
+  openHowTo();
   connect();
 }
 

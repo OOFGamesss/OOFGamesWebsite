@@ -72,11 +72,11 @@
 .card-head__hint { font-size: 0.74rem; color: #94a3b8; }
 .panel > .runner-list, .panel > .bets-table, .panel > .results-list, .panel > .stats { padding: 0 12px 12px; }
 
-.scroll-area { scrollbar-width: thin; scrollbar-color: var(--color-neon-violet,#8b5cff) transparent; }
+.scroll-area { scrollbar-width: thin; scrollbar-color: var(--color-neon-violet,#8b5cff) transparent; transform: translateZ(0); contain: paint; }
 .scroll-area::-webkit-scrollbar { width: 9px; }
 .scroll-area::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
-.scroll-area::-webkit-scrollbar-thumb { border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; background-color: var(--color-neon-violet,#8b5cff); background-image: linear-gradient(var(--color-neon-violet,#8b5cff), var(--color-neon-magenta,#ff2bd6)); }
-.scroll-area::-webkit-scrollbar-thumb:hover { background-image: linear-gradient(var(--color-neon-magenta,#ff2bd6), var(--color-neon-magenta,#ff2bd6)); }
+.scroll-area::-webkit-scrollbar-thumb { border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; background-color: var(--color-neon-violet,#8b5cff); }
+.scroll-area::-webkit-scrollbar-thumb:hover { background-color: var(--color-neon-magenta,#ff2bd6); }
 
 .track-stats { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 8px; }
 .track-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 80px; padding: 6px 14px; border-radius: 12px; background: color-mix(in srgb, var(--color-night-panel,#1d1235) 78%, transparent); border: 1px solid color-mix(in srgb, var(--color-neon-violet,#8b5cff) 30%, transparent); box-shadow: 0 4px 18px rgba(0,0,0,0.3); }
@@ -92,9 +92,15 @@
 
 .track__sky {
   position: absolute; left: 0; right: 0; top: 0; height: var(--grass-top); overflow: hidden;
-  background: #0d1430 url('/game-assets/chocobo-racing/night-background.jpg') repeat-x;
+  background-color: #0d1430;
+}
+.track__sky::before {
+  content: ""; position: absolute; top: 0; left: 0; height: 100%;
+  width: calc(100% + var(--sky-tile, 1200px));
+  background: url('/game-assets/chocobo-racing/night-background.jpg') repeat-x;
   background-size: var(--sky-tile, auto) 100%;
   animation: skyParallax 90s linear infinite;
+  will-change: transform;
 }
 
 .track__venue {
@@ -123,16 +129,26 @@
 .track__grass {
   position: absolute; left: 0; right: 0; bottom: 0; top: var(--grass-top); z-index: 1;
   background:
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 64px, rgba(0,0,0,0.07) 64px 128px),
-    repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 3px, transparent 3px 8px),
     radial-gradient(ellipse 80% 40% at 50% 0, rgba(255,240,200,0.18), transparent 60%),
     linear-gradient(180deg, var(--grass-1), var(--grass-2) 55%, var(--grass-3));
-  background-size: 128px 100%, 8px 100%, 100% 100%, 100% 100%;
-  animation: grassScroll 2.6s linear infinite;
 }
-.track.is-racing .track__grass { animation-duration: 0.7s; }
-.track.has-grass .track__grass { background: url('/game-images/chocobo-racing/grass.png') repeat; background-size: 256px auto; animation: grassScrollImg 2.6s linear infinite; }
-.track.is-racing.has-grass .track__grass { animation-duration: 0.7s; }
+.track__grass::before {
+  content: ""; position: absolute; top: 0; left: 0; height: 100%;
+  width: calc(100% + 256px);
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 64px, rgba(0,0,0,0.07) 64px 128px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 3px, transparent 3px 8px);
+  background-size: 128px 100%, 8px 100%;
+  animation: grassScroll 2.6s linear infinite;
+  will-change: transform;
+}
+.track.is-racing .track__grass::before { animation-duration: 0.7s; }
+.track.has-grass .track__grass { background: none; }
+.track.has-grass .track__grass::before {
+  background: url('/game-images/chocobo-racing/grass.png') repeat; background-size: 256px auto;
+  animation: grassScrollImg 2.6s linear infinite;
+}
+.track.is-racing.has-grass .track__grass::before { animation-duration: 0.7s; }
 
 .track__live { position: absolute; top: 10px; right: 12px; z-index: 6; background: #c81e1e; color: #fff; font-weight: 800; font-size: 0.72rem; letter-spacing: 0.12em; padding: 3px 9px; border-radius: 5px; box-shadow: 0 0 10px rgba(200,30,30,0.6); display: inline-flex; align-items: center; gap: 5px; }
 .track__live::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: #fff; }
@@ -177,6 +193,7 @@
 .track.is-racing .dust span:nth-child(3) { animation-delay: 0.32s; }
 
 .cr-choco { display: block; width: calc(var(--sprite-size) - 8px); height: auto; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.45)); }
+.track.is-racing .cr-choco { filter: none; }
 .cr-leg { transform-origin: 50% 0; animation: legSwing 0.3s ease-in-out infinite alternate; }
 .cr-leg--b { animation-delay: 0.15s; }
 .track.is-racing .cr-leg { animation-duration: 0.16s; }
@@ -188,7 +205,7 @@
   image-rendering: pixelated; filter: hue-rotate(var(--hue, 0deg)) saturate(var(--sat, 1.1)) drop-shadow(0 3px 3px rgba(0,0,0,0.45));
   animation: spriteRun 0.6s steps(4) infinite;
 }
-.track.is-racing .runner-sprite { animation-duration: 0.36s; }
+.track.is-racing .runner-sprite { animation-duration: 0.36s; filter: hue-rotate(var(--hue, 0deg)) saturate(var(--sat, 1.1)); }
 .track.sheet-ready .runner-sprite { display: block; }
 .track.sheet-ready .cr-choco { display: none; }
 
@@ -196,10 +213,10 @@
 
 @keyframes spriteRun { to { background-position-x: calc(var(--sprite-size) * -4); } }
 
-@keyframes grassScroll { from { background-position-x: 0,0,0,0; } to { background-position-x: -128px,-128px,0,0; } }
-@keyframes grassScrollImg { from { background-position-x: 0; } to { background-position-x: -256px; } }
+@keyframes grassScroll { from { transform: translateX(0); } to { transform: translateX(-128px); } }
+@keyframes grassScrollImg { from { transform: translateX(0); } to { transform: translateX(-256px); } }
 @keyframes railScroll { from { transform: translateX(0); } to { transform: translateX(-46px); } }
-@keyframes skyParallax { from { background-position-x: 0; } to { background-position-x: calc(var(--sky-tile, 1200px) * -1); } }
+@keyframes skyParallax { from { transform: translateX(0); } to { transform: translateX(calc(var(--sky-tile, 1200px) * -1)); } }
 @keyframes venueMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes bob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
 @keyframes jostle {
@@ -386,6 +403,8 @@
 .slip-summary { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 10px; }
 .slip-summary > div { display: flex; justify-content: space-between; }
 .slip-summary b { font-variant-numeric: tabular-nums; color: #f1f5f9; }
+.betslip__maxbet { width: 100%; margin-bottom: 8px; padding: 8px 12px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: 1px solid color-mix(in srgb, var(--color-neon-cyan,#18e0ff) 50%, transparent); color: var(--color-neon-cyan,#18e0ff); background: transparent; transition: background 0.12s; }
+.betslip__maxbet:hover { background: color-mix(in srgb, var(--color-neon-cyan,#18e0ff) 12%, transparent); }
 .betslip__place { width: 100%; }
 .slip-msg { margin: 8px 0 0; font-size: 0.82rem; text-align: center; }
 .slip-msg.err { color: var(--color-neon-magenta,#ff2bd6); }
@@ -407,6 +426,19 @@
 .modal__close { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem; }
 .modal form { display: flex; flex-direction: column; gap: 12px; }
 .pin-input { text-align: center; font-size: 1.6rem; letter-spacing: 0.5em; }
+
+.howto-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; font-weight: 700; cursor: pointer; border: 1px solid color-mix(in srgb, var(--color-neon-gold,#ffcf4d) 55%, transparent); color: var(--color-neon-gold,#ffcf4d); background: transparent; transition: background 0.12s; }
+.howto-btn:hover { background: color-mix(in srgb, var(--color-neon-gold,#ffcf4d) 14%, transparent); }
+.howto-btn span { font-weight: 800; }
+
+.howto-card { max-width: 28rem; gap: 18px; }
+.howto-card__title { text-align: center; font-family: "Lilita One", "Trebuchet MS", "Segoe UI", sans-serif; font-weight: 400; font-size: 1.5rem; color: var(--color-neon-gold,#ffcf4d); text-shadow: 0 0 12px rgba(255,207,77,0.4); }
+.howto-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.howto-steps li { display: flex; align-items: flex-start; gap: 12px; }
+.howto-steps__num { flex: 0 0 auto; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 999px; font-weight: 800; font-size: 0.9rem; color: #0a0612; background-image: linear-gradient(var(--color-neon-gold,#ffcf4d), #ffb020); box-shadow: 0 0 10px rgba(255,207,77,0.45); }
+.howto-steps strong { display: block; color: #f1f5f9; font-size: 0.92rem; margin-bottom: 2px; }
+.howto-steps p { margin: 0; color: #94a3b8; font-size: 0.84rem; line-height: 1.4; }
+.howto-card__cta { align-self: center; margin-top: 4px; padding-left: 2.6rem; padding-right: 2.6rem; }
 
 .countdown { position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center; pointer-events: none; background: radial-gradient(circle at 50% 45%, rgba(10,6,18,0.42), rgba(10,6,18,0.66)); }
 .countdown__num {
@@ -437,12 +469,12 @@
 @keyframes countdownPop { 0% { transform: scale(0.4); opacity: 0; } 30% { transform: scale(1.12); opacity: 1; } 70% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.86); opacity: 0; } }
 @keyframes countdownGo { 0% { transform: scale(0.6); opacity: 0; } 35% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1.35); opacity: 0.92; } }
 
-.track-audio { position: absolute; top: 10px; right: 12px; z-index: 9; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 12px; background: rgba(10,6,18,0.55); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(3px); }
+.track-audio { position: absolute; top: 10px; right: 12px; z-index: 9; display: flex; flex-direction: column; gap: 6px; padding: 9px 11px; border-radius: 12px; background: rgba(12,8,22,0.94); border: 1.5px solid var(--color-neon-cyan,#18e0ff); box-shadow: 0 0 4px rgba(24,224,255,0.55), 0 0 18px rgba(24,224,255,0.3), 0 2px 10px rgba(0,0,0,0.5); }
 .track-audio__row { display: flex; align-items: center; gap: 8px; }
-.audio-btn { position: relative; width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 8px; cursor: pointer; font-size: 0.95rem; color: #f1f5f9; border: 1px solid color-mix(in srgb, var(--color-neon-violet,#8b5cff) 50%, transparent); background: color-mix(in srgb, var(--color-neon-violet,#8b5cff) 20%, transparent); transition: filter 0.12s, opacity 0.12s; }
+.audio-btn { position: relative; width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 8px; cursor: pointer; font-size: 1.05rem; color: #f1f5f9; border: 1.5px solid color-mix(in srgb, var(--color-neon-violet,#8b5cff) 75%, transparent); background: color-mix(in srgb, var(--color-neon-violet,#8b5cff) 32%, transparent); box-shadow: 0 0 8px rgba(139,95,255,0.35); transition: filter 0.12s, opacity 0.12s; }
 .audio-btn:hover { filter: brightness(1.2); }
 .audio-btn__off { display: none; }
-.audio-btn.is-off { color: #94a3b8; border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
+.audio-btn.is-off { color: #94a3b8; border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); box-shadow: none; }
 .audio-btn.is-off .audio-btn__on { display: none; }
 .audio-btn.is-off .audio-btn__off { display: block; opacity: 0.6; }
 .audio-vol { width: 78px; height: 4px; -webkit-appearance: none; appearance: none; border-radius: 999px; background: color-mix(in srgb, var(--color-neon-cyan,#18e0ff) 35%, rgba(255,255,255,0.15)); outline: none; cursor: pointer; }
