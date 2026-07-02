@@ -84,6 +84,18 @@ const audio = {
   unlock() {
     if (this.unlocked) return;
     this.unlocked = true;
+
+    const prime = (el) => {
+      if (!el) return;
+      const p = el.play();
+      if (p && p.then) {
+        p.then(() => { el.pause(); try { el.currentTime = 0; } catch {} }).catch(() => {});
+      }
+    };
+    prime(this.win);
+    prime(this.horn);
+    for (const a of this.kwehVoices) prime(a);
+
     this.applyTheme();
     if (this.lobbyOn) this.resumeLobby();
   },
