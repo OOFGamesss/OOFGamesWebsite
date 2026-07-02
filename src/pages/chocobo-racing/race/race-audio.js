@@ -5,7 +5,7 @@ const LS_MUSIC_VOL = 'cr_music_vol';
 const LS_SFX_VOL = 'cr_sfx_vol';
 
 const THEME_BASE = 0.5;
-const LOBBY_BASE = 0.5;
+const LOBBY_BASE = 0.25;
 const WIN_BASE = 0.6;
 const HORN_BASE = 0.8;
 const KWEH_BASE = 0.7;
