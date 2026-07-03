@@ -223,7 +223,24 @@ function ensureTrack(s) {
         </div></div>
       </div>`;
   }).join('');
+  fitRunnerNames();
 }
+
+function fitRunnerNames() {
+  const LABEL_MAX = 88;
+  el('runners-layer').querySelectorAll('.runner__label').forEach((label) => {
+    const name = label.querySelector('.runner__name');
+    if (!name) return;
+    name.style.fontSize = '';
+    let size = 0.9;
+    while (label.scrollWidth > LABEL_MAX && size > 0.55) {
+      size = Math.round((size - 0.05) * 100) / 100;
+      name.style.fontSize = `${size}rem`;
+    }
+  });
+}
+
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitRunnerNames);
 
 function updateRunners(s) {
   const track = el('track');
