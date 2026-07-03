@@ -578,6 +578,7 @@ async function placeBets() {
   for (const line of lines) {
     const res = await placeBet(token, line.num, line.amount, uuid());
     if (res.ok) { anyOk = true; selection.delete(line.num); }
+    else if (res.status === 401) { el('place-bet').disabled = false; handleTokenRevoked(); return; }
     else errors.push(`#${line.num}: ${res.error}`);
   }
   el('place-bet').disabled = false;
@@ -633,7 +634,7 @@ function updatePlayerArea() {
 async function refreshMe() {
   if (!token) return;
   const res = await me(token);
-  if (!res.ok) { if (res.status === 401) logout(); return; }
+  if (!res.ok) { if (res.status === 401) handleTokenRevoked(); return; }
   player = { name: res.data.name, world: res.data.world };
   balance = res.data.balance;
   available = res.data.available;
@@ -654,6 +655,15 @@ function logout() {
   if (currentState) renderRunnerList(currentState);
   updateSlipState();
 }
+
+function handleTokenRevoked() {
+  if (ended) return;
+  const hadToken = !!token;
+  logout();
+  if (hadToken) el('pin-changed-modal').style.display = 'flex';
+}
+
+function closePinChanged() { el('pin-changed-modal').style.display = 'none'; }
 
 function openModal() { el('pin-modal').classList.remove('hidden'); el('pin-input').focus(); }
 function closeModal() { el('pin-modal').classList.add('hidden'); el('pin-msg').classList.add('hidden'); el('pin-input').value = ''; }
@@ -894,6 +904,9 @@ function wireUi() {
   el('pin-modal').addEventListener('click', (e) => { if (e.target === el('pin-modal')) closeModal(); });
   el('pin-form').addEventListener('submit', submitPin);
   digitsOnly(el('pin-input'), 6);
+
+  el('pin-changed-close').addEventListener('click', closePinChanged);
+  el('pin-changed-modal').addEventListener('click', (e) => { if (e.target === el('pin-changed-modal')) closePinChanged(); });
 
   el('open-howto').addEventListener('click', openHowTo);
   el('howto-close').addEventListener('click', closeHowTo);
