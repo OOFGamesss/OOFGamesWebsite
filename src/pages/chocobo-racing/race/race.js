@@ -492,9 +492,9 @@ function renderSlip() {
 
 function stepStake(input, delta) {
   if (!input) return;
-  const next = Math.max(0, (parseInt(digitsOf(input.value), 10) || 0) + delta);
-  input.value = groupGil(String(next));
   const n = parseInt(input.dataset.stake, 10);
+  const next = Math.min(Math.max(0, (parseInt(digitsOf(input.value), 10) || 0) + delta), betCapFor(n));
+  input.value = groupGil(String(next));
   selection.set(n, String(next));
   const ret = next ? Math.floor(next * oddsValue()) : 0;
   const retEl = input.closest('.slip-line').querySelector('.slip-line__ret');
@@ -528,17 +528,38 @@ function updateSlipState() {
   updatePlayerArea();
 }
 
+function betCapFor(n) {
+  const cap = currentState?.maxBetPerChocobo || 0;
+  if (cap <= 0) return Infinity;
+  const placed = myBets
+    .filter((b) => b.chocobo === n)
+    .reduce((t, b) => t + (b.amount || 0), 0);
+  return Math.max(0, cap - placed);
+}
+
 function maxBet() {
   const nums = [...selection.keys()].sort((a, b) => a - b);
   if (nums.length === 0) return;
-  const pot = Math.max(0, Math.floor(available));
-  const base = Math.floor(pot / nums.length);
-  let remainder = pot - base * nums.length;
-  for (const n of nums) {
-    let amt = base;
-    if (remainder > 0) { amt += 1; remainder -= 1; }
-    selection.set(n, String(amt));
+  let pot = Math.max(0, Math.floor(available));
+  const alloc = new Map(nums.map((n) => [n, 0]));
+  const caps = new Map(nums.map((n) => [n, betCapFor(n)]));
+  let active = nums.filter((n) => caps.get(n) - alloc.get(n) > 0);
+  while (pot > 0 && active.length > 0) {
+    const share = Math.max(1, Math.floor(pot / active.length));
+    let progressed = false;
+    for (const n of active) {
+      if (pot <= 0) break;
+      const room = caps.get(n) - alloc.get(n);
+      if (room <= 0) continue;
+      const add = Math.min(share, room, pot);
+      alloc.set(n, alloc.get(n) + add);
+      pot -= add;
+      progressed = true;
+    }
+    active = active.filter((n) => caps.get(n) - alloc.get(n) > 0);
+    if (!progressed) break;
   }
+  for (const n of nums) selection.set(n, String(alloc.get(n)));
   el('stake-all').value = '';
   renderSlip();
 }
@@ -885,9 +906,12 @@ function wireUi() {
   el('slip-lines').addEventListener('input', (e) => {
     const stakeEl = e.target.closest('[data-stake]');
     if (!stakeEl) return;
-    const raw = digitsOf(stakeEl.value);
+    const n = parseInt(stakeEl.dataset.stake, 10);
+    let raw = digitsOf(stakeEl.value);
+    const cap = betCapFor(n);
+    if (raw && cap !== Infinity && parseInt(raw, 10) > cap) raw = String(cap);
     stakeEl.value = groupGil(raw);
-    selection.set(parseInt(stakeEl.dataset.stake, 10), raw);
+    selection.set(n, raw);
     const ret = raw ? Math.floor(parseInt(raw, 10) * oddsValue()) : 0;
     stakeEl.closest('.slip-line').querySelector('.slip-line__ret').textContent = ret ? `returns ${fmtGil(ret)}` : '';
     updateSlipState();
@@ -907,7 +931,8 @@ function wireUi() {
   stakeAll.addEventListener('input', () => {
     const raw = digitsOf(stakeAll.value);
     stakeAll.value = groupGil(raw);
-    for (const n of selection.keys()) selection.set(n, raw);
+    const val = parseInt(raw, 10) || 0;
+    for (const n of selection.keys()) selection.set(n, raw === '' ? '' : String(Math.min(val, betCapFor(n))));
     renderSlip();
   });
   stakeAll.closest('.stepper').addEventListener('click', (e) => {
@@ -915,7 +940,7 @@ function wireUi() {
     if (!step) return;
     const next = Math.max(0, (parseInt(digitsOf(stakeAll.value), 10) || 0) + parseInt(step.dataset.dir, 10) * 1000);
     stakeAll.value = groupGil(String(next));
-    for (const n of selection.keys()) selection.set(n, String(next));
+    for (const n of selection.keys()) selection.set(n, String(Math.min(next, betCapFor(n))));
     renderSlip();
   });
 
