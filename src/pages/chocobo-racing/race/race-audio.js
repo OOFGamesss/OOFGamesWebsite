@@ -110,9 +110,17 @@ const audio = {
   },
 
   unlock() {
-    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    if (!this.ctx) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
     if (this.unlocked) return;
     this.unlocked = true;
+    try {
+      const buf = this.ctx.createBuffer(1, 1, 22050);
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.ctx.destination);
+      src.start(0);
+    } catch {}
     this.applyTheme();
     if (this.lobbyOn) this.resumeLobby();
   },
