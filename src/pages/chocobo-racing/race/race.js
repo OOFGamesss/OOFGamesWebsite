@@ -845,7 +845,7 @@ function renderHeaderGn(s) {
   setStatLabel('stat-round', 'Race');
   el('stat-round').textContent = s.gnRaceNumber ?? '-';
   setStatLabel('stat-payout', 'Pot');
-  el('stat-payout').textContent = fmtGil(s.pot || 0);
+  el('stat-payout').textContent = fmtGil(s.netPot ?? s.pot ?? 0);
   const ew = el('stat-entry-wrap');
   if (s.entryFee) {
     el('stat-entry').textContent = fmtGil(s.entryFee);
