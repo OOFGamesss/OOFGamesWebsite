@@ -716,7 +716,7 @@ const HOWTO_GN_STEPS = [
   ['Trade Gil to your host', 'Pay the entry fee to your race host to join the runner list.'],
   ['Get your chocobo', 'The host adds you to the race and gives you a numbered chocobo carrying your name.'],
   ['Watch the race', 'When the host starts, the server draws the winner and the chocobos race it out.'],
-  ["Win the pot", 'If your chocobo is first past the post, you take the entire pot!'],
+  ['Win the prize', 'If your chocobo is first past the post, you take the prize - the pot, an item, or whatever the host is offering!'],
 ];
 
 const HOWTO_CLASSIC_STEPS = [
@@ -839,13 +839,22 @@ function renderAllGn(s) {
   renderLastResultsGn((s.results || []).filter((r) => r.mode === 'grand_national'));
 }
 
+function gnIsPot(prizeType) {
+  return (prizeType || 'pot') === 'pot';
+}
+
+function gnPrizeText(prizeType, prizeLabel, netPot, pot) {
+  if (!gnIsPot(prizeType)) return prizeLabel || 'Prize';
+  return fmtGil(netPot || pot || 0);
+}
+
 function renderHeaderGn(s) {
   const host = s.hostName || 'Unknown host';
   el('host-line').textContent = `Hosted by ${host}${s.venueName ? ` · ${s.venueName}` : ''}`;
   setStatLabel('stat-round', 'Race');
   el('stat-round').textContent = s.gnRaceNumber ?? '-';
-  setStatLabel('stat-payout', 'Pot');
-  el('stat-payout').textContent = fmtGil(s.netPot ?? s.pot ?? 0);
+  setStatLabel('stat-payout', gnIsPot(s.prizeType) ? 'Pot' : 'Prize');
+  el('stat-payout').textContent = gnPrizeText(s.prizeType, s.prizeLabel, s.netPot, s.pot);
   const ew = el('stat-entry-wrap');
   if (s.entryFee) {
     el('stat-entry').textContent = fmtGil(s.entryFee);
@@ -971,7 +980,7 @@ function renderGnPodium(s) {
         <span class="gn-podium__silk" style="background:${color}">${w.number}</span>
         <span class="gn-podium__name">${escapeHtml(w.name)}${w.world ? ` <small>(${escapeHtml(w.world)})</small>` : ''}</span>
       </div>
-      <div class="gn-podium__pot">Takes ${fmtGil(s.netPot || s.pot || 0)}</div>
+      <div class="gn-podium__pot">${gnIsPot(s.prizeType) ? 'Takes' : 'Prize:'} ${gnPrizeText(s.prizeType, s.prizeLabel, s.netPot, s.pot)}</div>
     </div>`;
   overlay.classList.remove('hidden');
 }
@@ -1005,7 +1014,7 @@ function renderLastResultsGn(results) {
       <div class="gn-result">
         <span class="gn-run__silk" style="background:${gnColor(r.winner)}">${r.winner}</span>
         <span class="gn-run__name">${escapeHtml(r.winnerName || `Runner ${r.winner}`)}${r.winnerWorld ? `<small class="gn-run__world">${escapeHtml(r.winnerWorld)}</small>` : ''}</span>
-        <span class="gn-result__pot">${fmtGil(r.netPot || r.pot || 0)}</span>
+        <span class="gn-result__pot">${gnPrizeText(r.prizeType, r.prizeLabel, r.netPot, r.pot)}</span>
       </div>
     </div>`).join('');
 }
