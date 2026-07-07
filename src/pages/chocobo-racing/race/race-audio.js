@@ -94,9 +94,18 @@ const audio = {
 
     const prime = (el) => {
       if (!el) return;
+      const wasMuted = el.muted;
+      el.muted = true;
+      const restore = () => {
+        el.pause();
+        try { el.currentTime = 0; } catch {}
+        el.muted = wasMuted;
+      };
       const p = el.play();
       if (p && p.then) {
-        p.then(() => { el.pause(); try { el.currentTime = 0; } catch {} }).catch(() => {});
+        p.then(restore).catch(restore);
+      } else {
+        restore();
       }
     };
     for (const a of this.winVoices) prime(a);
