@@ -11,9 +11,25 @@
 .text-gold { color: var(--color-neon-gold, #ffcf4d); }
 .text-magenta { color: var(--color-neon-magenta, #ff2bd6); }
 
-@media (min-width: 640px) {
-  [data-discord-widget] .hidden { display: inline !important; }
+.race-home-btn {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--color-neon-cyan, #18e0ff);
+  color: #05121a;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  transition: background 0.15s, transform 0.15s;
 }
+.race-home-btn:hover { background: #6eeeff; transform: translateY(-1px); }
+.race-home-btn__icon { width: 18px; height: 18px; flex: none; }
 
 .race-main { position: relative; z-index: 0; max-width: 1600px; margin: 0 auto; padding: 14px 14px 40px; display: flex; flex-direction: column; gap: 14px; }
 
