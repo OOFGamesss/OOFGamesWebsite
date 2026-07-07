@@ -331,7 +331,7 @@ function renderStandings(s) {
 
   const finish = s.finishLine || 0;
   const lead = order.length ? order[0].position : 0;
-  el('yalms').innerHTML = finish ? `<b>${Math.floor(Math.min(lead, finish))}</b>/${finish} yalms` : '';
+  el('yalms').innerHTML = (!isGn(s) && finish) ? `<b>${Math.floor(Math.min(lead, finish))}</b>/${finish} yalms` : '';
 }
 
 function renderPodiumOverlay(s) {
@@ -789,7 +789,7 @@ function renderAll(s) {
 
   if (!finishPending) {
     renderPodiumOverlay(s);
-    renderLastResults(s.results);
+    renderLastResults((s.results || []).filter((r) => r.mode !== 'grand_national'));
     renderStats(s);
   }
 }
@@ -834,7 +834,7 @@ function renderAllGn(s) {
   renderStandings(s);
   renderGnPodium(s);
   renderGnRunners(s);
-  renderLastResultsGn(s.results);
+  renderLastResultsGn((s.results || []).filter((r) => r.mode === 'grand_national'));
 }
 
 function renderHeaderGn(s) {
