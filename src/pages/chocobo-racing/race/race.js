@@ -171,6 +171,7 @@ function renderHeader(s) {
 }
 
 function renderStatsBar(s) {
+  setStatLabel('stat-round', 'Round');
   el('stat-round').textContent = s.round ?? '-';
   el('stat-payout').textContent = s.odds ? `${s.odds}x` : '-';
   el('stat-track').textContent = s.finishLine ? `${s.finishLine} yalms` : '-';
@@ -840,7 +841,8 @@ function renderAllGn(s) {
 function renderHeaderGn(s) {
   const host = s.hostName || 'Unknown host';
   el('host-line').textContent = `Hosted by ${host}${s.venueName ? ` · ${s.venueName}` : ''}`;
-  el('stat-round').textContent = s.round ?? '-';
+  setStatLabel('stat-round', 'Race');
+  el('stat-round').textContent = s.gnRaceNumber ?? '-';
   setStatLabel('stat-payout', 'Pot');
   el('stat-payout').textContent = fmtGil(s.pot || 0);
   setStatLabel('stat-track', 'Runners');
