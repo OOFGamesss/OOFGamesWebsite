@@ -902,15 +902,27 @@ function startGnRace(s) {
   gnRaf = requestAnimationFrame(gnFrame);
 }
 
+function gnPosAtT(points, t) {
+  if (!Array.isArray(points) || points.length === 0) return 0;
+  if (t <= points[0][0]) return points[0][1];
+  for (let i = 1; i < points.length; i++) {
+    const [t1, p1] = points[i];
+    if (t <= t1 || i === points.length - 1) {
+      const [t0, p0] = points[i - 1];
+      const span = Math.max(0.0001, t1 - t0);
+      const frac = Math.max(0, Math.min(1, (t - t0) / span));
+      return p0 + (p1 - p0) * frac;
+    }
+  }
+  return points[points.length - 1][1];
+}
+
 function gnFrame(now) {
   if (!currentState || !isGn(currentState) || currentState.phase !== 'Racing') { gnRaf = 0; return; }
   const finish = currentState.finishLine || 20;
   const t = Math.max(0, Math.min(1, (now - gnStartTs) / gnDurationMs));
   for (const p of gnPlan) {
-    const start = p.start || 0;
-    const span = Math.max(0.001, (p.end == null ? 1 : p.end) - start);
-    const prog = Math.max(0, Math.min(1, (t - start) / span));
-    const pos = Math.min(finish, (p.target || 0) * prog);
+    const pos = Math.max(0, Math.min(finish, gnPosAtT(p.points, t)));
     gnPos.set(p.number, pos);
   }
   syncGnChocobos(currentState);
