@@ -12,7 +12,9 @@ const KWEH_BASE = 0.7;
 const MAX_KWEH_VOICES = 4;
 const MAX_HORN_VOICES = 2;
 const MAX_WIN_VOICES = 2;
-const LOBBY_FADE_MS = 3000;
+const TRACK_BASE = { theme: THEME_BASE, lobby: LOBBY_BASE };
+const TRACK_FADE_MS = 1200;
+const INTRO_HOLD_MS = 900;
 
 function loadBool(key, fallback) {
   try {
@@ -36,6 +38,10 @@ function save(key, value) {
   try { localStorage.setItem(key, value); } catch {}
 }
 
+function now() {
+  return (typeof performance !== 'undefined' ? performance : Date).now();
+}
+
 const audio = {
   musicOn: loadBool(LS_MUSIC_ON, true),
   sfxOn: loadBool(LS_SFX_ON, true),
@@ -43,33 +49,39 @@ const audio = {
   sfxVol: loadVol(LS_SFX_VOL),
   unlocked: false,
   wantTheme: false,
+  lobbyOn: false,
   onChange: null,
 
-  theme: null,
-  lobby: null,
+  // Only one of these can ever be audible at a time - see setActiveTrack.
+  tracks: { theme: null, lobby: null },
+  mix: { theme: 0, lobby: 0 },
+  fadeRaf: { theme: null, lobby: null },
+  activeTrack: null,
+  introTimer: null,
+
   winVoices: [],
   winSlot: 0,
   hornVoices: [],
   hornSlot: 0,
   kwehVoices: [],
   kwehSlot: 0,
-  lobbyOn: false,
-  lobbyFadeTimer: null,
 
   init() {
-    this.theme = new Audio(`${AUDIO_BASE}/theme.mp3`);
-    this.theme.loop = true;
-    this.theme.preload = 'auto';
+    this.tracks.theme = new Audio(`${AUDIO_BASE}/theme.mp3`);
+    this.tracks.theme.loop = true;
+    this.tracks.theme.preload = 'auto';
+    this.tracks.theme.volume = 0;
 
-    this.lobby = new Audio(`${AUDIO_BASE}/lobby.mp3`);
-    this.lobby.loop = true;
-    this.lobby.preload = 'auto';
+    this.tracks.lobby = new Audio(`${AUDIO_BASE}/lobby.mp3`);
+    this.tracks.lobby.loop = true;
+    this.tracks.lobby.preload = 'auto';
+    this.tracks.lobby.volume = 0;
 
     this.winVoices = this.makeVoices(`${AUDIO_BASE}/win.mp3`, MAX_WIN_VOICES);
     this.hornVoices = this.makeVoices(`${AUDIO_BASE}/start-horn.mp3`, MAX_HORN_VOICES);
     this.kwehVoices = this.makeVoices(`${AUDIO_BASE}/kweh.mp3`, MAX_KWEH_VOICES);
 
-    this.applyVolumes();
+    this.applyVoiceVolumes();
 
     const unlock = () => this.unlock();
     window.addEventListener('pointerdown', unlock, { once: true });
@@ -88,32 +100,45 @@ const audio = {
     return voices;
   },
 
+  // Plays + immediately pauses an element while muted, purely so browsers that
+  // require every media element to have been started from within a genuine
+  // user gesture (iOS Safari) will allow us to play it again later from
+  // non-gesture code (websocket events, timers). Muted/zero-volume so nothing
+  // is ever audibly triggered by this step, no matter how many clips exist.
+  prime(el) {
+    if (!el) return;
+    const wasMuted = el.muted;
+    const wasVolume = el.volume;
+    el.muted = true;
+    el.volume = 0;
+    const restore = () => {
+      el.pause();
+      try { el.currentTime = 0; } catch {}
+      el.muted = wasMuted;
+      el.volume = wasVolume;
+    };
+    const p = el.play();
+    if (p && p.then) p.then(restore).catch(restore);
+    else restore();
+  },
+
   unlock() {
     if (this.unlocked) return;
     this.unlocked = true;
 
-    const prime = (el) => {
-      if (!el) return;
-      const wasMuted = el.muted;
-      el.muted = true;
-      const restore = () => {
-        el.pause();
-        try { el.currentTime = 0; } catch {}
-        el.muted = wasMuted;
-      };
-      const p = el.play();
-      if (p && p.then) {
-        p.then(restore).catch(restore);
-      } else {
-        restore();
-      }
-    };
-    for (const a of this.winVoices) prime(a);
-    for (const a of this.hornVoices) prime(a);
-    for (const a of this.kwehVoices) prime(a);
+    for (const a of this.winVoices) this.prime(a);
+    for (const a of this.hornVoices) this.prime(a);
+    for (const a of this.kwehVoices) this.prime(a);
+    // Theme is about to be played for real below; lobby needs its own silent
+    // priming so it's free to be swapped in later without another gesture.
+    this.prime(this.tracks.lobby);
 
-    this.applyTheme();
-    if (this.lobbyOn) this.resumeLobby();
+    // Greet with the theme, then let the real state (already known by the
+    // time the player can click anything) decide what should actually keep
+    // playing. Only one track is ever audible - see setActiveTrack.
+    this.setActiveTrack('theme');
+    clearTimeout(this.introTimer);
+    this.introTimer = setTimeout(() => this.reconcileTrack(), INTRO_HOLD_MS);
   },
 
   playVoice(voices, slotKey, gate) {
@@ -126,22 +151,99 @@ const audio = {
     } catch {}
   },
 
-  applyVolumes() {
-    if (this.theme) this.theme.volume = THEME_BASE * this.musicVol;
-    if (this.lobby && this.lobbyFadeTimer === null) this.lobby.volume = LOBBY_BASE * this.musicVol;
+  applyVoiceVolumes() {
     for (const a of this.winVoices) a.volume = WIN_BASE * this.musicVol;
     for (const a of this.hornVoices) a.volume = HORN_BASE * this.sfxVol;
     for (const a of this.kwehVoices) a.volume = KWEH_BASE * this.sfxVol;
   },
 
+  applyTrackVolumes() {
+    for (const name of Object.keys(this.tracks)) {
+      const el = this.tracks[name];
+      if (el) el.volume = TRACK_BASE[name] * this.musicVol * (this.mix[name] || 0);
+    }
+  },
+
+  // wantTheme/lobbyOn are independent booleans set by race.js based on phase.
+  // They can briefly both be true during fast state transitions - reconcile
+  // picks a single winner (theme takes priority) instead of playing both.
+  reconcileTrack() {
+    const desired = this.wantTheme ? 'theme' : (this.lobbyOn ? 'lobby' : null);
+    this.setActiveTrack(desired);
+  },
+
+  setActiveTrack(name) {
+    if (name === this.activeTrack) { this.fadeIn(name); return; }
+    const prev = this.activeTrack;
+    this.activeTrack = name;
+    if (prev) this.fadeOut(prev);
+    if (name) this.fadeIn(name);
+  },
+
+  fadeIn(name) {
+    if (!name) return;
+    const el = this.tracks[name];
+    if (!el) return;
+    if (!this.unlocked || !this.musicOn) { this.cancelFade(name); this.mix[name] = 1; el.volume = 0; return; }
+    if (!el.paused && this.mix[name] >= 1 && this.fadeRaf[name] == null) return;
+    this.cancelFade(name);
+    this.stopWin();
+    if (el.paused) { try { el.currentTime = 0; } catch {} }
+    el.play().catch(() => {});
+    const startMix = this.mix[name] || 0;
+    const startTime = now();
+    const step = () => {
+      const t = Math.min(1, (now() - startTime) / TRACK_FADE_MS);
+      this.mix[name] = startMix + (1 - startMix) * t;
+      el.volume = TRACK_BASE[name] * this.musicVol * this.mix[name];
+      this.fadeRaf[name] = t < 1 ? requestAnimationFrame(step) : null;
+    };
+    this.fadeRaf[name] = requestAnimationFrame(step);
+  },
+
+  fadeOut(name) {
+    const el = this.tracks[name];
+    if (!el) return;
+    this.cancelFade(name);
+    if (el.paused) { this.mix[name] = 0; el.volume = 0; return; }
+    const startMix = this.mix[name] || 0;
+    const startTime = now();
+    const step = () => {
+      const t = Math.min(1, (now() - startTime) / TRACK_FADE_MS);
+      this.mix[name] = startMix * (1 - t);
+      el.volume = TRACK_BASE[name] * this.musicVol * this.mix[name];
+      if (t < 1) { this.fadeRaf[name] = requestAnimationFrame(step); return; }
+      el.pause();
+      this.fadeRaf[name] = null;
+    };
+    this.fadeRaf[name] = requestAnimationFrame(step);
+  },
+
+  cancelFade(name) {
+    if (this.fadeRaf[name] != null) { cancelAnimationFrame(this.fadeRaf[name]); this.fadeRaf[name] = null; }
+  },
+
+  pauseTrack(name) {
+    this.cancelFade(name);
+    const el = this.tracks[name];
+    if (el) el.pause();
+    this.mix[name] = 0;
+  },
+
   setBgm(on) {
     this.wantTheme = !!on;
-    this.applyTheme();
+    if (this.unlocked) this.reconcileTrack();
+  },
+
+  setLobby(on) {
+    this.lobbyOn = !!on;
+    if (this.unlocked) this.reconcileTrack();
   },
 
   restartTheme() {
-    if (!this.theme) return;
-    try { this.theme.currentTime = 0; } catch {}
+    const el = this.tracks.theme;
+    if (!el) return;
+    try { el.currentTime = 0; } catch {}
   },
 
   stopWin() {
@@ -150,71 +252,10 @@ const audio = {
     }
   },
 
-  applyTheme() {
-    if (!this.theme) return;
-    const shouldPlay = this.wantTheme && this.musicOn && this.unlocked;
-    if (shouldPlay) {
-      this.stopWin();
-      this.theme.play().catch(() => {});
-    } else {
-      this.theme.pause();
-    }
-  },
-
-  setLobby(on) {
-    on = !!on;
-    if (on === this.lobbyOn) return;
-    this.lobbyOn = on;
-    if (on) this.startLobby();
-    else this.fadeOutLobby();
-  },
-
-  startLobby() {
-    if (!this.lobby) return;
-    this.cancelLobbyFade();
-    this.stopWin();
-    this.lobby.volume = LOBBY_BASE * this.musicVol;
-    try { this.lobby.currentTime = 0; } catch {}
-    if (this.musicOn && this.unlocked) this.lobby.play().catch(() => {});
-  },
-
-  resumeLobby() {
-    if (!this.lobby) return;
-    this.cancelLobbyFade();
-    this.lobby.volume = LOBBY_BASE * this.musicVol;
-    if (this.musicOn && this.unlocked && this.lobbyOn) this.lobby.play().catch(() => {});
-  },
-
-  fadeOutLobby() {
-    if (!this.lobby) return;
-    this.cancelLobbyFade();
-    if (this.lobby.paused) { this.lobby.volume = 0; return; }
-    const startVol = this.lobby.volume;
-    const startTime = (typeof performance !== 'undefined' ? performance : Date).now();
-    const step = () => {
-      const t = ((typeof performance !== 'undefined' ? performance : Date).now() - startTime) / LOBBY_FADE_MS;
-      if (t >= 1) {
-        this.lobby.volume = 0;
-        this.lobby.pause();
-        this.lobbyFadeTimer = null;
-        return;
-      }
-      this.lobby.volume = startVol * (1 - t);
-      this.lobbyFadeTimer = requestAnimationFrame(step);
-    };
-    this.lobbyFadeTimer = requestAnimationFrame(step);
-  },
-
-  cancelLobbyFade() {
-    if (this.lobbyFadeTimer !== null) {
-      cancelAnimationFrame(this.lobbyFadeTimer);
-      this.lobbyFadeTimer = null;
-    }
-  },
-
   playWin() {
     if (!this.musicOn || !this.unlocked) return;
-    if (this.theme) this.theme.pause();
+    this.pauseTrack('theme');
+    if (this.activeTrack === 'theme') this.activeTrack = null;
     this.playVoice(this.winVoices, 'winSlot', this.musicOn);
   },
 
@@ -230,14 +271,13 @@ const audio = {
     this.musicOn = !this.musicOn;
     save(LS_MUSIC_ON, this.musicOn ? '1' : '0');
     this.unlock();
-    this.applyTheme();
     if (this.musicOn) {
-      if (this.lobbyOn) this.resumeLobby();
+      if (this.activeTrack) this.fadeIn(this.activeTrack);
     } else {
-      this.cancelLobbyFade();
-      if (this.lobby) this.lobby.pause();
+      this.pauseTrack('theme');
+      this.pauseTrack('lobby');
+      this.stopWin();
     }
-    if (!this.musicOn) for (const a of this.winVoices) a.pause();
     if (this.onChange) this.onChange();
   },
 
@@ -252,7 +292,8 @@ const audio = {
     this.musicVol = Math.min(1, Math.max(0, v));
     save(LS_MUSIC_VOL, String(this.musicVol));
     this.unlock();
-    this.applyVolumes();
+    this.applyTrackVolumes();
+    this.applyVoiceVolumes();
     if (this.onChange) this.onChange();
   },
 
@@ -260,7 +301,7 @@ const audio = {
     this.sfxVol = Math.min(1, Math.max(0, v));
     save(LS_SFX_VOL, String(this.sfxVol));
     this.unlock();
-    this.applyVolumes();
+    this.applyVoiceVolumes();
     if (this.onChange) this.onChange();
   },
 };
