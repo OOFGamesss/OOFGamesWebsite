@@ -201,14 +201,16 @@ function ensureTrack(s) {
   trackSig = sig;
   const n = chocobos.length;
   const gn = isGn(s);
+  const GN_MIN_CHOCOBOS = 5;
+  const sizeN = gn ? Math.max(n, GN_MIN_CHOCOBOS) : n;
   const track = el('track');
-  const sprite = spriteSizeFor(n);
+  const sprite = spriteSizeFor(sizeN);
   const grassTop = 112;
   const rowStep = sprite + 14;
   track.style.setProperty('--sprite-size', `${sprite}px`);
   track.style.setProperty('--grass-top', `${grassTop}px`);
 
-  const rows = gn ? Math.min(n, 10) : n;
+  const rows = gn ? Math.min(sizeN, 10) : n;
   const trackH = grassTop + rows * rowStep + 36;
   track.style.height = `${trackH}px`;
 
@@ -221,8 +223,8 @@ function ensureTrack(s) {
   if (usableBottom < usableTop + sprite) usableBottom = usableTop + sprite;
   const usableH = usableBottom - usableTop;
   const spacing = sprite * 0.8;
-  const packSpan = spacing * Math.max(0, n - 1);
-  const realSpacing = packSpan <= usableH ? spacing : usableH / Math.max(1, n - 1);
+  const packSpan = spacing * Math.max(0, sizeN - 1);
+  const realSpacing = packSpan <= usableH ? spacing : usableH / Math.max(1, sizeN - 1);
   const startY = (usableTop + usableBottom) / 2 - (realSpacing * (n - 1)) / 2;
   el('runners-layer').innerHTML = chocobos.map((c, i) => {
     const color = colorFor(c.number);
