@@ -109,9 +109,13 @@
             <div class="card-head"><h2>My Bets</h2></div>
             <div id="your-bets" class="bets-table scroll-area"></div>
           </section>
-          <section class="panel">
+          <section id="all-bets-card" class="panel">
             <div class="card-head"><h2>All Bets</h2><span id="all-bets-count" class="card-head__hint">0</span></div>
             <div id="all-bets" class="bets-table scroll-area"></div>
+          </section>
+          <section id="gn-runners-card" class="panel hidden">
+            <div class="card-head"><h2>Runners</h2><span id="gn-runner-count" class="card-head__hint">0</span></div>
+            <div id="gn-runners" class="bets-table scroll-area"></div>
           </section>
         </div>
 
@@ -210,7 +214,7 @@
     <div id="howto-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="howto-title">
       <div class="panel modal__card howto-card">
         <h2 id="howto-title" class="howto-card__title">How to Play</h2>
-        <ol class="howto-steps">
+        <ol id="howto-steps" class="howto-steps">
           <li>
             <span class="howto-steps__num">1</span>
             <div>

@@ -1,10 +1,3 @@
-// Live Chocobo Race spectator + betting app.
-//
-// Reads the session id from /pages/chocobo-racing/race/{sessionId}, loads the
-// public state, animates an open grass track from integer call counts over a
-// WebSocket, shows the live bet board, last results and race stats, and lets a
-// player join with a PIN, build a multi-selection bet slip and place bets.
-
 import './race.css';
 import { getState, login, me, placeBet, raceSocketUrl, uuid } from '../../../api/chocobo-racing-client.js';
 import audio from './race-audio.js';
@@ -114,8 +107,21 @@ let countdownActive = false;
 let countdownTimers = [];
 let finishPending = false;
 let finishTimer = null;
-let prevRankByNumber = null;
 let announcedWinner = null;
+
+const GN_MS_PER_YALM = 1000;
+const GN_COUNTDOWN_MS = 3000;
+let gnStartTimer = null;
+let gnPlan = [];
+let gnRaf = 0;
+let gnStartTs = 0;
+let gnDurationMs = 20000;
+let gnLastPhase = null;
+const gnPos = new Map();
+
+let rollCount = 0;
+let lastKwehRoll = -999;
+let prevLeaderNum = null;
 
 const COUNT_STEP_MS = 800;
 const GO_HOLD_MS = 600;
@@ -124,6 +130,22 @@ const COUNTDOWN_COLORS = ['#ffd23f', '#4dd2ff', '#ff6ec7', '#7aa7ff'];
 let countdownColorIdx = 0;
 
 const laneColor = (n) => LANE_COLORS[(n - 1) % LANE_COLORS.length];
+
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => {
+    const c = l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return Math.round(255 * c).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+const gnColor = (n) => hslToHex((n * 47) % 360, 68, 56);
+const isGn = (s) => !!s && s.mode === 'grand_national';
+const colorFor = (n) => (isGn(currentState) ? gnColor(n) : laneColor(n));
+
 const chocoboName = (n) => {
   const c = (currentState?.chocobos || []).find((x) => x.number === n);
   return c ? c.name : `Chocobo ${n}`;
@@ -172,10 +194,11 @@ const spriteSizeFor = (n) => (n <= 6 ? 68 : n <= 8 ? 58 : 50);
 
 function ensureTrack(s) {
   const chocobos = s.chocobos || [];
-  const sig = chocobos.map((c) => `${c.number}:${c.name}`).join('|');
+  const sig = `${s.mode || 'classic'}|` + chocobos.map((c) => `${c.number}:${c.name}`).join('|');
   if (sig === trackSig) return;
   trackSig = sig;
   const n = chocobos.length;
+  const gn = isGn(s);
   const track = el('track');
   const sprite = spriteSizeFor(n);
   const grassTop = 112;
@@ -183,7 +206,8 @@ function ensureTrack(s) {
   track.style.setProperty('--sprite-size', `${sprite}px`);
   track.style.setProperty('--grass-top', `${grassTop}px`);
 
-  const trackH = grassTop + n * rowStep + 36;
+  const rows = gn ? Math.min(n, 10) : n;
+  const trackH = grassTop + rows * rowStep + 36;
   track.style.height = `${trackH}px`;
 
   const view = el('race-view');
@@ -191,7 +215,7 @@ function ensureTrack(s) {
 
   const half = sprite / 2;
   const usableTop = grassTop + half + 12;
-  let usableBottom = trackH - 78 - half;
+  let usableBottom = trackH - (gn ? 132 : 78) - half;
   if (usableBottom < usableTop + sprite) usableBottom = usableTop + sprite;
   const usableH = usableBottom - usableTop;
   const spacing = sprite * 0.8;
@@ -199,10 +223,10 @@ function ensureTrack(s) {
   const realSpacing = packSpan <= usableH ? spacing : usableH / Math.max(1, n - 1);
   const startY = (usableTop + usableBottom) / 2 - (realSpacing * (n - 1)) / 2;
   el('runners-layer').innerHTML = chocobos.map((c, i) => {
-    const color = laneColor(c.number);
-    const laneTop = grassTop + i * rowStep + rowStep / 2;
+    const color = colorFor(c.number);
     const jitter = ((i * 53) % 13) - 6;
     const packTop = Math.max(usableTop, Math.min(usableBottom, Math.round(startY + i * realSpacing + jitter)));
+    const laneTop = gn ? packTop : grassTop + i * rowStep + rowStep / 2;
     const tint = spriteTint(color);
     const wanted = 5 + ((i * 29) % 10);
     const jamp = Math.max(3, Math.round(Math.min(wanted, packTop - usableTop, usableBottom - packTop)));
@@ -285,14 +309,15 @@ function renderStandings(s) {
 
   const order = [...(s.chocobos || [])].sort((a, b) => (b.position - a.position) || (a.number - b.number));
   const medals = ['podium--1', 'podium--2', 'podium--3'];
+  const shown = isGn(s) ? order.slice(0, 5) : order;
 
-  standings.innerHTML = order.map((c, i) => {
+  standings.innerHTML = shown.map((c, i) => {
     if (i < 3) {
       return `
         <div class="podium ${medals[i]}">
           <span class="podium__rank">${i + 1}</span>
           <span class="podium__chip">
-            <span class="podium__silk" style="background:${laneColor(c.number)}">${c.number}</span>
+            <span class="podium__silk" style="background:${colorFor(c.number)}">${c.number}</span>
             <span class="podium__name">${escapeHtml(c.name)}</span>
           </span>
         </div>`;
@@ -300,13 +325,13 @@ function renderStandings(s) {
     return `
       <span class="standing">
         <span class="standing__rank">${i + 1}</span>
-        <span class="standing__silk" style="background:${laneColor(c.number)}">${c.number}</span>
+        <span class="standing__silk" style="background:${colorFor(c.number)}">${c.number}</span>
       </span>`;
   }).join('');
 
   const finish = s.finishLine || 0;
   const lead = order.length ? order[0].position : 0;
-  el('yalms').innerHTML = finish ? `<b>${Math.min(lead, finish)}</b>/${finish} yalms` : '';
+  el('yalms').innerHTML = finish ? `<b>${Math.floor(Math.min(lead, finish))}</b>/${finish} yalms` : '';
 }
 
 function renderPodiumOverlay(s) {
@@ -685,7 +710,36 @@ function closePinChanged() { el('pin-changed-modal').style.display = 'none'; }
 function openModal() { el('pin-modal').classList.remove('hidden'); el('pin-input').focus(); }
 function closeModal() { el('pin-modal').classList.add('hidden'); el('pin-msg').classList.add('hidden'); el('pin-input').value = ''; }
 
-function openHowTo() { el('howto-modal').classList.remove('hidden'); }
+const HOWTO_GN_STEPS = [
+  ['Trade Gil to your host', 'Pay the entry fee to your race host to join the runner list.'],
+  ['Get your chocobo', 'The host adds you to the race and gives you a numbered chocobo carrying your name.'],
+  ['Watch the race', 'When the host starts, the server draws the winner and the chocobos race it out.'],
+  ["Win the pot", 'If your chocobo is first past the post, you take the entire pot!'],
+];
+
+const HOWTO_CLASSIC_STEPS = [
+  ['Trade Gil to your host', "Hand over some in-game Gil to your race host so you're ready to bet."],
+  ['Get your PIN', 'Your host will give you a 6-digit PIN. Tap "Enter PIN to bet" at the top and enter it to log in.'],
+  ['Pick your chocobos', 'Head to the Runners section and tap each chocobo you fancy backing.'],
+  ['Set your stakes', 'Open your Bet Slip and type how much Gil you want to bet on each pick.'],
+  ['Place your bet', 'Hit "Place Bet", then sit back and wait for the race to begin!'],
+];
+
+function howToStepsHtml(steps) {
+  return steps.map(([title, body], i) => `
+    <li>
+      <span class="howto-steps__num">${i + 1}</span>
+      <div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(body)}</p></div>
+    </li>`).join('');
+}
+
+function openHowTo() {
+  const gn = isGn(currentState);
+  const list = el('howto-steps');
+  if (list) list.innerHTML = howToStepsHtml(gn ? HOWTO_GN_STEPS : HOWTO_CLASSIC_STEPS);
+  el('howto-modal').classList.remove('hidden');
+}
+
 function closeHowTo() { el('howto-modal').classList.add('hidden'); }
 
 async function submitPin(e) {
@@ -714,6 +768,9 @@ function renderAll(s) {
   hideLoader();
   currentState = s;
 
+  if (isGn(s)) { renderAllGn(s); return; }
+  exitGnMode();
+
   const phase = s.phase;
   if (lastPhase && lastPhase !== 'Racing' && phase === 'Racing') startCountdown();
   lastPhase = phase;
@@ -737,6 +794,200 @@ function renderAll(s) {
   }
 }
 
+function setStatLabel(valueId, text) {
+  const v = el(valueId);
+  if (!v || !v.parentElement) return;
+  const label = v.parentElement.querySelector('.track-stat__label');
+  if (label) label.textContent = text;
+}
+
+function exitGnMode() {
+  document.body.classList.remove('is-gn');
+  el('all-bets-card')?.classList.remove('hidden');
+  el('gn-runners-card')?.classList.add('hidden');
+  const sp = el('race-stats')?.closest('.panel');
+  if (sp) sp.classList.remove('hidden');
+  setStatLabel('stat-payout', 'Payout Odds');
+  setStatLabel('stat-track', 'Track');
+  stopGnRace();
+  gnLastPhase = null;
+}
+
+function renderAllGn(s) {
+  document.body.classList.add('is-gn');
+  el('open-join').classList.add('hidden');
+  el('all-bets-card')?.classList.add('hidden');
+  el('your-bets-card')?.classList.add('hidden');
+  el('gn-runners-card')?.classList.remove('hidden');
+  const sp = el('race-stats')?.closest('.panel');
+  if (sp) sp.classList.add('hidden');
+
+  audio.setBgm(s.phase === 'Racing');
+  audio.setLobby(s.phase === 'Betting' || s.phase === 'BetsClosed');
+
+  renderHeaderGn(s);
+  syncGnChocobos(s);
+  ensureTrack(s);
+  renderVenue(s);
+  handleGnPhase(s);
+  updateRunners(s);
+  renderStandings(s);
+  renderGnPodium(s);
+  renderGnRunners(s);
+  renderLastResultsGn(s.results);
+}
+
+function renderHeaderGn(s) {
+  const host = s.hostName || 'Unknown host';
+  el('host-line').textContent = `Hosted by ${host}${s.venueName ? ` · ${s.venueName}` : ''}`;
+  el('stat-round').textContent = s.round ?? '-';
+  setStatLabel('stat-payout', 'Pot');
+  el('stat-payout').textContent = fmtGil(s.pot || 0);
+  setStatLabel('stat-track', 'Runners');
+  el('stat-track').textContent = String((s.runners || []).length);
+  el('stat-perfect-wrap').classList.add('hidden');
+
+  const show = s.phase === 'Idle' || s.phase === 'Betting' || s.phase === 'BetsClosed';
+  const ov = el('track-status');
+  ov.classList.toggle('hidden', !show);
+  if (show) {
+    const label = s.phase === 'Betting' ? 'Registration Open' : s.phase === 'BetsClosed' ? 'Ready to Race' : 'Waiting';
+    ov.querySelector('.track-status__text').textContent = label;
+  }
+}
+
+function gnPositionFor(n, s) {
+  const finish = s.finishLine || 20;
+  if (s.phase === 'Racing') return gnPos.get(n) || 0;
+  if (s.phase === 'Finished') {
+    if (n === (s.winner || 0)) return finish;
+    return gnPos.has(n) ? gnPos.get(n) : Math.max(0, finish - 3);
+  }
+  return 0;
+}
+
+function syncGnChocobos(s) {
+  if (!s.finishLine) s.finishLine = 20;
+  s.chocobos = (s.runners || []).map((r) => ({
+    number: r.number, name: r.name, world: r.world, position: gnPositionFor(r.number, s),
+  }));
+  s.winningChocobo = s.phase === 'Finished' ? (s.winner || 0) : 0;
+}
+
+function handleGnPhase(s) {
+  const phase = s.phase;
+  if (gnLastPhase !== 'Racing' && phase === 'Racing') {
+    startCountdown();
+    if (gnStartTimer) clearTimeout(gnStartTimer);
+    gnStartTimer = setTimeout(() => {
+      if (currentState && isGn(currentState) && currentState.phase === 'Racing') startGnRace(currentState);
+    }, GN_COUNTDOWN_MS);
+  }
+  if (phase !== 'Racing') stopGnRace();
+  if (phase === 'Finished') finishGnRace(s);
+  if (phase === 'Betting' || phase === 'BetsClosed' || phase === 'Idle') gnPos.clear();
+  gnLastPhase = phase;
+}
+
+function startGnRace(s) {
+  stopGnRaceTimer();
+  gnPlan = Array.isArray(s.racePlan) ? s.racePlan.slice() : [];
+  const finish = s.finishLine || 20;
+  gnDurationMs = Math.max(5000, finish * GN_MS_PER_YALM);
+  gnPos.clear();
+  (s.runners || []).forEach((r) => gnPos.set(r.number, 0));
+  gnStartTs = (typeof performance !== 'undefined' ? performance : Date).now();
+  gnRaf = requestAnimationFrame(gnFrame);
+}
+
+function gnFrame(now) {
+  if (!currentState || !isGn(currentState) || currentState.phase !== 'Racing') { gnRaf = 0; return; }
+  const finish = currentState.finishLine || 20;
+  const t = Math.max(0, Math.min(1, (now - gnStartTs) / gnDurationMs));
+  for (const p of gnPlan) {
+    const start = p.start || 0;
+    const span = Math.max(0.001, (p.end == null ? 1 : p.end) - start);
+    const prog = Math.max(0, Math.min(1, (t - start) / span));
+    const pos = Math.min(finish, (p.target || 0) * prog);
+    gnPos.set(p.number, pos);
+  }
+  syncGnChocobos(currentState);
+  updateRunners(currentState);
+  renderStandings(currentState);
+  gnRaf = t < 1 ? requestAnimationFrame(gnFrame) : 0;
+}
+
+function stopGnRaceTimer() {
+  if (gnRaf) { cancelAnimationFrame(gnRaf); gnRaf = 0; }
+}
+
+function stopGnRace() {
+  stopGnRaceTimer();
+  if (gnStartTimer) { clearTimeout(gnStartTimer); gnStartTimer = null; }
+}
+
+function finishGnRace(s) {
+  stopGnRace();
+  const finish = s.finishLine || 20;
+  if (s.winner) gnPos.set(s.winner, finish);
+  if (announcedWinner !== (s.winner || 0)) {
+    announcedWinner = s.winner || 0;
+    if (audio.playWin) audio.playWin();
+  }
+}
+
+function renderGnPodium(s) {
+  const overlay = el('podium-overlay');
+  if (s.phase !== 'Finished') { overlay.classList.add('hidden'); overlay.innerHTML = ''; return; }
+  const w = (s.runners || []).find((r) => r.number === (s.winner || 0));
+  if (!w) { overlay.classList.add('hidden'); return; }
+  const color = gnColor(w.number);
+  overlay.innerHTML = `
+    <div class="podium-overlay__card">
+      <h3 class="podium-overlay__title">🏁 Grand National Winner</h3>
+      <div class="gn-podium">
+        <span class="gn-podium__silk" style="background:${color}">${w.number}</span>
+        <span class="gn-podium__name">${escapeHtml(w.name)}${w.world ? ` <small>(${escapeHtml(w.world)})</small>` : ''}</span>
+      </div>
+      <div class="gn-podium__pot">Takes ${fmtGil(s.netPot || s.pot || 0)}</div>
+    </div>`;
+  overlay.classList.remove('hidden');
+}
+
+function renderGnRunners(s) {
+  const runners = s.runners || [];
+  el('gn-runner-count').textContent = String(runners.length);
+  if (runners.length === 0) {
+    el('gn-runners').innerHTML = '<div class="bets-empty">Waiting for runners to register...</div>';
+    return;
+  }
+  const win = s.phase === 'Finished' ? (s.winner || 0) : 0;
+  el('gn-runners').innerHTML = runners.map((r) => {
+    const color = gnColor(r.number);
+    const won = r.number === win;
+    return `
+      <div class="gn-run ${won ? 'is-won' : ''}">
+        <span class="gn-run__silk" style="background:${color}">${r.number}</span>
+        <span class="gn-run__name">${escapeHtml(r.name)}${r.world ? `<small class="gn-run__world">${escapeHtml(r.world)}</small>` : ''}</span>
+        ${won ? '<span class="gn-run__tag">WINNER</span>' : ''}
+      </div>`;
+  }).join('');
+}
+
+function renderLastResultsGn(results) {
+  const box = el('last-results');
+  if (!results || results.length === 0) { box.innerHTML = '<div class="bets-empty">No races yet</div>'; return; }
+  box.innerHTML = results.map((r) => `
+    <div class="result-item">
+      <div class="result-item__head"><span class="result-item__round">Race ${r.round}</span></div>
+      <div class="gn-result">
+        <span class="gn-run__silk" style="background:${gnColor(r.winner)}">${r.winner}</span>
+        <span class="gn-run__name">${escapeHtml(r.winnerName || `Runner ${r.winner}`)}${r.winnerWorld ? `<small class="gn-run__world">${escapeHtml(r.winnerWorld)}</small>` : ''}</span>
+        <span class="gn-result__pot">${fmtGil(r.netPot || r.pot || 0)}</span>
+      </div>
+    </div>`).join('');
+}
+
 function applyCallCounts(data) {
   if (!currentState) return;
   const positions = data.positions || [];
@@ -744,30 +995,34 @@ function applyCallCounts(data) {
   if (data.winningChocobo != null) currentState.winningChocobo = data.winningChocobo;
   if (data.phase) currentState.phase = data.phase;
   if (data.finishLine) currentState.finishLine = data.finishLine;
-  if (currentState.phase === 'Racing' && !countdownActive && !finishPending) detectOvertakes(currentState);
+  if (currentState.phase === 'Racing' && !countdownActive && !finishPending) maybeKweh(currentState, 5);
   renderAll(currentState);
 }
 
-function rankOrder(s) {
-  return [...(s.chocobos || [])].sort((a, b) => (b.position - a.position) || (a.number - b.number));
+function currentLeaderNum(s) {
+  const order = [...(s.chocobos || [])].sort((a, b) => (b.position - a.position) || (a.number - b.number));
+  return order.length ? order[0].number : 0;
 }
 
-function detectOvertakes(s) {
-  const newRank = new Map();
-  rankOrder(s).forEach((c, i) => newRank.set(c.number, i));
-  if (prevRankByNumber) {
-    for (const [num, rank] of newRank) {
-      if (rank === 0 && prevRankByNumber.get(num) !== 0) { audio.playKweh(); break; }
+function maybeKweh(s, interval) {
+  rollCount += 1;
+  const leader = currentLeaderNum(s);
+  if (prevLeaderNum !== null && leader !== 0 && leader !== prevLeaderNum) {
+    if (rollCount - lastKwehRoll >= interval) {
+      audio.playKweh();
+      lastKwehRoll = rollCount;
     }
   }
-  prevRankByNumber = newRank;
+  prevLeaderNum = leader;
 }
 
 function startCountdown() {
   clearCountdown();
   countdownActive = true;
   finishPending = false;
-  prevRankByNumber = null;
+  rollCount = 0;
+  lastKwehRoll = -999;
+  prevLeaderNum = null;
   announcedWinner = null;
   countdownColorIdx = 0;
   audio.restartTheme();
@@ -815,7 +1070,7 @@ function beginFinish(winningChocobo) {
   announcedWinner = winningChocobo;
   currentState.winningChocobo = winningChocobo;
   currentState.phase = 'Finished';
-  prevRankByNumber = null;
+  prevLeaderNum = null;
   const w = (currentState.chocobos || []).find((c) => c.number === winningChocobo);
   if (w && currentState.finishLine) w.position = currentState.finishLine;
   finishPending = true;

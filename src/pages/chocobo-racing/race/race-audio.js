@@ -135,10 +135,17 @@ const audio = {
     try { this.theme.currentTime = 0; } catch {}
   },
 
+  stopWin() {
+    for (const a of this.winVoices) {
+      try { a.pause(); a.currentTime = 0; } catch {}
+    }
+  },
+
   applyTheme() {
     if (!this.theme) return;
     const shouldPlay = this.wantTheme && this.musicOn && this.unlocked;
     if (shouldPlay) {
+      this.stopWin();
       this.theme.play().catch(() => {});
     } else {
       this.theme.pause();
@@ -156,6 +163,7 @@ const audio = {
   startLobby() {
     if (!this.lobby) return;
     this.cancelLobbyFade();
+    this.stopWin();
     this.lobby.volume = LOBBY_BASE * this.musicVol;
     try { this.lobby.currentTime = 0; } catch {}
     if (this.musicOn && this.unlocked) this.lobby.play().catch(() => {});
