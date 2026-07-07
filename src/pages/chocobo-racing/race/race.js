@@ -175,6 +175,7 @@ function renderStatsBar(s) {
   el('stat-round').textContent = s.round ?? '-';
   el('stat-payout').textContent = s.odds ? `${s.odds}x` : '-';
   el('stat-track').textContent = s.finishLine ? `${s.finishLine} yalms` : '-';
+  el('stat-entry-wrap').classList.add('hidden');
   const pw = el('stat-perfect-wrap');
   if (s.perfectRace && s.perfectRaceOdds) {
     el('stat-perfect').textContent = `${s.perfectRaceOdds}x`;
@@ -845,6 +846,13 @@ function renderHeaderGn(s) {
   el('stat-round').textContent = s.gnRaceNumber ?? '-';
   setStatLabel('stat-payout', 'Pot');
   el('stat-payout').textContent = fmtGil(s.pot || 0);
+  const ew = el('stat-entry-wrap');
+  if (s.entryFee) {
+    el('stat-entry').textContent = fmtGil(s.entryFee);
+    ew.classList.remove('hidden');
+  } else {
+    ew.classList.add('hidden');
+  }
   setStatLabel('stat-track', 'Runners');
   el('stat-track').textContent = String((s.runners || []).length);
   el('stat-perfect-wrap').classList.add('hidden');
