@@ -198,7 +198,7 @@ body.is-gn .conn-dot { display: none; }
 body.is-gn .runner { transition: left 0.12s linear, top 0.8s ease; }
 
 .runner__label { display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 2px; white-space: nowrap; }
-.runner__num { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 5px; font-size: 0.74rem; font-weight: 800; color: #0a0612; box-shadow: 0 0 0 1px rgba(0,0,0,0.55); }
+.runner__num { flex: none; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 5px; font-size: 0.74rem; font-weight: 800; color: #0a0612; box-shadow: 0 0 0 1px rgba(0,0,0,0.55); }
 .runner__name { font-size: 0.9rem; font-weight: 800; text-shadow: 0 1px 2px #000, 0 0 5px rgba(0,0,0,0.95); white-space: nowrap; }
 .runner__body { position: relative; height: var(--sprite-size); display: grid; place-items: center; }
 .runner__bob { animation: bob 0.42s ease-in-out infinite alternate; transform-origin: 50% 100%; }
