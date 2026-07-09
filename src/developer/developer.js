@@ -385,7 +385,7 @@ function renderGamesTab(container) {
 
   const repoBlock = el('div');
   repoBlock.appendChild(fieldLabel('Download link (optional)'));
-  const repoInput = textInput('https://github.com/…', initial ? initial.repo_url || '' : '');
+  const repoInput = textInput('https://…', initial ? initial.repo_url || '' : '');
   repoBlock.appendChild(repoInput);
   formPanel.appendChild(repoBlock);
 
