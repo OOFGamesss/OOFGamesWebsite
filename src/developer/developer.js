@@ -238,7 +238,7 @@ function gameCard(game, { withdrawable }) {
   const players = playerCountText(game);
   if (players) meta.appendChild(el('span', '', players));
   for (const [label, url] of [
-    ['Repository', game.repo_url],
+    ['Download', game.repo_url],
     ['Information', game.info_url],
     ['Discord', game.discord_invite_url]
   ]) {
@@ -384,7 +384,7 @@ function renderGamesTab(container) {
   formPanel.appendChild(playersBlock);
 
   const repoBlock = el('div');
-  repoBlock.appendChild(fieldLabel('GitHub repository (optional)'));
+  repoBlock.appendChild(fieldLabel('Download link (optional)'));
   const repoInput = textInput('https://github.com/…', initial ? initial.repo_url || '' : '');
   repoBlock.appendChild(repoInput);
   formPanel.appendChild(repoBlock);
@@ -531,9 +531,9 @@ function buildChangesDiff(game) {
     ['Image', game.image_url, changes.image_url],
     ['Description', game.description, changes.description],
     ['Players', playerCountText(game) || 'Not specified', playerText(changes.max_players, changes.players_over_24)],
-    ['Repository', game.repo_url || '—', changes.repo_url || '—'],
-    ['Information', game.info_url || '—', changes.info_url || '—'],
-    ['Discord', game.discord_invite_url || '—', changes.discord_invite_url || '—']
+    ['Download link', game.repo_url || '-', changes.repo_url || '-'],
+    ['Information', game.info_url || '-', changes.info_url || '-'],
+    ['Discord', game.discord_invite_url || '-', changes.discord_invite_url || '-']
   ];
   let anyChange = false;
   for (const [label, oldValue, newValue] of rows) {
