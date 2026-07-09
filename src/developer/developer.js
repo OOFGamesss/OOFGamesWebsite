@@ -7,6 +7,7 @@ const state = {
   gameTypes: [],
   myGames: [],
   activeTab: 'profile',
+  activeGamesSubTab: 'submit',
   editingGame: null
 };
 
@@ -92,6 +93,11 @@ function renderLogin() {
   app.appendChild(panel);
 }
 
+const gamesSubTabs = [
+  { id: 'submit', label: 'Submit a game', render: renderSubmitGameTab },
+  { id: 'mine', label: 'My submissions', render: renderMySubmissionsTab }
+];
+
 function renderDashboard() {
   clear(app);
   const layout = el('div', 'flex flex-col gap-6 md:flex-row');
@@ -101,7 +107,7 @@ function renderDashboard() {
 
   const tabs = [
     { id: 'profile', label: 'Profile Management', render: renderProfileTab },
-    { id: 'games', label: 'Games', render: renderGamesTab },
+    { id: 'games', label: 'Games', children: gamesSubTabs },
     { id: 'settings', label: 'Settings', render: renderSettingsTab }
   ];
   if (state.me.is_admin) {
@@ -109,14 +115,41 @@ function renderDashboard() {
   }
 
   const buttons = new Map();
-  const activate = (tab) => {
-    state.activeTab = tab.id;
+  const subLists = new Map();
+  const subButtons = new Map();
+
+  const renderContent = (tab) => {
+    clear(content);
+    if (tab.children) {
+      const sub = tab.children.find((entry) => entry.id === state.activeGamesSubTab) || tab.children[0];
+      state.activeGamesSubTab = sub.id;
+      sub.render(content);
+    } else {
+      tab.render(content);
+    }
+  };
+
+  const updateHighlights = (tab) => {
     for (const [id, button] of buttons) {
       button.classList.toggle('bg-neon-violet/20', id === tab.id);
       button.classList.toggle('text-neon-cyan', id === tab.id);
     }
-    clear(content);
-    tab.render(content);
+    for (const [id, subList] of subLists) {
+      subList.classList.toggle('hidden', id !== tab.id);
+    }
+    for (const subButton of subButtons.values()) {
+      subButton.classList.remove('bg-neon-violet/20', 'text-neon-cyan');
+    }
+    if (tab.children) {
+      const activeSub = subButtons.get(state.activeGamesSubTab);
+      if (activeSub) activeSub.classList.add('bg-neon-violet/20', 'text-neon-cyan');
+    }
+  };
+
+  const activate = (tab) => {
+    state.activeTab = tab.id;
+    updateHighlights(tab);
+    renderContent(tab);
   };
 
   for (const tab of tabs) {
@@ -125,13 +158,31 @@ function renderDashboard() {
     button.addEventListener('click', () => activate(tab));
     buttons.set(tab.id, button);
     sidebar.appendChild(button);
+
+    if (tab.children) {
+      const subList = el('div', 'hidden flex flex-row gap-1 md:ml-3 md:flex-col md:border-l md:border-neon-violet/20 md:pl-2');
+      for (const sub of tab.children) {
+        const subButton = el('button', 'whitespace-nowrap rounded-xl px-3 py-1.5 text-left text-xs font-semibold text-slate-400 transition hover:text-neon-cyan', sub.label);
+        subButton.type = 'button';
+        subButton.addEventListener('click', () => {
+          state.activeGamesSubTab = sub.id;
+          activate(tab);
+        });
+        subButtons.set(sub.id, subButton);
+        subList.appendChild(subButton);
+      }
+      subLists.set(tab.id, subList);
+      sidebar.appendChild(subList);
+    }
   }
 
   layout.appendChild(sidebar);
   layout.appendChild(content);
   app.appendChild(layout);
 
-  activate(tabs.find((tab) => tab.id === state.activeTab) || tabs[0]);
+  const activeTab = tabs.find((tab) => tab.id === state.activeTab) || tabs[0];
+  updateHighlights(activeTab);
+  renderContent(activeTab);
 }
 
 function renderProfileTab(container) {
@@ -263,6 +314,8 @@ function gameCard(game, { withdrawable }) {
     const edit = subtleButton(game.pending_changes ? 'Edit pending changes' : 'Edit');
     edit.addEventListener('click', () => {
       state.editingGame = game;
+      state.activeTab = 'games';
+      state.activeGamesSubTab = 'submit';
       renderDashboard();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -297,9 +350,7 @@ function gameCard(game, { withdrawable }) {
   return card;
 }
 
-function renderGamesTab(container) {
-  const wrapper = el('div', 'flex flex-col gap-6');
-
+function renderSubmitGameTab(container) {
   const editing = state.editingGame;
   const initial = editing ? { ...editing, ...(editing.pending_changes || {}) } : null;
 
@@ -441,8 +492,11 @@ function renderGamesTab(container) {
   }
   formPanel.appendChild(buttonRow);
   formPanel.appendChild(formStatus);
-  wrapper.appendChild(formPanel);
 
+  container.appendChild(formPanel);
+}
+
+function renderMySubmissionsTab(container) {
   const listPanel = el('div', 'panel flex flex-col gap-4 p-6');
   listPanel.appendChild(el('h2', 'text-xl font-semibold text-neon-violet', 'My submissions'));
   if (state.myGames.length === 0) {
@@ -452,9 +506,7 @@ function renderGamesTab(container) {
       listPanel.appendChild(gameCard(game, { withdrawable: true }));
     }
   }
-  wrapper.appendChild(listPanel);
-
-  container.appendChild(wrapper);
+  container.appendChild(listPanel);
 }
 
 function renderSettingsTab(container) {
