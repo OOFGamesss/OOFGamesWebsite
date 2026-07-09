@@ -45,6 +45,44 @@
   .neon-logo {
     filter: drop-shadow(0 0 10px rgba(255, 43, 214, 0.55)) drop-shadow(0 0 24px rgba(139, 92, 255, 0.45));
   }
+
+  .neon-select {
+    @apply w-full appearance-none rounded-xl border border-neon-violet/30 bg-night-deep/80 py-2 pl-4 pr-9 text-slate-100 focus:border-neon-cyan focus:outline-none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%238b5cff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    background-size: 1.1rem;
+  }
+
+  .neon-select option {
+    background-color: var(--color-night-panel);
+    color: var(--color-slate-100, #f1f5f9);
+  }
+
+  .neon-select {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-neon-violet, #8b5cff) transparent;
+  }
+
+  .neon-select::-webkit-scrollbar {
+    width: 9px;
+  }
+
+  .neon-select::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 4px 0;
+  }
+
+  .neon-select::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    background-color: var(--color-neon-violet, #8b5cff);
+  }
+
+  .neon-select::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-neon-magenta, #ff2bd6);
+  }
 }
 
 @layer utilities {
