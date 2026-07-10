@@ -117,6 +117,7 @@ let gnRaf = 0;
 let gnStartTs = 0;
 let gnDurationMs = 20000;
 let gnLastPhase = null;
+let gnCloseTimer = null;
 const gnPos = new Map();
 
 let rollCount = 0;
@@ -814,6 +815,8 @@ function exitGnMode() {
   setStatLabel('stat-payout', 'Payout Odds');
   setStatLabel('stat-track', 'Track');
   stopGnRace();
+  if (gnCloseTimer) { clearInterval(gnCloseTimer); gnCloseTimer = null; }
+  el('gn-close')?.classList.add('hidden');
   gnLastPhase = null;
 }
 
@@ -838,7 +841,50 @@ function renderAllGn(s) {
   renderStandings(s);
   renderGnPodium(s);
   renderGnRunners(s);
+  renderGnCloseTime(s);
   renderLastResultsGn((s.results || []).filter((r) => r.mode === 'grand_national'));
+
+  if (!gnCloseTimer) {
+    gnCloseTimer = setInterval(() => {
+      if (currentState && isGn(currentState)) renderGnCloseTime(currentState);
+    }, 1000);
+  }
+}
+
+function pad2(n) {
+  return String(Number(n) || 0).padStart(2, '0');
+}
+
+function gnCloseSecs(hour, minute) {
+  const now = Date.now();
+  const d = new Date();
+  const target = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hour, minute, 0);
+  let secs = Math.round((target - now) / 1000);
+  if (secs < -3600) secs += 86400;
+  return secs;
+}
+
+function fmtDur(secs) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return h >= 1 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+}
+
+function renderGnCloseTime(s) {
+  const box = el('gn-close');
+  if (!box) return;
+  const show = !!s && !!s.closeTimeEnabled && s.phase === 'Betting';
+  box.classList.toggle('hidden', !show);
+  if (!show) { box.innerHTML = ''; return; }
+  const hour = Number(s.closeHour) || 0;
+  const minute = Number(s.closeMinute) || 0;
+  const secs = gnCloseSecs(hour, minute);
+  const count = secs > 0 ? fmtDur(secs) : 'Closing...';
+  box.classList.toggle('is-urgent', secs > 0 && secs <= 60);
+  box.innerHTML = `<span class="gn-close__icon" aria-hidden="true">&#9201;</span>`
+    + `<span class="gn-close__label">Registration closes ${pad2(hour)}:${pad2(minute)} ST</span>`
+    + `<span class="gn-close__count">${count}</span>`;
 }
 
 function gnIsPot(prizeType) {
