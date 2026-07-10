@@ -2,6 +2,7 @@ import { walletClient } from '../api/wallet-client.js';
 import { connectWalletSocket } from '../api/wallet-live.js';
 
 const RACE_PATH_PREFIX = '/chocobo-racing/race';
+const ACCOUNT_PATH_PREFIX = '/account';
 const CACHE_KEY = 'oof-wallet-pill';
 
 function el(tag, className = '', text = '') {
@@ -43,6 +44,7 @@ function writeCache(wallet) {
 
 function mountPill() {
   if (window.location.pathname.startsWith(RACE_PATH_PREFIX)) return;
+  const onAccountPage = window.location.pathname.startsWith(ACCOUNT_PATH_PREFIX);
 
   const link = el(
     'a',
@@ -106,11 +108,14 @@ function mountPill() {
   };
 
   const cached = readCache();
-  if (cached !== undefined) render(cached);
+  render(cached ?? null);
   document.body.appendChild(link);
-  refresh();
+  if (cached && !onAccountPage) {
+    refresh();
+  }
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && !disconnect) refresh();
+    if (onAccountPage) return;
+    if (document.visibilityState === 'visible' && !disconnect && readCache()) refresh();
   });
   window.addEventListener('oof-wallet-changed', (event) => {
     render(event.detail);

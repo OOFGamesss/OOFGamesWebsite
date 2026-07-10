@@ -1,9 +1,3 @@
-// API + WebSocket client for the Chocobo Racing mirror.
-//
-// Production goes through nginx at api.oofgames.fyi/v1/chocobo-racing/ (REST) and
-// .../v1/chocobo-racing/ws/ (WebSocket). Local development hits the Uvicorn
-// instance on :8004 directly (no /v1/chocobo-racing prefix).
-
 const PROD = {
   http: 'https://api.oofgames.fyi/v1/chocobo-racing',
   ws: 'wss://api.oofgames.fyi/v1/chocobo-racing',

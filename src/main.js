@@ -1,5 +1,3 @@
-// Hub entry point: probes the API health endpoint and wires up card hover effects on load.
-
 import { apiClient } from './api/api-client.js';
 import { enableCardHover } from './utils/card-hover.js';
 

@@ -1,8 +1,3 @@
-// Builds a screenshot carousel inside any [data-game-id] element from the game's
-// build-generated manifest.json (an ordered list of screenshot filenames).
-// The carousel tints its controls with the game's accent colour (data-accent),
-// supports clickable position dots, and opens a zoomable full-screen lightbox.
-
 const IMAGE_BASE = '/game-images';
 const DEFAULT_ACCENT = '#18e0ff';
 const ZOOM_SCALE = 2.5;

@@ -438,11 +438,13 @@ async function refreshWallet() {
   const result = await walletClient.getWallet();
   if (!result.ok) {
     if (result.status === 401) {
+      announceWallet(null);
       renderLogin();
     }
     return;
   }
   state.wallet = result.data;
+  announceWallet(result.data);
   renderDashboard();
 }
 
@@ -450,8 +452,12 @@ async function init() {
   const result = await walletClient.getWallet();
   if (result.ok) {
     state.wallet = result.data;
+    announceWallet(result.data);
     renderDashboard();
   } else {
+    if (result.status === 401 || result.status === 403) {
+      announceWallet(null);
+    }
     renderLogin();
   }
 }

@@ -109,7 +109,6 @@
     flex-direction: column;
     width: 100%;
     align-self: flex-start;
-    will-change: transform;
   }
 
   .neon-cell {
@@ -120,7 +119,12 @@
 
   .neon-glyph {
     color: var(--glow);
-    filter: drop-shadow(0 0 4px var(--glow)) drop-shadow(0 0 14px var(--glow));
+    /* Single soft glow - dual drop-shadows were the main GPU cost */
+    filter: drop-shadow(0 0 6px var(--glow));
+  }
+
+  .neon-layer.is-paused .neon-track {
+    animation-play-state: paused !important;
   }
 
   .neon-scrim {

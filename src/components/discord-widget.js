@@ -1,5 +1,3 @@
-// Injects a fixed Discord invite button into every page on DOM ready.
-
 const DISCORD_INVITE = 'https://discord.gg/vM6ff4h5Ym';
 
 function buildWidget() {

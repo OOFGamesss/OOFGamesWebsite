@@ -52,7 +52,6 @@ const audio = {
   lobbyOn: false,
   onChange: null,
 
-  // Only one of these can ever be audible at a time - see setActiveTrack.
   tracks: { theme: null, lobby: null },
   mix: { theme: 0, lobby: 0 },
   fadeRaf: { theme: null, lobby: null },
@@ -100,11 +99,6 @@ const audio = {
     return voices;
   },
 
-  // Plays + immediately pauses an element while muted, purely so browsers that
-  // require every media element to have been started from within a genuine
-  // user gesture (iOS Safari) will allow us to play it again later from
-  // non-gesture code (websocket events, timers). Muted/zero-volume so nothing
-  // is ever audibly triggered by this step, no matter how many clips exist.
   prime(el) {
     if (!el) return;
     const wasMuted = el.muted;
@@ -129,13 +123,8 @@ const audio = {
     for (const a of this.winVoices) this.prime(a);
     for (const a of this.hornVoices) this.prime(a);
     for (const a of this.kwehVoices) this.prime(a);
-    // Theme is about to be played for real below; lobby needs its own silent
-    // priming so it's free to be swapped in later without another gesture.
     this.prime(this.tracks.lobby);
 
-    // Greet with the theme, then let the real state (already known by the
-    // time the player can click anything) decide what should actually keep
-    // playing. Only one track is ever audible - see setActiveTrack.
     this.setActiveTrack('theme');
     clearTimeout(this.introTimer);
     this.introTimer = setTimeout(() => this.reconcileTrack(), INTRO_HOLD_MS);
@@ -164,9 +153,6 @@ const audio = {
     }
   },
 
-  // wantTheme/lobbyOn are independent booleans set by race.js based on phase.
-  // They can briefly both be true during fast state transitions - reconcile
-  // picks a single winner (theme takes priority) instead of playing both.
   reconcileTrack() {
     const desired = this.wantTheme ? 'theme' : (this.lobbyOn ? 'lobby' : null);
     this.setActiveTrack(desired);

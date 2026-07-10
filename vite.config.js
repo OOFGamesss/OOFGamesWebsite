@@ -1,5 +1,3 @@
-// Vite multi-page build configuration covering the hub and all plugin/game pages.
-
 import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
@@ -66,6 +64,7 @@ export default defineConfig({
         hub: resolve(root, 'index.html'),
         notFound: resolve(root, '404.html'),
         account: resolve(root, 'account/index.html'),
+        admin: resolve(root, 'admin/index.html'),
         developer: resolve(root, 'developer/index.html'),
         gambaWhere: resolve(root, 'gamba-where/index.html'),
         chocoboRacing: resolve(root, 'chocobo-racing/index.html'),

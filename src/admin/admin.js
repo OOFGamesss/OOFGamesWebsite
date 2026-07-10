@@ -1,0 +1,713 @@
+import { adminClient, adminLoginUrl } from '../api/admin-client.js';
+
+const app = document.getElementById('admin-app');
+
+const state = {
+  me: null,
+  activeTab: 'overview'
+};
+
+function el(tag, className = '', text = '') {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+}
+
+function clear(node) {
+  while (node.firstChild) node.removeChild(node.firstChild);
+}
+
+function gil(amount) {
+  return `${amount.toLocaleString('en-GB')} Gil`;
+}
+
+function parseServerDate(value) {
+  return new Date(/Z|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`);
+}
+
+function when(value) {
+  return parseServerDate(value).toLocaleString('en-GB');
+}
+
+function statusLine() {
+  return el('p', 'min-h-5 text-sm text-slate-400');
+}
+
+function setStatus(node, message, isError = false) {
+  node.textContent = message;
+  node.classList.toggle('text-red-400', isError);
+  node.classList.toggle('text-neon-green', !isError && Boolean(message));
+}
+
+function primaryButton(text) {
+  const button = el('button', 'btn-primary px-4 py-2 text-sm', text);
+  button.type = 'button';
+  return button;
+}
+
+function subtleButton(text) {
+  const button = el('button', 'rounded-xl border border-neon-violet/40 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-neon-cyan hover:text-neon-cyan', text);
+  button.type = 'button';
+  return button;
+}
+
+function dangerButton(text) {
+  const button = el('button', 'rounded-xl border border-red-500/50 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/10', text);
+  button.type = 'button';
+  return button;
+}
+
+function textInput(placeholder) {
+  const input = el('input', 'w-full rounded-xl border border-neon-violet/30 bg-night-deep/80 px-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-neon-cyan focus:outline-none');
+  input.type = 'text';
+  input.placeholder = placeholder;
+  return input;
+}
+
+function badge(text, tone) {
+  const tones = {
+    red: 'bg-red-500/15 text-red-400 border-red-500/40',
+    gold: 'bg-neon-gold/15 text-neon-gold border-neon-gold/40',
+    green: 'bg-neon-green/15 text-neon-green border-neon-green/40',
+    slate: 'bg-slate-500/15 text-slate-400 border-slate-500/40'
+  };
+  return el('span', `rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${tones[tone]}`, text);
+}
+
+function tableShell(headers) {
+  const wrap = el('div', 'overflow-x-auto');
+  const table = el('table', 'w-full text-left text-sm');
+  const head = el('thead');
+  const headRow = el('tr', 'border-b border-neon-violet/20 text-xs uppercase tracking-wide text-slate-500');
+  for (const header of headers) {
+    headRow.appendChild(el('th', 'px-3 py-2 font-semibold', header));
+  }
+  head.appendChild(headRow);
+  const body = el('tbody', 'divide-y divide-neon-violet/10');
+  table.appendChild(head);
+  table.appendChild(body);
+  wrap.appendChild(table);
+  return { wrap, body };
+}
+
+function cell(text, className = 'px-3 py-2 text-slate-300') {
+  return el('td', className, text);
+}
+
+function pagerRow(onPrev, onNext) {
+  const pager = el('div', 'flex items-center justify-between');
+  const prev = subtleButton('⇠ Prev');
+  const label = el('span', 'text-xs text-slate-500');
+  const next = subtleButton('Next ⇢');
+  prev.addEventListener('click', onPrev);
+  next.addEventListener('click', onNext);
+  pager.appendChild(prev);
+  pager.appendChild(label);
+  pager.appendChild(next);
+  return { pager, prev, next, label };
+}
+
+function updatePager(pager, page, hasMore) {
+  pager.label.textContent = `Page ${page}`;
+  pager.prev.disabled = page <= 1;
+  pager.prev.classList.toggle('opacity-40', pager.prev.disabled);
+  pager.next.disabled = !hasMore;
+  pager.next.classList.toggle('opacity-40', pager.next.disabled);
+}
+
+function banControls(banType, subjectId, banned, banId, onDone, status) {
+  const holder = el('span', 'inline-flex items-center gap-2');
+  if (banned) {
+    const unban = subtleButton('Unban');
+    unban.addEventListener('click', async () => {
+      unban.disabled = true;
+      let id = banId;
+      if (id == null) {
+        const bans = await adminClient.getBans();
+        id = bans.ok
+          ? bans.data.find((b) => b.ban_type === banType && b.subject_id === subjectId)?.id
+          : null;
+      }
+      const result = id != null ? await adminClient.removeBan(id) : { ok: false, error: 'Ban not found' };
+      if (!result.ok) {
+        unban.disabled = false;
+        if (status) setStatus(status, result.error, true);
+        return;
+      }
+      onDone();
+    });
+    holder.appendChild(unban);
+    return holder;
+  }
+  const banButton = dangerButton('Ban');
+  banButton.addEventListener('click', () => {
+    clear(holder);
+    const reason = textInput('Reason');
+    reason.className += ' w-40';
+    const confirm = dangerButton('Confirm');
+    const cancel = subtleButton('✕');
+    confirm.addEventListener('click', async () => {
+      if (!reason.value.trim()) return;
+      confirm.disabled = true;
+      const result = await adminClient.createBan(banType, subjectId, reason.value.trim());
+      if (!result.ok) {
+        confirm.disabled = false;
+        if (status) setStatus(status, result.error, true);
+        return;
+      }
+      onDone();
+    });
+    cancel.addEventListener('click', () => {
+      clear(holder);
+      holder.appendChild(banButton);
+    });
+    holder.appendChild(reason);
+    holder.appendChild(confirm);
+    holder.appendChild(cancel);
+    reason.focus();
+  });
+  holder.appendChild(banButton);
+  return holder;
+}
+
+function renderLogin() {
+  clear(app);
+  const panel = el('section', 'panel mx-auto flex w-full max-w-md flex-col items-center gap-5 p-10 text-center');
+  panel.appendChild(el('h2', 'text-2xl font-semibold text-neon-gold', 'Sign in required'));
+  panel.appendChild(el('p', 'text-sm text-slate-300', 'Log in with Discord to access administration.'));
+  const outcome = new URLSearchParams(window.location.search).get('login');
+  if (outcome === 'error') {
+    panel.appendChild(el('p', 'text-sm text-red-400', 'Login failed, please try again.'));
+  }
+  if (outcome === 'banned') {
+    panel.appendChild(el('p', 'text-sm text-red-400', 'This account is banned.'));
+  }
+  const login = el('a', 'btn-primary', 'Login with Discord');
+  login.href = adminLoginUrl;
+  panel.appendChild(login);
+  app.appendChild(panel);
+}
+
+function renderDenied() {
+  clear(app);
+  const panel = el('section', 'panel mx-auto flex w-full max-w-md flex-col items-center gap-4 p-10 text-center');
+  panel.appendChild(el('h2', 'text-2xl font-semibold text-red-400', 'Administrator access required'));
+  panel.appendChild(el('p', 'text-sm text-slate-300', 'Your account does not have administrator permissions.'));
+  app.appendChild(panel);
+}
+
+function statCard(label, value, accent = 'text-neon-cyan') {
+  const card = el('div', 'rounded-xl border border-neon-violet/25 bg-night-deep/60 p-4');
+  card.appendChild(el('p', 'text-xs uppercase tracking-wide text-slate-500', label));
+  card.appendChild(el('p', `mt-1 text-xl font-bold ${accent}`, value));
+  return card;
+}
+
+async function renderOverview(container) {
+  const panel = el('section', 'panel flex flex-col gap-5 p-6');
+  const status = statusLine();
+  panel.appendChild(status);
+  container.appendChild(panel);
+  setStatus(status, 'Loading…');
+  const result = await adminClient.getSummary();
+  if (!result.ok) {
+    setStatus(status, result.error, true);
+    return;
+  }
+  setStatus(status, '');
+  const s = result.data;
+
+  const cards = el('div', 'grid grid-cols-2 gap-3 md:grid-cols-4');
+  cards.appendChild(statCard('Gil in chest', gil(s.total_balance), 'text-neon-gold'));
+  cards.appendChild(statCard('Active holds', gil(s.total_holds)));
+  cards.appendChild(statCard('Players', String(s.player_count)));
+  cards.appendChild(statCard('Ledger entries', String(s.ledger_entries)));
+  cards.appendChild(statCard('Deposited 24h', gil(s.deposited_24h), 'text-neon-green'));
+  cards.appendChild(statCard('Withdrawn 24h', gil(s.withdrawn_24h), 'text-red-400'));
+  cards.appendChild(statCard('Deposited 7d', gil(s.deposited_7d), 'text-neon-green'));
+  cards.appendChild(statCard('Withdrawn 7d', gil(s.withdrawn_7d), 'text-red-400'));
+  panel.appendChild(cards);
+
+  const cacheLine = el(
+    'p',
+    'text-xs text-slate-500',
+    `Host keys active: ${s.host_cache_active_keys} · sheet last synced: ${s.host_cache_last_success ? when(s.host_cache_last_success) : 'never'} · transactions in last 24h: ${s.transactions_24h}`
+  );
+  panel.appendChild(cacheLine);
+
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'Top balances'));
+  const { wrap, body } = tableShell(['Player', 'World', 'Balance']);
+  if (s.top_balances.length === 0) {
+    body.appendChild(el('tr')).appendChild(cell('No balances yet'));
+  }
+  for (const row of s.top_balances) {
+    const tr = el('tr');
+    tr.appendChild(cell(row.name, 'px-3 py-2 font-semibold text-slate-200'));
+    tr.appendChild(cell(row.world));
+    tr.appendChild(cell(gil(row.balance), 'px-3 py-2 text-neon-gold'));
+    body.appendChild(tr);
+  }
+  panel.appendChild(wrap);
+}
+
+const TYPE_LABELS = {
+  deposit: 'Deposit',
+  withdrawal: 'Withdrawal',
+  game_spend: 'Game spend',
+  game_payout: 'Game payout'
+};
+
+async function renderLedger(container) {
+  const panel = el('section', 'panel flex flex-col gap-4 p-6');
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'System ledger'));
+  const status = statusLine();
+  const { wrap, body } = tableShell(['When', 'Player', 'Type', 'Amount', 'Balance after', 'Host', 'Reference']);
+  panel.appendChild(wrap);
+  panel.appendChild(status);
+  let page = 1;
+  const pager = pagerRow(
+    () => {
+      if (page > 1) {
+        page -= 1;
+        load();
+      }
+    },
+    () => {
+      page += 1;
+      load();
+    }
+  );
+  panel.appendChild(pager.pager);
+  container.appendChild(panel);
+
+  const load = async () => {
+    setStatus(status, 'Loading…');
+    const result = await adminClient.getLedger(page);
+    if (!result.ok) {
+      setStatus(status, result.error, true);
+      return;
+    }
+    setStatus(status, '');
+    clear(body);
+    for (const entry of result.data.transactions) {
+      const tr = el('tr');
+      tr.appendChild(cell(when(entry.created_at), 'px-3 py-2 text-xs text-slate-500'));
+      tr.appendChild(cell(entry.player_name, 'px-3 py-2 font-semibold text-slate-200'));
+      tr.appendChild(cell(TYPE_LABELS[entry.transaction_type] || entry.transaction_type));
+      tr.appendChild(
+        cell(
+          `${entry.amount > 0 ? '+' : ''}${gil(entry.amount)}`,
+          `px-3 py-2 font-bold ${entry.amount > 0 ? 'text-neon-green' : 'text-red-400'}`
+        )
+      );
+      tr.appendChild(cell(gil(entry.balance_after)));
+      tr.appendChild(cell(entry.host_name || '-'));
+      tr.appendChild(cell(entry.reference || '-', 'px-3 py-2 text-xs text-slate-500'));
+      body.appendChild(tr);
+    }
+    updatePager(pager, page, result.data.has_more);
+  };
+  load();
+}
+
+async function renderPlayers(container) {
+  const panel = el('section', 'panel flex flex-col gap-4 p-6');
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'Players'));
+  const search = textInput('Search by name or content ID');
+  panel.appendChild(search);
+  const status = statusLine();
+  const { wrap, body } = tableShell(['Player', 'World', 'Balance', 'Available', 'Token', 'Status', 'Actions']);
+  panel.appendChild(wrap);
+  const detailHolder = el('div');
+  panel.appendChild(detailHolder);
+  panel.appendChild(status);
+  let page = 1;
+  const pager = pagerRow(
+    () => {
+      if (page > 1) {
+        page -= 1;
+        load();
+      }
+    },
+    () => {
+      page += 1;
+      load();
+    }
+  );
+  panel.appendChild(pager.pager);
+  container.appendChild(panel);
+
+  const showDetail = async (contentId) => {
+    clear(detailHolder);
+    const box = el('div', 'mt-2 rounded-xl border border-neon-cyan/30 bg-night-deep/60 p-4 text-sm text-slate-300');
+    box.appendChild(el('p', 'text-slate-400', 'Loading…'));
+    detailHolder.appendChild(box);
+    const result = await adminClient.getPlayerDetail(contentId);
+    clear(box);
+    if (!result.ok) {
+      box.appendChild(el('p', 'text-red-400', result.error));
+      return;
+    }
+    const d = result.data;
+    box.appendChild(el('p', 'font-semibold text-slate-100', `${d.name} · ${d.world} (${d.content_id})`));
+    box.appendChild(
+      el('p', '', `Balance ${gil(d.balance)} · available ${gil(d.available)} · ${d.session_count} active session(s)`)
+    );
+    if (d.pending_withdrawal) {
+      box.appendChild(
+        el('p', 'text-neon-gold', `Pending withdrawal: ${gil(d.pending_withdrawal.amount)} until ${when(d.pending_withdrawal.expires_at)}`)
+      );
+    }
+    for (const entry of d.recent_transactions) {
+      box.appendChild(
+        el(
+          'p',
+          'text-xs text-slate-500',
+          `${when(entry.created_at)} · ${TYPE_LABELS[entry.transaction_type] || entry.transaction_type} ${entry.amount > 0 ? '+' : ''}${gil(entry.amount)}${entry.host_name ? ` via ${entry.host_name}` : ''}`
+        )
+      );
+    }
+  };
+
+  const load = async () => {
+    setStatus(status, 'Loading…');
+    const result = await adminClient.getPlayers(page, search.value);
+    if (!result.ok) {
+      setStatus(status, result.error, true);
+      return;
+    }
+    setStatus(status, '');
+    clear(body);
+    for (const player of result.data.players) {
+      const tr = el('tr', 'cursor-pointer transition hover:bg-neon-violet/5');
+      tr.addEventListener('click', () => showDetail(player.content_id));
+      tr.appendChild(cell(player.name, 'px-3 py-2 font-semibold text-slate-200'));
+      tr.appendChild(cell(player.world));
+      tr.appendChild(cell(gil(player.balance), 'px-3 py-2 text-neon-gold'));
+      tr.appendChild(cell(gil(player.available)));
+      tr.appendChild(cell(player.has_token ? '✓' : '-'));
+      const statusCell = el('td', 'px-3 py-2');
+      statusCell.appendChild(player.banned ? badge('banned', 'red') : badge('active', 'green'));
+      tr.appendChild(statusCell);
+      const actions = el('td', 'px-3 py-2');
+      actions.addEventListener('click', (event) => event.stopPropagation());
+      actions.appendChild(
+        banControls('player', player.content_id, player.banned, null, load, status)
+      );
+      tr.appendChild(actions);
+      body.appendChild(tr);
+    }
+    updatePager(pager, page, result.data.has_more);
+  };
+
+  let timer = null;
+  search.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      page = 1;
+      load();
+    }, 300);
+  });
+  load();
+}
+
+async function renderDevelopers(container) {
+  const panel = el('section', 'panel flex flex-col gap-4 p-6');
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'Developer accounts'));
+  const search = textInput('Search by username or Discord ID');
+  panel.appendChild(search);
+  const status = statusLine();
+  const { wrap, body } = tableShell(['Developer', 'Discord ID', 'Games', 'Joined', 'Status', 'Actions']);
+  panel.appendChild(wrap);
+  panel.appendChild(status);
+  let page = 1;
+  const pager = pagerRow(
+    () => {
+      if (page > 1) {
+        page -= 1;
+        load();
+      }
+    },
+    () => {
+      page += 1;
+      load();
+    }
+  );
+  panel.appendChild(pager.pager);
+  container.appendChild(panel);
+
+  const load = async () => {
+    setStatus(status, 'Loading…');
+    const result = await adminClient.getUsers(page, search.value);
+    if (!result.ok) {
+      setStatus(status, result.error, true);
+      return;
+    }
+    setStatus(status, '');
+    clear(body);
+    for (const user of result.data.users) {
+      const tr = el('tr');
+      const identity = el('td', 'flex items-center gap-2 px-3 py-2');
+      const avatar = el('img', 'h-8 w-8 rounded-full border border-neon-violet/40 object-cover');
+      avatar.src = user.avatar_url;
+      avatar.alt = '';
+      avatar.referrerPolicy = 'no-referrer';
+      identity.appendChild(avatar);
+      identity.appendChild(el('span', 'font-semibold text-slate-200', user.username));
+      if (user.is_admin) identity.appendChild(badge('admin', 'gold'));
+      tr.appendChild(identity);
+      tr.appendChild(cell(user.id, 'px-3 py-2 text-xs text-slate-500'));
+      tr.appendChild(cell(String(user.games_count)));
+      tr.appendChild(cell(when(user.created_at), 'px-3 py-2 text-xs text-slate-500'));
+      const statusCell = el('td', 'px-3 py-2');
+      statusCell.appendChild(user.banned ? badge('banned', 'red') : badge('active', 'green'));
+      tr.appendChild(statusCell);
+      const actions = el('td', 'px-3 py-2');
+      if (!user.is_admin) {
+        actions.appendChild(banControls('developer', user.id, user.banned, null, load, status));
+      }
+      tr.appendChild(actions);
+      body.appendChild(tr);
+    }
+    updatePager(pager, page, result.data.has_more);
+  };
+
+  let timer = null;
+  search.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      page = 1;
+      load();
+    }, 300);
+  });
+  load();
+}
+
+async function renderHosts(container) {
+  const panel = el('section', 'panel flex flex-col gap-4 p-6');
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'Hosts'));
+  panel.appendChild(
+    el('p', 'text-xs text-slate-500', 'Mirrored from the Google Sheet - manage keys there; changes apply within about a minute.')
+  );
+  const status = statusLine();
+  const { wrap, body } = tableShell(['Host', 'World', 'ID', 'Status', 'Last seen']);
+  panel.appendChild(wrap);
+  panel.appendChild(status);
+  container.appendChild(panel);
+  setStatus(status, 'Loading…');
+  const result = await adminClient.getHosts();
+  if (!result.ok) {
+    setStatus(status, result.error, true);
+    return;
+  }
+  setStatus(status, '');
+  for (const host of result.data) {
+    const tr = el('tr');
+    tr.appendChild(cell(host.host_name, 'px-3 py-2 font-semibold text-slate-200'));
+    tr.appendChild(cell(host.host_world || '-'));
+    tr.appendChild(cell(host.id, 'px-3 py-2 text-xs text-slate-500'));
+    const statusCell = el('td', 'px-3 py-2');
+    statusCell.appendChild(host.is_active ? badge('active', 'green') : badge('inactive', 'slate'));
+    tr.appendChild(statusCell);
+    tr.appendChild(cell(when(host.last_seen_at), 'px-3 py-2 text-xs text-slate-500'));
+    body.appendChild(tr);
+  }
+}
+
+async function renderLogs(container) {
+  const panel = el('section', 'panel flex flex-col gap-4 p-6');
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'System logs'));
+  const status = statusLine();
+  const list = el('div', 'flex flex-col divide-y divide-neon-violet/10');
+  panel.appendChild(list);
+  panel.appendChild(status);
+  let page = 1;
+  const pager = pagerRow(
+    () => {
+      if (page > 1) {
+        page -= 1;
+        load();
+      }
+    },
+    () => {
+      page += 1;
+      load();
+    }
+  );
+  panel.appendChild(pager.pager);
+  container.appendChild(panel);
+
+  const load = async () => {
+    setStatus(status, 'Loading…');
+    const result = await adminClient.getLogs(page);
+    if (!result.ok) {
+      setStatus(status, result.error, true);
+      return;
+    }
+    setStatus(status, '');
+    clear(list);
+    if (result.data.logs.length === 0) {
+      list.appendChild(el('p', 'py-4 text-sm text-slate-500', 'No log entries.'));
+    }
+    for (const log of result.data.logs) {
+      const row = el('div', 'flex flex-col gap-1 py-3');
+      const top = el('div', 'flex items-center justify-between');
+      top.appendChild(el('span', 'text-sm font-semibold text-slate-200', log.event_type));
+      top.appendChild(el('span', 'text-xs text-slate-500', when(log.timestamp)));
+      row.appendChild(top);
+      row.appendChild(el('p', 'break-all text-xs text-slate-400', log.details));
+      list.appendChild(row);
+    }
+    updatePager(pager, page, result.data.has_more);
+  };
+  load();
+}
+
+async function renderBans(container) {
+  const panel = el('section', 'panel flex flex-col gap-4 p-6');
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'Ban list'));
+
+  const form = el('div', 'flex flex-col gap-2 sm:flex-row');
+  const typeSelect = el('select', 'rounded-xl border border-neon-violet/30 bg-night-deep/80 px-3 py-2 text-sm text-slate-100 focus:border-neon-cyan focus:outline-none');
+  for (const [value, label] of [['player', 'Player (content ID)'], ['developer', 'Developer (Discord ID)']]) {
+    const option = el('option', '', label);
+    option.value = value;
+    typeSelect.appendChild(option);
+  }
+  const subjectInput = textInput('Content ID or Discord ID');
+  const reasonInput = textInput('Reason');
+  const submit = dangerButton('Issue ban');
+  submit.className = submit.className.replace('text-xs', 'text-sm');
+  form.appendChild(typeSelect);
+  form.appendChild(subjectInput);
+  form.appendChild(reasonInput);
+  form.appendChild(submit);
+  panel.appendChild(form);
+
+  const status = statusLine();
+  const { wrap, body } = tableShell(['Type', 'Subject', 'Reason', 'Banned by', 'When', '']);
+  panel.appendChild(wrap);
+  panel.appendChild(status);
+  container.appendChild(panel);
+
+  const load = async () => {
+    const result = await adminClient.getBans();
+    if (!result.ok) {
+      setStatus(status, result.error, true);
+      return;
+    }
+    clear(body);
+    if (result.data.length === 0) {
+      body.appendChild(el('tr')).appendChild(cell('No active bans'));
+    }
+    for (const ban of result.data) {
+      const tr = el('tr');
+      tr.appendChild(cell(ban.ban_type, 'px-3 py-2 text-xs uppercase text-slate-500'));
+      tr.appendChild(
+        cell(
+          ban.subject_name ? `${ban.subject_name} (${ban.subject_id})` : ban.subject_id,
+          'px-3 py-2 font-semibold text-slate-200'
+        )
+      );
+      tr.appendChild(cell(ban.reason));
+      tr.appendChild(cell(ban.banned_by_name));
+      tr.appendChild(cell(when(ban.created_at), 'px-3 py-2 text-xs text-slate-500'));
+      const actions = el('td', 'px-3 py-2');
+      const unban = subtleButton('Unban');
+      unban.addEventListener('click', async () => {
+        unban.disabled = true;
+        const result = await adminClient.removeBan(ban.id);
+        if (!result.ok) {
+          unban.disabled = false;
+          setStatus(status, result.error, true);
+          return;
+        }
+        setStatus(status, 'Ban lifted.');
+        load();
+      });
+      actions.appendChild(unban);
+      tr.appendChild(actions);
+      body.appendChild(tr);
+    }
+  };
+
+  submit.addEventListener('click', async () => {
+    const subject = subjectInput.value.trim();
+    const reason = reasonInput.value.trim();
+    if (!subject || !reason) {
+      setStatus(status, 'Subject ID and reason are required.', true);
+      return;
+    }
+    submit.disabled = true;
+    const result = await adminClient.createBan(typeSelect.value, subject, reason);
+    submit.disabled = false;
+    if (!result.ok) {
+      setStatus(status, result.error, true);
+      return;
+    }
+    subjectInput.value = '';
+    reasonInput.value = '';
+    setStatus(status, 'Ban issued.');
+    load();
+  });
+
+  load();
+}
+
+const TABS = [
+  { id: 'overview', label: 'Overview', render: renderOverview },
+  { id: 'ledger', label: 'Ledger', render: renderLedger },
+  { id: 'players', label: 'Players', render: renderPlayers },
+  { id: 'developers', label: 'Developers', render: renderDevelopers },
+  { id: 'hosts', label: 'Hosts', render: renderHosts },
+  { id: 'logs', label: 'Logs', render: renderLogs },
+  { id: 'bans', label: 'Bans', render: renderBans }
+];
+
+function renderShell() {
+  clear(app);
+  const layout = el('div', 'flex flex-col gap-6 md:flex-row');
+  const sidebar = el('aside', 'panel flex h-fit flex-row gap-2 overflow-x-auto p-3 md:w-48 md:flex-col');
+  const content = el('section', 'min-w-0 flex-1');
+  const buttons = new Map();
+
+  const activate = (tab) => {
+    state.activeTab = tab.id;
+    for (const [id, button] of buttons) {
+      button.classList.toggle('bg-neon-violet/20', id === tab.id);
+      button.classList.toggle('text-neon-cyan', id === tab.id);
+    }
+    clear(content);
+    tab.render(content);
+  };
+
+  for (const tab of TABS) {
+    const button = el('button', 'whitespace-nowrap rounded-xl px-4 py-2 text-left text-sm font-semibold text-slate-200 transition hover:text-neon-cyan', tab.label);
+    button.type = 'button';
+    button.addEventListener('click', () => activate(tab));
+    buttons.set(tab.id, button);
+    sidebar.appendChild(button);
+  }
+
+  layout.appendChild(sidebar);
+  layout.appendChild(content);
+  app.appendChild(layout);
+  activate(TABS.find((tab) => tab.id === state.activeTab) || TABS[0]);
+}
+
+async function init() {
+  const result = await adminClient.getMe();
+  if (!result.ok) {
+    renderLogin();
+    return;
+  }
+  state.me = result.data;
+  if (!state.me.is_admin) {
+    renderDenied();
+    return;
+  }
+  renderShell();
+}
+
+init();

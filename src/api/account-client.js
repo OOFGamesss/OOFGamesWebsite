@@ -67,11 +67,5 @@ export const accountClient = {
   submitGame: (game) => jsonRequest('/games', 'POST', game),
   editGame: (gameId, game) => jsonRequest(`/games/${gameId}`, 'PUT', game),
   cancelChanges: (gameId) => request(`/games/${gameId}/changes`, { method: 'DELETE' }),
-  withdrawGame: (gameId) => request(`/games/${gameId}`, { method: 'DELETE' }),
-
-  getPendingGames: () => request('/admin/games/pending'),
-  approveGame: (gameId) => request(`/admin/games/${gameId}/approve`, { method: 'POST' }),
-  rejectGame: (gameId, reason) => jsonRequest(`/admin/games/${gameId}/reject`, 'POST', { reason }),
-  createGameType: (name) => jsonRequest('/admin/game-types', 'POST', { name }),
-  deleteGameType: (typeId) => request(`/admin/game-types/${typeId}`, { method: 'DELETE' })
+  withdrawGame: (gameId) => request(`/games/${gameId}`, { method: 'DELETE' })
 };

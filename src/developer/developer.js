@@ -1,4 +1,5 @@
 import { accountClient, discordLoginUrl } from '../api/account-client.js';
+import { adminClient } from '../api/admin-client.js';
 
 const app = document.getElementById('developer-app');
 
@@ -83,8 +84,12 @@ function renderLogin() {
   panel.appendChild(el('h2', 'text-2xl font-semibold text-neon-gold', 'Sign in required'));
   panel.appendChild(el('p', 'text-sm text-slate-300', 'Log in with Discord to access the developer hub.'));
 
-  if (new URLSearchParams(window.location.search).get('login') === 'error') {
+  const outcome = new URLSearchParams(window.location.search).get('login');
+  if (outcome === 'error') {
     panel.appendChild(el('p', 'text-sm text-red-400', 'Login failed, please try again.'));
+  }
+  if (outcome === 'banned') {
+    panel.appendChild(el('p', 'text-sm text-red-400', 'This account is banned.'));
   }
 
   const login = el('a', 'btn-primary', 'Login with Discord');
@@ -618,53 +623,173 @@ async function renderAdminTab(container) {
   const typesPanel = el('div', 'panel flex flex-col gap-4 p-6');
   typesPanel.appendChild(el('h2', 'text-xl font-semibold text-neon-violet', 'Game types'));
   const typesStatus = statusLine();
-  const typesList = el('div', 'flex flex-wrap gap-2');
-  const addRow = el('div', 'flex gap-2');
-  const addInput = textInput('New game type');
-  addInput.maxLength = 64;
-  const addButton = primaryButton('Add');
-  addRow.appendChild(addInput);
-  addRow.appendChild(addButton);
+  const typesList = el('div', 'flex flex-col gap-2');
+  const editor = el('div', 'flex flex-col gap-3 rounded-xl border border-neon-violet/30 p-4');
+  editor.appendChild(el('h3', 'text-sm font-semibold text-slate-200', 'Add / edit game type'));
+
+  const nameInput = textInput('Name (e.g. Blackjack)');
+  nameInput.maxLength = 64;
+  const backgroundInput = textInput('Background r,g,b,a', '0.50,0.50,0.50,0.12');
+  const accentInput = textInput('Accent r,g,b,a', '0.75,0.75,0.75,1');
+  const colourInput = textInput('Discord colour hex (e.g. E03030)', '8040C0');
+  const emojiInput = textInput('Plugin emoji', '🎲');
+  const discordEmojiInput = textInput('Discord bot emoji', '🎲');
+  const bannerInput = textInput('Banner URL (https://...)');
+  bannerInput.maxLength = 500;
+  const emptyRulesInput = textInput('Empty rules message (optional)');
+  emptyRulesInput.maxLength = 500;
+  const fieldsLabel = fieldLabel('Manual fields JSON');
+  const fieldsArea = el('textarea', 'mt-1 w-full rounded-xl border border-neon-violet/30 bg-night-deep/80 px-4 py-2 font-mono text-sm text-slate-100 placeholder-slate-500 focus:border-neon-cyan focus:outline-none');
+  fieldsArea.rows = 8;
+  fieldsArea.placeholder = '[{"name":"minBet","kind":"Money","label":"Min Bet (gil)","default":10000,"min":0}]';
+  fieldsArea.value = '[]';
+
+  const editingId = { value: null };
+  const formRows = [
+    ['Name', nameInput],
+    ['Background', backgroundInput],
+    ['Accent', accentInput],
+    ['Discord colour', colourInput],
+    ['Emoji', emojiInput],
+    ['Discord emoji', discordEmojiInput],
+    ['Banner URL', bannerInput],
+    ['Empty rules message', emptyRulesInput]
+  ];
+  for (const [label, input] of formRows) {
+    const wrap = el('div');
+    wrap.appendChild(fieldLabel(label));
+    wrap.appendChild(input);
+    editor.appendChild(wrap);
+  }
+  const fieldsWrap = el('div');
+  fieldsWrap.appendChild(fieldsLabel);
+  fieldsWrap.appendChild(fieldsArea);
+  editor.appendChild(fieldsWrap);
+
+  const actionsRow = el('div', 'flex flex-wrap gap-2');
+  const saveButton = primaryButton('Save');
+  const clearButton = subtleButton('Clear');
+  actionsRow.appendChild(saveButton);
+  actionsRow.appendChild(clearButton);
+  editor.appendChild(actionsRow);
+
   typesPanel.appendChild(typesList);
-  typesPanel.appendChild(addRow);
+  typesPanel.appendChild(editor);
   typesPanel.appendChild(typesStatus);
   wrapper.appendChild(typesPanel);
 
   container.appendChild(wrapper);
 
+  const parseColour = (raw) => {
+    const cleaned = raw.trim().replace(/^#/, '');
+    const value = Number.parseInt(cleaned, 16);
+    if (Number.isNaN(value) || value < 0 || value > 0xffffff) {
+      throw new Error('Discord colour must be a hex value like E03030');
+    }
+    return value;
+  };
+
+  const parseManualFields = () => {
+    const raw = fieldsArea.value.trim();
+    if (!raw || raw === 'null') return null;
+    const parsed = JSON.parse(raw);
+    if (parsed === null) return null;
+    if (!Array.isArray(parsed)) throw new Error('Manual fields must be a JSON array or null');
+    return parsed;
+  };
+
+  const fillEditor = (gameType) => {
+    editingId.value = gameType ? gameType.id : null;
+    nameInput.value = gameType?.name || '';
+    backgroundInput.value = gameType?.background || '0.50,0.50,0.50,0.12';
+    accentInput.value = gameType?.accent || '0.75,0.75,0.75,1';
+    colourInput.value = gameType
+      ? Number(gameType.discord_colour).toString(16).toUpperCase().padStart(6, '0')
+      : '8040C0';
+    emojiInput.value = gameType?.emoji || '🎲';
+    discordEmojiInput.value = gameType?.discord_emoji || '🎲';
+    bannerInput.value = gameType?.banner_url || '';
+    emptyRulesInput.value = gameType?.empty_rules_message || '';
+    fieldsArea.value = gameType?.manual_fields
+      ? JSON.stringify(gameType.manual_fields, null, 2)
+      : '[]';
+  };
+
+  const buildPayload = () => ({
+    name: nameInput.value.trim(),
+    background: backgroundInput.value.trim(),
+    accent: accentInput.value.trim(),
+    discord_colour: parseColour(colourInput.value),
+    emoji: emojiInput.value.trim(),
+    discord_emoji: discordEmojiInput.value.trim(),
+    banner_url: bannerInput.value.trim(),
+    manual_fields: parseManualFields(),
+    empty_rules_message: emptyRulesInput.value.trim() || null
+  });
+
   const refreshTypes = async () => {
     const result = await accountClient.getGameTypes();
-    if (!result.ok) return;
+    if (!result.ok) {
+      setStatus(typesStatus, result.error, true);
+      return;
+    }
     state.gameTypes = result.data;
     clear(typesList);
     for (const gameType of state.gameTypes) {
-      const chip = el('span', 'flex items-center gap-2 rounded-full border border-neon-violet/40 px-3 py-1 text-sm text-slate-200');
-      chip.appendChild(el('span', '', gameType.name));
-      const remove = el('button', 'text-slate-400 transition hover:text-red-400', '✕');
-      remove.type = 'button';
-      remove.setAttribute('aria-label', `Delete ${gameType.name}`);
+      const row = el('div', 'flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neon-violet/30 px-3 py-2');
+      const meta = el('div', 'flex flex-col gap-0.5');
+      meta.appendChild(el('span', 'text-sm font-semibold text-slate-100', gameType.name));
+      meta.appendChild(el('span', 'text-xs text-slate-400', `${gameType.emoji} / ${gameType.discord_emoji} · #${Number(gameType.discord_colour).toString(16).toUpperCase().padStart(6, '0')}`));
+      const buttons = el('div', 'flex gap-2');
+      const edit = subtleButton('Edit');
+      edit.addEventListener('click', () => {
+        fillEditor(gameType);
+        setStatus(typesStatus, `Editing "${gameType.name}".`);
+      });
+      const remove = dangerButton('Delete');
       remove.addEventListener('click', async () => {
         if (!window.confirm(`Delete game type "${gameType.name}"?`)) return;
-        const removal = await accountClient.deleteGameType(gameType.id);
+        const removal = await adminClient.deleteGameType(gameType.id);
         if (removal.ok) {
+          if (editingId.value === gameType.id) fillEditor(null);
           setStatus(typesStatus, 'Game type deleted.');
           refreshTypes();
         } else {
           setStatus(typesStatus, removal.error, true);
         }
       });
-      chip.appendChild(remove);
-      typesList.appendChild(chip);
+      buttons.appendChild(edit);
+      buttons.appendChild(remove);
+      row.appendChild(meta);
+      row.appendChild(buttons);
+      typesList.appendChild(row);
     }
   };
 
-  addButton.addEventListener('click', async () => {
-    const name = addInput.value.trim();
-    if (!name) return;
-    const result = await accountClient.createGameType(name);
+  clearButton.addEventListener('click', () => {
+    fillEditor(null);
+    setStatus(typesStatus, '');
+  });
+
+  saveButton.addEventListener('click', async () => {
+    let payload;
+    try {
+      payload = buildPayload();
+    } catch (error) {
+      setStatus(typesStatus, error.message || 'Invalid form data', true);
+      return;
+    }
+    if (!payload.name) {
+      setStatus(typesStatus, 'Name is required.', true);
+      return;
+    }
+    const wasEdit = Boolean(editingId.value);
+    const result = wasEdit
+      ? await adminClient.updateGameType(editingId.value, payload)
+      : await adminClient.createGameType(payload);
     if (result.ok) {
-      addInput.value = '';
-      setStatus(typesStatus, 'Game type added.');
+      fillEditor(null);
+      setStatus(typesStatus, wasEdit ? 'Game type updated.' : 'Game type added.');
       refreshTypes();
     } else {
       setStatus(typesStatus, result.error, true);
@@ -672,7 +797,7 @@ async function renderAdminTab(container) {
   });
 
   const refreshQueue = async () => {
-    const result = await accountClient.getPendingGames();
+    const result = await adminClient.getPendingGames();
     clear(queueList);
     if (!result.ok) {
       setStatus(queueStatus, result.error, true);
@@ -694,14 +819,14 @@ async function renderAdminTab(container) {
       const actions = el('div', 'flex justify-end gap-2');
       const approve = primaryButton('Approve');
       approve.addEventListener('click', async () => {
-        const approval = await accountClient.approveGame(game.id);
+        const approval = await adminClient.approveGame(game.id);
         if (approval.ok) refreshQueue();
       });
       const reject = dangerButton('Reject');
       reject.addEventListener('click', async () => {
         const reason = window.prompt(`Why is "${game.name}" being rejected?`);
         if (!reason || !reason.trim()) return;
-        const rejection = await accountClient.rejectGame(game.id, reason.trim());
+        const rejection = await adminClient.rejectGame(game.id, reason.trim());
         if (rejection.ok) refreshQueue();
       });
       actions.appendChild(approve);

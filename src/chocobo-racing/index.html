@@ -37,7 +37,15 @@
 
       <section class="aspect-video w-full">
         <div class="panel h-full w-full overflow-hidden">
-          <div id="yt-player" class="h-full w-full"></div>
+          <iframe
+            class="h-full w-full border-0"
+            src="https://www.youtube-nocookie.com/embed/Vm8Ba29BuY0?autoplay=1&mute=1&rel=0&modestbranding=1"
+            title="Chocobo Racing trailer"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+            loading="lazy"
+            referrerpolicy="strict-origin-when-cross-origin"
+          ></iframe>
         </div>
       </section>
 
@@ -254,27 +262,6 @@
       })();
     </script>
 
-    <script>
-      var tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(tag);
-
-      function onYouTubeIframeAPIReady() {
-        new YT.Player('yt-player', {
-          videoId: 'Vm8Ba29BuY0',
-          playerVars: { autoplay: 1, mute: 1, rel: 0, modestbranding: 1 },
-          width: '100%',
-          height: '100%',
-          events: {
-            onReady: function (e) {
-              e.target.setVolume(50);
-              e.target.unMute();
-              e.target.playVideo();
-            },
-          },
-        });
-      }
-    </script>
     <script type="module" src="/components/console-guard.js"></script><script type="module" src="/components/neon-background.js"></script>
     <script type="module" src="/components/discord-widget.js"></script>
     <script type="module">

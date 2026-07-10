@@ -1,5 +1,3 @@
-// Generates and mounts the animated neon symbol background layer, recalculating layout on window resize.
-
 const GLOWS = {
   magenta: '#ff2bd6',
   violet: '#8b5cff',
@@ -73,18 +71,19 @@ const SHAPES = {
 };
 
 const SUITS = ['spade', 'heart', 'diamond', 'club'];
-const TARGET_COLUMN_PX = 116;
+const TARGET_COLUMN_PX = 150;
+const MAX_COLUMNS = 10;
 const SYMBOL_MIN_PX = 70;
 const BASE_DURATION = 26;
 
 let COLUMNS, COLUMN_VW, SYMBOL_VW, SYMBOL_SIZE_PX, SYMBOLS_PER_SET;
 
 function computeLayout() {
-  COLUMNS = Math.max(3, Math.round(window.innerWidth / TARGET_COLUMN_PX));
+  COLUMNS = Math.min(MAX_COLUMNS, Math.max(3, Math.round(window.innerWidth / TARGET_COLUMN_PX)));
   COLUMN_VW = 100 / COLUMNS;
   SYMBOL_VW = COLUMN_VW * 0.78;
   SYMBOL_SIZE_PX = Math.max(SYMBOL_MIN_PX, (SYMBOL_VW / 100) * window.innerWidth);
-  SYMBOLS_PER_SET = Math.max(5, Math.round(window.innerHeight / SYMBOL_SIZE_PX));
+  SYMBOLS_PER_SET = Math.max(4, Math.round(window.innerHeight / SYMBOL_SIZE_PX));
 }
 
 const SHAPE_POOL = Object.keys(SHAPES).concat(SUITS);
@@ -166,6 +165,11 @@ function buildColumn(columnIndex) {
   return column;
 }
 
+function syncLayerPlayback(layer) {
+  if (!layer) return;
+  layer.classList.toggle('is-paused', document.visibilityState === 'hidden');
+}
+
 function mountBackground() {
   const existing = document.querySelector('[data-neon-background]');
   if (existing) existing.remove();
@@ -180,6 +184,7 @@ function mountBackground() {
   scrim.className = 'neon-scrim';
   layer.appendChild(scrim);
   document.body.prepend(layer);
+  syncLayerPlayback(layer);
 }
 
 if (document.readyState === 'loading') {
@@ -187,6 +192,10 @@ if (document.readyState === 'loading') {
 } else {
   mountBackground();
 }
+
+document.addEventListener('visibilitychange', () => {
+  syncLayerPlayback(document.querySelector('[data-neon-background]'));
+});
 
 let resizeTimer;
 window.addEventListener('resize', () => {

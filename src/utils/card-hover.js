@@ -1,5 +1,3 @@
-// Applies a pointer-tracking 3D tilt effect to every [data-plugin-card] element.
-
 export function enableCardHover() {
   const cards = document.querySelectorAll('[data-plugin-card]');
   cards.forEach((card) => {
