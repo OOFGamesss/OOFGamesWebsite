@@ -326,14 +326,31 @@ function historyCard(container) {
     }
   };
 
+  const showSkeleton = () => {
+    clear(list);
+    for (let i = 0; i < 4; i += 1) {
+      const row = el('div', 'flex animate-pulse items-center justify-between gap-3 py-3');
+      const left = el('div', 'flex flex-col gap-2');
+      left.appendChild(el('div', 'h-4 w-24 rounded bg-neon-violet/15'));
+      left.appendChild(el('div', 'h-3 w-36 rounded bg-neon-violet/10'));
+      const right = el('div', 'flex flex-col items-end gap-2');
+      right.appendChild(el('div', 'h-4 w-20 rounded bg-neon-violet/15'));
+      right.appendChild(el('div', 'h-3 w-28 rounded bg-neon-violet/10'));
+      row.appendChild(left);
+      row.appendChild(right);
+      list.appendChild(row);
+    }
+  };
+
   const load = async () => {
-    setStatus(status, 'Loading…');
+    setStatus(status, '');
+    showSkeleton();
     const result = await walletClient.getTransactions(state.page, state.filter);
     if (!result.ok) {
+      clear(list);
       setStatus(status, result.error, true);
       return;
     }
-    setStatus(status, '');
     clear(list);
     if (result.data.transactions.length === 0) {
       list.appendChild(el('p', 'py-4 text-sm text-slate-500', 'No transactions yet - visit a host in-game to make your first deposit.'));
