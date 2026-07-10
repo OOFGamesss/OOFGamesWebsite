@@ -26,7 +26,12 @@ function writeCache(wallet) {
     if (wallet) {
       sessionStorage.setItem(
         CACHE_KEY,
-        JSON.stringify({ name: wallet.name, world: wallet.world, balance: wallet.balance })
+        JSON.stringify({
+          name: wallet.name,
+          world: wallet.world,
+          balance: wallet.balance,
+          available: wallet.available
+        })
       );
     } else {
       sessionStorage.setItem(CACHE_KEY, 'out');
@@ -57,7 +62,11 @@ function mountPill() {
       const details = el('span', 'flex flex-col items-start leading-tight');
       details.appendChild(el('span', 'text-[11px] text-slate-400', `${wallet.name} · ${wallet.world}`));
       details.appendChild(
-        el('span', 'text-sm font-bold text-neon-gold', `${wallet.balance.toLocaleString('en-GB')} Gil`)
+        el(
+          'span',
+          'text-sm font-bold text-neon-gold',
+          `${(wallet.available ?? wallet.balance).toLocaleString('en-GB')} Gil`
+        )
       );
       link.appendChild(details);
     }
