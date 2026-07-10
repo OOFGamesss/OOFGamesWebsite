@@ -65,6 +65,7 @@ export default defineConfig({
       input: {
         hub: resolve(root, 'index.html'),
         notFound: resolve(root, '404.html'),
+        account: resolve(root, 'account/index.html'),
         developer: resolve(root, 'developer/index.html'),
         gambaWhere: resolve(root, 'gamba-where/index.html'),
         chocoboRacing: resolve(root, 'chocobo-racing/index.html'),
