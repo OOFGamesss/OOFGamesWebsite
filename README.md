@@ -20,7 +20,7 @@ production calls go to `https://api.oofgames.fyi`, local dev to `http://127.0.0.
 
 ## Project structure
 
-Vite's `root` is `src/`, so paths under it serve from the web root (e.g. `src/pages/gamba-where/` → `/pages/gamba-where/`).
+Vite's `root` is `src/`, so paths under it serve from the web root (e.g. `src/gamba-where/` → `/gamba-where/`).
 
 ```
 frontend/
@@ -30,7 +30,7 @@ frontend/
 │   ├── api/                  # network requests & HTTP client
 │   ├── assets/               # raw CSS / local style assets
 │   ├── components/           # reusable JS components (carousel, widgets)
-│   ├── pages/                # plugin & game pages (multi-page entries)
+│   ├── chocobo-racing/, gamba-where/, minigames-emporium/  # plugin & game pages (multi-page entries)
 │   ├── utils/                # reusable helpers (e.g. card-hover)
 │   └── main.js               # hub entry script
 ├── dist/                     # production build output

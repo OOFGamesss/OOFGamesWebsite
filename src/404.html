@@ -5,13 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       (function () {
-        var prefix = '/pages/chocobo-racing/race/';
+        // Legacy URLs lived under /pages/; GitHub Pages cannot 301, so forward here.
         var path = window.location.pathname;
+        var legacy = path.indexOf('/pages/') === 0;
+        if (legacy) {
+          path = path.slice('/pages'.length);
+        }
+        var prefix = '/chocobo-racing/race/';
         if (path.indexOf(prefix) === 0 && path.length > prefix.length) {
           var id = path.slice(prefix.length).replace(/\/+$/, '');
           if (id) {
             window.location.replace(prefix + '?s=' + encodeURIComponent(id) + window.location.hash);
+            return;
           }
+        }
+        if (legacy) {
+          window.location.replace(path + window.location.search + window.location.hash);
         }
       })();
     </script>
