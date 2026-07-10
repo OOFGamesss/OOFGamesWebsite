@@ -6,8 +6,13 @@ const state = {
   wallet: null,
   page: 1,
   filter: null,
-  countdownTimer: null
+  countdownTimer: null,
+  view: null
 };
+
+function announceWallet(wallet) {
+  window.dispatchEvent(new CustomEvent('oof-wallet-changed', { detail: wallet }));
+}
 
 const STAKE_STEP = 1000;
 
@@ -111,6 +116,7 @@ function dangerButton(text) {
 }
 
 function renderLogin(message = '') {
+  state.view = 'login';
   stopCountdown();
   clear(app);
   const panel = el('section', 'panel mx-auto flex w-full max-w-md flex-col gap-5 p-10 text-center');
@@ -144,6 +150,7 @@ function renderLogin(message = '') {
     }
     state.wallet = result.data;
     state.page = 1;
+    announceWallet(result.data);
     renderDashboard();
   };
   connect.addEventListener('click', submit);
@@ -250,6 +257,7 @@ function withdrawCard(container) {
 }
 
 function renderPinReveal(data) {
+  state.view = 'pin';
   stopCountdown();
   clear(app);
   const panel = el('section', 'panel mx-auto flex w-full max-w-md flex-col gap-4 p-10 text-center');
@@ -381,6 +389,7 @@ function historyCard(container) {
 }
 
 function renderDashboard() {
+  state.view = 'dashboard';
   stopCountdown();
   clear(app);
   app.appendChild(balanceCard());
@@ -401,6 +410,7 @@ function renderDashboard() {
   logout.addEventListener('click', async () => {
     await walletClient.logout();
     state.wallet = null;
+    announceWallet(null);
     renderLogin();
   });
   footer.appendChild(logout);
@@ -428,5 +438,11 @@ async function init() {
     renderLogin();
   }
 }
+
+window.addEventListener('oof-wallet-live', (event) => {
+  if (state.view !== 'dashboard' || !state.wallet) return;
+  state.wallet = { ...state.wallet, ...event.detail };
+  renderDashboard();
+});
 
 init();
