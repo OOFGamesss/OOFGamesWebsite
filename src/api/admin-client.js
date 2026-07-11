@@ -46,6 +46,7 @@ export const adminClient = {
   getMe: () => request('/users/me'),
   getSummary: () => request('/admin/wallet/summary'),
   getLedger: (page = 1) => request(`/admin/wallet/ledger?page=${page}`),
+  getGamesProfit: (period = '7d') => request(`/admin/games/summary?period=${encodeURIComponent(period)}`),
   getPlayers: (page = 1, search = '') =>
     request(`/admin/wallet/players?page=${page}&search=${encodeURIComponent(search)}`),
   getPlayerDetail: (contentId) => request(`/admin/wallet/players/${contentId}`),

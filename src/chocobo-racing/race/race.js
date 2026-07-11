@@ -1,5 +1,5 @@
 import './race.css';
-import { getState, login, me, placeBet, raceSocketUrl, uuid } from '../../api/chocobo-racing-client.js';
+import { getState, houseBet, houseMe, login, me, placeBet, raceSocketUrl, uuid } from '../../api/chocobo-racing-client.js';
 import audio from './race-audio.js';
 
 const RACE_PREFIX = '/chocobo-racing/race/';
@@ -87,7 +87,8 @@ function runnerSvg(color) {
 }
 
 const sessionId = getSessionId();
-const tokenKey = sessionId ? `cr_token_${sessionId}` : null;
+const isHouse = (sessionId || '').toLowerCase() === 'house';
+const tokenKey = sessionId && !isHouse ? `cr_token_${sessionId}` : null;
 
 let currentState = null;
 let token = tokenKey ? sessionStorage.getItem(tokenKey) : null;
@@ -569,7 +570,7 @@ function updateSlipState() {
   const betting = currentState?.phase === 'Betting';
   const place = el('place-bet');
   place.disabled = !betting || total <= 0;
-  place.textContent = token ? 'Place Bet' : 'Enter PIN to bet';
+  place.textContent = token ? 'Place Bet' : (isHouse ? 'Log in to bet' : 'Enter PIN to bet');
   el('slip-login-hint').classList.toggle('hidden', !!token || selection.size === 0);
 
   updatePlayerArea();
@@ -618,12 +619,19 @@ async function placeBets() {
     .map(([num, stake]) => ({ num, amount: parseInt(stake, 10) }))
     .filter((l) => Number.isFinite(l.amount) && l.amount > 0);
   if (lines.length === 0) { slipMsg('Enter a stake on at least one chocobo.', true); return; }
+  const minBet = isHouse ? (currentState?.minBet || 1000) : 0;
+  if (minBet && lines.some((l) => l.amount < minBet)) {
+    slipMsg(`Minimum bet is ${fmtGil(minBet)} gil per chocobo.`, true);
+    return;
+  }
 
   el('place-bet').disabled = true;
   const errors = [];
   let anyOk = false;
   for (const line of lines) {
-    const res = await placeBet(token, line.num, line.amount, uuid());
+    const res = isHouse
+      ? await houseBet(line.num, line.amount, uuid())
+      : await placeBet(token, line.num, line.amount, uuid());
     if (res.ok) { anyOk = true; selection.delete(line.num); }
     else if (res.status === 401) { el('place-bet').disabled = false; handleTokenRevoked(); return; }
     else errors.push(`#${line.num}: ${res.error}`);
@@ -679,15 +687,29 @@ function updatePlayerArea() {
 }
 
 async function refreshMe() {
+  if (isHouse) {
+    const res = await houseMe();
+    if (!res.ok) {
+      if ((res.status === 401 || res.status === 403) && token) handleTokenRevoked();
+      return;
+    }
+    token = 'house';
+    applyMe(res.data);
+    return;
+  }
   if (!token) return;
   const res = await me(token);
   if (!res.ok) { if (res.status === 401) handleTokenRevoked(); return; }
-  player = { name: res.data.name, world: res.data.world };
-  balance = res.data.balance;
-  available = res.data.available;
-  myBets = res.data.bets || [];
+  applyMe(res.data);
+}
+
+function applyMe(data) {
+  player = { name: data.name, world: data.world };
+  balance = data.balance;
+  available = data.available;
+  myBets = data.bets || [];
   renderPlayer();
-  renderYourBets(res.data.bets);
+  renderYourBets(data.bets);
   if (currentState) renderRunnerList(currentState);
   updateSlipState();
 }
@@ -707,12 +729,18 @@ function handleTokenRevoked() {
   if (ended) return;
   const hadToken = !!token;
   logout();
-  if (hadToken) el('pin-changed-modal').style.display = 'flex';
+  if (!hadToken) return;
+  if (isHouse) el('house-login-modal').classList.remove('hidden');
+  else el('pin-changed-modal').style.display = 'flex';
 }
 
 function closePinChanged() { el('pin-changed-modal').style.display = 'none'; }
 
-function openModal() { el('pin-modal').classList.remove('hidden'); el('pin-input').focus(); }
+function openModal() {
+  if (isHouse) { el('house-login-modal').classList.remove('hidden'); return; }
+  el('pin-modal').classList.remove('hidden');
+  el('pin-input').focus();
+}
 function closeModal() { el('pin-modal').classList.add('hidden'); el('pin-msg').classList.add('hidden'); el('pin-input').value = ''; }
 
 const HOWTO_GN_STEPS = [
@@ -730,6 +758,14 @@ const HOWTO_CLASSIC_STEPS = [
   ['Place your bet', 'Hit "Place Bet", then sit back and wait for the race to begin!'],
 ];
 
+const HOWTO_HOUSE_STEPS = [
+  ['Log in with your OOF account', 'House races bet straight from your OOF account wallet. Log in on the Account page with your OOF token - any OOF host can register you and top up your wallet in game.'],
+  ['Pick your chocobos', 'Head to the Runners section and tap each chocobo you fancy backing. Every bird has the same fair chance.'],
+  ['Set your stakes', 'Open your Bet Slip and stake 1,000 gil or more per pick. The first bet placed starts the countdown to race time.'],
+  ['Watch the race live', 'When betting closes the server rolls the race - first chocobo to the finish line wins.'],
+  ['Get paid instantly', 'Winning bets pay 4x straight into your account wallet the moment the race finishes.'],
+];
+
 function howToStepsHtml(steps) {
   return steps.map(([title, body], i) => `
     <li>
@@ -739,9 +775,9 @@ function howToStepsHtml(steps) {
 }
 
 function openHowTo() {
-  const gn = isGn(currentState);
+  const steps = isHouse ? HOWTO_HOUSE_STEPS : (isGn(currentState) ? HOWTO_GN_STEPS : HOWTO_CLASSIC_STEPS);
   const list = el('howto-steps');
-  if (list) list.innerHTML = howToStepsHtml(gn ? HOWTO_GN_STEPS : HOWTO_CLASSIC_STEPS);
+  if (list) list.innerHTML = howToStepsHtml(steps);
   el('howto-modal').classList.remove('hidden');
 }
 
@@ -790,6 +826,7 @@ function renderAll(s) {
   renderStandings(s);
   renderRunnerList(s);
   renderAllBets(s);
+  renderHouseExtras(s);
   updateSlipState();
 
   if (!finishPending) {
@@ -1067,6 +1104,32 @@ function renderLastResultsGn(results) {
     </div>`).join('');
 }
 
+let houseTimer = null;
+let serverOffsetMs = 0;
+
+function renderHouseExtras(s) {
+  if (!isHouse) return;
+  if (s.serverNow) {
+    const parsed = Date.parse(s.serverNow);
+    if (!Number.isNaN(parsed)) serverOffsetMs = parsed - Date.now();
+  }
+  renderHouseCountdown(s);
+  if (!houseTimer) {
+    houseTimer = setInterval(() => { if (currentState) renderHouseCountdown(currentState); }, 1000);
+  }
+}
+
+function renderHouseCountdown(s) {
+  const wrap = el('stat-close-wrap');
+  if (!wrap) return;
+  const show = s.phase === 'Betting' && !!s.bettingClosesAt;
+  wrap.classList.toggle('hidden', !show);
+  if (!show) { wrap.classList.remove('is-urgent'); el('stat-close').textContent = '-'; return; }
+  const secs = Math.max(0, Math.round((Date.parse(s.bettingClosesAt) - (Date.now() + serverOffsetMs)) / 1000));
+  wrap.classList.toggle('is-urgent', secs > 0 && secs <= 30);
+  el('stat-close').textContent = fmtDur(secs);
+}
+
 function applyCallCounts(data) {
   if (!currentState) return;
   const positions = data.positions || [];
@@ -1183,7 +1246,9 @@ function handleMessage(msg) {
       if (currentState) beginFinish(msg.data.winningChocobo);
       refreshMe();
       break;
-    case 'session_ended': redirectEnded(msg.data && msg.data.reason); break;
+    case 'session_ended':
+      if (isHouse) { showHouseOffline(); } else { redirectEnded(msg.data && msg.data.reason); }
+      break;
     default: break;
   }
 }
@@ -1208,6 +1273,21 @@ function redirectEnded(reason) {
   ended = true;
   try { ws && ws.close(); } catch {}
   window.location.replace(`${CHOCOBO_HOME}?ended=${encodeURIComponent(reason || 'ended')}`);
+}
+
+function showHouseOffline() {
+  ended = true;
+  try { ws && ws.close(); } catch {}
+  hideLoader();
+  el('race-view').classList.add('hidden');
+  el('code-entry').classList.add('hidden');
+  el('house-offline').classList.remove('hidden');
+  const poll = setInterval(async () => {
+    try {
+      const res = await getState(sessionId);
+      if (res.ok) { clearInterval(poll); window.location.reload(); }
+    } catch {}
+  }, 15000);
 }
 
 function probeSpriteSheet() {
@@ -1255,6 +1335,15 @@ function wireUi() {
   el('pin-modal').addEventListener('click', (e) => { if (e.target === el('pin-modal')) closeModal(); });
   el('pin-form').addEventListener('submit', submitPin);
   digitsOnly(el('pin-input'), 6);
+
+  el('house-login-close').addEventListener('click', () => el('house-login-modal').classList.add('hidden'));
+  el('house-login-modal').addEventListener('click', (e) => {
+    if (e.target === el('house-login-modal')) el('house-login-modal').classList.add('hidden');
+  });
+  if (isHouse) {
+    el('open-join').textContent = 'Log in to bet';
+    el('slip-login-hint').textContent = 'Log in with your OOF account to place bets.';
+  }
 
   el('pin-changed-close').addEventListener('click', closePinChanged);
   el('pin-changed-modal').addEventListener('click', (e) => { if (e.target === el('pin-changed-modal')) closePinChanged(); });
@@ -1340,6 +1429,7 @@ function wireAudio() {
 
 async function init() {
   if (!sessionId) { showCodeEntry(); return; }
+  if (isHouse) document.body.classList.add('is-house');
   el('race-view').classList.remove('hidden');
   audio.init();
   wireUi();
@@ -1350,14 +1440,14 @@ async function init() {
 
   const res = await getState(sessionId);
   if (!res.ok) {
-
+    if (isHouse) { showHouseOffline(); return; }
     if (res.status === 404) { redirectEnded('notfound'); return; }
     el('race-view').classList.add('hidden');
     showCodeEntry('Could not load the race. Try again shortly.');
     return;
   }
   renderAll(res.data);
-  if (token) await refreshMe();
+  if (isHouse || token) await refreshMe();
   openHowTo();
   connect();
 }

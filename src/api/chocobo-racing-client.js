@@ -2,15 +2,10 @@ const PROD = {
   http: 'https://api.oofgames.fyi/v1/chocobo-racing',
   ws: 'wss://api.oofgames.fyi/v1/chocobo-racing',
 };
-const DEV = {
-  http: 'http://127.0.0.1:8004',
-  ws: 'ws://127.0.0.1:8004',
-};
-
 function bases() {
   const host = window.location.hostname;
   const isLocal = host === 'localhost' || host === '127.0.0.1';
-  return isLocal ? DEV : PROD;
+  return isLocal ? { http: `http://${host}:8004`, ws: `ws://${host}:8004` } : PROD;
 }
 
 export function uuid() {
@@ -24,13 +19,14 @@ export function uuid() {
   });
 }
 
-async function request(path, { method = 'GET', body, headers = {} } = {}) {
+async function request(path, { method = 'GET', body, headers = {}, credentials } = {}) {
   const target = `${bases().http}${path}`;
   try {
     const response = await fetch(target, {
       method,
       headers: { 'Content-Type': 'application/json', ...headers },
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      ...(credentials ? { credentials } : {}),
     });
     let data = null;
     try {
@@ -71,4 +67,21 @@ export function placeBet(token, chocobo, amount, idempotencyKey) {
 
 export function raceSocketUrl(sessionId) {
   return `${bases().ws}/ws/race/${encodeURIComponent(sessionId)}`;
+}
+
+export function houseState() {
+  return request('/house/state');
+}
+
+export function houseMe() {
+  return request('/house/me', { credentials: 'include' });
+}
+
+export function houseBet(chocobo, amount, idempotencyKey) {
+  return request('/house/bet', {
+    method: 'POST',
+    body: { chocobo, amount },
+    headers: { 'X-Idempotency-Key': idempotencyKey },
+    credentials: 'include',
+  });
 }

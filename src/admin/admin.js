@@ -219,7 +219,9 @@ async function renderOverview(container) {
   const s = result.data;
 
   const cards = el('div', 'grid grid-cols-2 gap-3 md:grid-cols-4');
-  cards.appendChild(statCard('Gil in chest', gil(s.total_balance), 'text-neon-gold'));
+  cards.appendChild(statCard('Gil in chest', gil(s.chest_gil), 'text-neon-gold'));
+  cards.appendChild(statCard('Owed to players', gil(s.total_balance)));
+  cards.appendChild(statCard('House profit held', gil(s.house_profit), s.house_profit >= 0 ? 'text-neon-green' : 'text-red-400'));
   cards.appendChild(statCard('Active holds', gil(s.total_holds)));
   cards.appendChild(statCard('Players', String(s.player_count)));
   cards.appendChild(statCard('Ledger entries', String(s.ledger_entries)));
@@ -249,6 +251,87 @@ async function renderOverview(container) {
     body.appendChild(tr);
   }
   panel.appendChild(wrap);
+}
+
+async function renderGames(container) {
+  const panel = el('section', 'panel flex flex-col gap-5 p-6');
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'House game profits'));
+  panel.appendChild(
+    el('p', 'text-xs text-slate-500', 'Computed from the wallet ledger, so every figure reconciles with the system ledger. Host-run sessions are host money and never appear here.')
+  );
+  const periods = [['24h', 'Today'], ['7d', '7 days'], ['30d', '30 days'], ['all', 'All time']];
+  const picker = el('div', 'flex flex-wrap gap-2');
+  const status = statusLine();
+  const results = el('div', 'flex flex-col gap-8');
+  const buttons = new Map();
+  let period = '7d';
+
+  const load = async () => {
+    for (const [id, button] of buttons) {
+      button.classList.toggle('border-neon-cyan', id === period);
+      button.classList.toggle('text-neon-cyan', id === period);
+    }
+    setStatus(status, 'Loading…');
+    const result = await adminClient.getGamesProfit(period);
+    if (!result.ok) {
+      setStatus(status, result.error, true);
+      return;
+    }
+    setStatus(status, '');
+    clear(results);
+    if (result.data.games.length === 0) {
+      results.appendChild(el('p', 'text-sm text-slate-500', 'No game activity in this period.'));
+    }
+    for (const game of result.data.games) {
+      const box = el('div', 'flex flex-col gap-3');
+      box.appendChild(el('h4', 'text-base font-semibold text-neon-gold', game.label));
+      const cards = el('div', 'grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6');
+      cards.appendChild(statCard('Staked', gil(game.staked)));
+      cards.appendChild(statCard('Paid out', gil(game.paid_out), 'text-red-400'));
+      cards.appendChild(statCard('Refunded', gil(game.refunded), 'text-slate-300'));
+      cards.appendChild(statCard('Net profit', gil(game.net_profit), game.net_profit >= 0 ? 'text-neon-green' : 'text-red-400'));
+      cards.appendChild(statCard('Bets', String(game.bets)));
+      cards.appendChild(statCard('Bettors', String(game.unique_players)));
+      box.appendChild(cards);
+      box.appendChild(el('p', 'text-xs uppercase tracking-wide text-slate-500', 'Top players by amount staked'));
+      const { wrap, body } = tableShell(['Player', 'World', 'Bets', 'Staked', 'Returned', 'Player net']);
+      if (game.top_players.length === 0) {
+        body.appendChild(el('tr')).appendChild(cell('No bets in this period'));
+      }
+      for (const p of game.top_players) {
+        const tr = el('tr');
+        tr.appendChild(cell(p.name, 'px-3 py-2 font-semibold text-slate-200'));
+        tr.appendChild(cell(p.world));
+        tr.appendChild(cell(String(p.bets)));
+        tr.appendChild(cell(gil(p.staked), 'px-3 py-2 text-neon-gold'));
+        tr.appendChild(cell(gil(p.returned)));
+        tr.appendChild(
+          cell(
+            `${p.net > 0 ? '+' : ''}${gil(p.net)}`,
+            `px-3 py-2 font-bold ${p.net >= 0 ? 'text-neon-green' : 'text-red-400'}`
+          )
+        );
+        body.appendChild(tr);
+      }
+      box.appendChild(wrap);
+      results.appendChild(box);
+    }
+  };
+
+  for (const [id, label] of periods) {
+    const button = subtleButton(label);
+    button.addEventListener('click', () => {
+      period = id;
+      load();
+    });
+    buttons.set(id, button);
+    picker.appendChild(button);
+  }
+  panel.appendChild(picker);
+  panel.appendChild(status);
+  panel.appendChild(results);
+  container.appendChild(panel);
+  load();
 }
 
 const TYPE_LABELS = {
@@ -657,6 +740,7 @@ async function renderBans(container) {
 
 const TABS = [
   { id: 'overview', label: 'Overview', render: renderOverview },
+  { id: 'games', label: 'Games', render: renderGames },
   { id: 'ledger', label: 'Ledger', render: renderLedger },
   { id: 'players', label: 'Players', render: renderPlayers },
   { id: 'developers', label: 'Developers', render: renderDevelopers },
