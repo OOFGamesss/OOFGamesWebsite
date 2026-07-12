@@ -1,5 +1,6 @@
 import './race.css';
 import { getState, houseBet, houseMe, login, me, placeBet, raceSocketUrl, uuid } from '../../api/chocobo-racing-client.js';
+import { openLoginModal } from '../../components/login-modal.js';
 import audio from './race-audio.js';
 
 const RACE_PREFIX = '/chocobo-racing/race/';
@@ -730,14 +731,21 @@ function handleTokenRevoked() {
   const hadToken = !!token;
   logout();
   if (!hadToken) return;
-  if (isHouse) el('house-login-modal').classList.remove('hidden');
+  if (isHouse) openHouseLogin();
   else el('pin-changed-modal').style.display = 'flex';
 }
 
 function closePinChanged() { el('pin-changed-modal').style.display = 'none'; }
 
+function openHouseLogin() {
+  openLoginModal({
+    intro: 'House races bet straight from your OOF account wallet. Enter the account token a host gave you in-game and your balance appears right here.',
+    onSuccess: () => refreshMe()
+  });
+}
+
 function openModal() {
-  if (isHouse) { el('house-login-modal').classList.remove('hidden'); return; }
+  if (isHouse) { openHouseLogin(); return; }
   el('pin-modal').classList.remove('hidden');
   el('pin-input').focus();
 }
@@ -1318,7 +1326,7 @@ function showCodeEntry(message) {
   el('code-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const code = el('code-input').value.trim().replace(/[^a-zA-Z0-9]/g, '');
-    if (code) window.location.assign(RACE_PREFIX + encodeURIComponent(code));
+    if (code) window.location.assign(`${RACE_PREFIX}?s=${encodeURIComponent(code)}`);
   });
 }
 
@@ -1336,10 +1344,6 @@ function wireUi() {
   el('pin-form').addEventListener('submit', submitPin);
   digitsOnly(el('pin-input'), 6);
 
-  el('house-login-close').addEventListener('click', () => el('house-login-modal').classList.add('hidden'));
-  el('house-login-modal').addEventListener('click', (e) => {
-    if (e.target === el('house-login-modal')) el('house-login-modal').classList.add('hidden');
-  });
   if (isHouse) {
     el('open-join').textContent = 'Log in to bet';
     el('slip-login-hint').textContent = 'Log in with your OOF account to place bets.';

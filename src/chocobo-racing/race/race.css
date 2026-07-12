@@ -30,6 +30,7 @@ body.is-gn .conn-dot { display: none; }
 .race-view { display: flex; flex-direction: column; gap: 14px; }
 .col-left, .col-right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .col-bottom { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
+.col-bottom > * { min-width: 0; }
 .bottom-right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
 @media (min-width: 1100px) {
@@ -69,6 +70,14 @@ body.is-gn .conn-dot { display: none; }
   .race-header__player { justify-content: center; }
   .podium-overlay { padding: 10px; }
   .podium-overlay__card { padding: 12px 14px 18px; }
+
+  .runner-list.is-split { grid-template-columns: 1fr; grid-template-rows: none; grid-auto-flow: row; gap: 6px; }
+  .runner-row { gap: 8px; padding: 9px 8px; }
+  .runner-row__odds { font-size: 0.8rem; }
+  .runner-row__pick { padding: 7px 9px; font-size: 0.72rem; }
+
+  .slip-line { gap: 6px; }
+  .stepper .cr-input { width: 96px; }
 }
 
 .card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; padding: 14px 16px 0; flex: 0 0 auto; }
@@ -390,8 +399,8 @@ body.is-house .runner { transition: left 0.3s linear, top 0.8s ease; }
 .slip-lines { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
 .slip-line { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; background: color-mix(in srgb, var(--color-night-deep,#140a26) 60%, transparent); border-radius: 10px; padding: 8px; }
 .slip-line__silk { width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; font-size: 0.68rem; font-weight: 800; color: #0a0612; flex: none; }
-.slip-line__name { font-size: 0.85rem; font-weight: 600; color: #f1f5f9; }
-.slip-line__name small { display: block; color: #94a3b8; font-weight: 400; }
+.slip-line__name { font-size: 0.85rem; font-weight: 600; color: #f1f5f9; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slip-line__name small { display: block; color: #94a3b8; font-weight: 400; overflow: hidden; text-overflow: ellipsis; }
 .slip-line__rm { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1rem; }
 .slip-line__rm:hover { color: var(--color-neon-magenta,#ff2bd6); }
 .slip-line__ret { grid-column: 1 / -1; font-size: 0.72rem; color: #94a3b8; text-align: right; }
@@ -510,5 +519,3 @@ body.is-house .runner { transition: left 0.3s linear, top 0.8s ease; }
 .track-stat--close .track-stat__value { color: var(--color-neon-cyan,#38e1ff); }
 .track-stat--close.is-urgent { border-color: color-mix(in srgb, #ff5a5a 55%, transparent); }
 .track-stat--close.is-urgent .track-stat__value { color: #ff8a8a; }
-.house-login__text { margin: 0 0 12px; font-size: 0.9rem; line-height: 1.5; color: #cbd5e1; }
-.house-login__cta { display: block; text-align: center; }

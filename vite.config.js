@@ -52,10 +52,32 @@ function chocoboRaceDevFallback() {
   };
 }
 
+function sitemap() {
+  const origin = 'https://oofgames.fyi';
+  return {
+    name: 'sitemap',
+    apply: 'build',
+    enforce: 'post',
+    writeBundle(_options, bundle) {
+      const urls = Object.values(bundle)
+        .filter((chunk) => chunk.type === 'asset' && chunk.fileName.endsWith('.html'))
+        .filter((chunk) => !/<meta\s+name="robots"[^>]*noindex/i.test(String(chunk.source)))
+        .map((chunk) => `${origin}/${chunk.fileName.replace(/(^|\/)index\.html$/, '$1')}`)
+        .sort();
+
+      const body = urls.map((url) => `  <url><loc>${url}</loc></url>`).join('\n');
+      writeFileSync(
+        resolve(outDir, 'sitemap.xml'),
+        `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`
+      );
+    }
+  };
+}
+
 export default defineConfig({
   root,
   publicDir,
-  plugins: [tailwindcss(), gameImageManifests(), chocoboRaceDevFallback()],
+  plugins: [tailwindcss(), gameImageManifests(), chocoboRaceDevFallback(), sitemap()],
   build: {
     outDir,
     emptyOutDir: true,

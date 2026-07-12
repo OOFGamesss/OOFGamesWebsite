@@ -1,5 +1,5 @@
-export function enableCardHover() {
-  const cards = document.querySelectorAll('[data-plugin-card]');
+export function enableCardHover(root = document) {
+  const cards = root.querySelectorAll('[data-plugin-card]');
   cards.forEach((card) => {
     card.addEventListener('pointermove', (event) => {
       const bounds = card.getBoundingClientRect();

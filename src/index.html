@@ -1,8 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0612" />
     <meta name="description" content="Discover OOF Games - a custom suite of FFXIV plugins and interactive mini-games for gambling venues and entertainment hosts." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="OOF Games" />
@@ -20,6 +21,30 @@
     <link rel="canonical" href="https://oofgames.fyi/" />
     <link rel="icon" type="image/png" href="/images/oofgameslogo.png" />
     <title>OOF Games</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://oofgames.fyi/#organization",
+            "name": "OOF Games",
+            "url": "https://oofgames.fyi/",
+            "logo": "https://oofgames.fyi/images/oofgameslogo.png",
+            "description": "A custom suite of FFXIV plugins and interactive mini-games for gambling venues and entertainment hosts.",
+            "sameAs": ["https://discord.gg/vM6ff4h5Ym"]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://oofgames.fyi/#website",
+            "url": "https://oofgames.fyi/",
+            "name": "OOF Games",
+            "inLanguage": "en-GB",
+            "publisher": { "@id": "https://oofgames.fyi/#organization" }
+          }
+        ]
+      }
+    </script>
     <link rel="stylesheet" href="/assets/style.css" />
     <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare Web Analytics beacon; Cloudflare updates the script server-side, so an SRI hash cannot be pinned. -->
     <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "1ae0789372b64fc5acc3abedf41cf4b3"}'></script><!-- End Cloudflare Web Analytics -->
@@ -42,26 +67,24 @@
           </span>
           Live Games
         </h2>
-        <p class="mx-auto mb-6 max-w-xl text-center text-sm text-slate-400">
-          Games run by OOF Games around the clock - log in and bet straight from your OOF account wallet.
-        </p>
-        <div class="grid grid-cols-1 gap-6">
-          <a href="/chocobo-racing/race/house" data-plugin-card class="panel group flex flex-wrap items-center gap-6 p-6 transition-transform duration-150">
-            <img src="/images/chocoboracing.png" alt="House Chocobo Races logo" class="mx-auto h-28 w-28 shrink-0 object-contain sm:mx-0" style="filter: drop-shadow(0 0 10px rgba(255, 43, 214, 0.75)) drop-shadow(0 0 24px rgba(255, 110, 199, 0.55));" />
-            <div class="min-w-[16rem] flex-1">
-              <h3 class="text-xl font-semibold text-neon-gold">House Chocobo Races</h3>
-              <p class="mt-2 text-sm text-slate-300">Live 24/7 Classic Chocobo Racing!</p>
-              <span class="mt-3 inline-block text-sm font-semibold text-neon-cyan group-hover:underline">Watch &amp; Bet Live ➔</span>
-            </div>
+        <div class="mb-4 flex items-center gap-3">
+          <img src="/images/chocoboracing.png" alt="" aria-hidden="true" class="h-10 w-10 object-contain" style="filter: drop-shadow(0 0 8px rgba(245, 197, 24, 0.65));" />
+          <h3 class="text-xl font-semibold text-neon-gold">Chocobo Racing</h3>
+        </div>
+        <div data-live-grid class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          <a href="/chocobo-racing/race/?s=house" data-plugin-card class="panel group flex flex-col gap-3 p-6 transition-transform duration-150">
+            <img src="/images/oofgameslogo.png" alt="OOF Games logo" class="mx-auto h-28 w-28 object-contain" style="filter: drop-shadow(0 0 10px rgba(255, 43, 214, 0.75)) drop-shadow(0 0 24px rgba(255, 110, 199, 0.55));" />
+            <h4 class="text-center text-xl font-semibold text-neon-gold">OOF Games 24/7</h4>
+            <div data-house-status class="flex justify-center"></div>
+            <p data-house-stats class="text-center text-sm text-slate-300">Runs 24/7</p>
+            <span class="mt-auto text-center text-sm font-semibold text-neon-cyan group-hover:underline">Watch &amp; Bet Live ➔</span>
           </a>
+          <div data-live-hosts class="contents"></div>
         </div>
       </section>
 
       <section class="w-full">
         <h2 class="mb-6 text-center text-2xl font-bold text-slate-100">Plugins</h2>
-        <p class="mx-auto mb-6 max-w-xl text-center text-sm text-slate-400">
-          Our FFXIV plugin suite for venue hosts - learn what each one does and how to install it.
-        </p>
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           <a href="/gamba-where/" data-plugin-card class="panel group flex flex-col gap-3 p-6 transition-transform duration-150">
             <img src="/images/gambawhere.png" alt="Gamba Where logo" class="mx-auto h-28 w-28 object-contain" style="filter: drop-shadow(0 0 10px rgba(106, 48, 224, 0.75)) drop-shadow(0 0 24px rgba(139, 92, 255, 0.55));" />
@@ -90,6 +113,7 @@
     <script type="module" src="/components/console-guard.js"></script><script type="module" src="/components/neon-background.js"></script>
     <script type="module" src="/components/discord-widget.js"></script>
     <script type="module" src="/main.js"></script>
+    <script type="module" src="/components/live-games.js"></script>
     <script type="module" src="/components/account-pill.js"></script>
   </body>
 </html>

@@ -1,8 +1,10 @@
 import { walletClient } from '../api/wallet-client.js';
 import { connectWalletSocket } from '../api/wallet-live.js';
+import { openLoginModal } from './login-modal.js';
 
 const RACE_PATH_PREFIX = '/chocobo-racing/race';
 const ACCOUNT_PATH_PREFIX = '/account';
+const DEVELOPER_PATH_PREFIX = '/developer';
 const CACHE_KEY = 'oof-wallet-pill';
 
 function el(tag, className = '', text = '') {
@@ -43,8 +45,9 @@ function writeCache(wallet) {
 }
 
 function mountPill() {
-  if (window.location.pathname.startsWith(RACE_PATH_PREFIX)) return;
-  const onAccountPage = window.location.pathname.startsWith(ACCOUNT_PATH_PREFIX);
+  const path = window.location.pathname;
+  if (path.startsWith(RACE_PATH_PREFIX) || path.startsWith(DEVELOPER_PATH_PREFIX)) return;
+  const onAccountPage = path.startsWith(ACCOUNT_PATH_PREFIX);
 
   const link = el(
     'a',
@@ -54,8 +57,16 @@ function mountPill() {
   link.setAttribute('aria-label', 'OOF Games wallet');
 
   let disconnect = null;
+  let signedIn = false;
+
+  link.addEventListener('click', (event) => {
+    if (signedIn || onAccountPage) return;
+    event.preventDefault();
+    openLoginModal();
+  });
 
   const render = (wallet) => {
+    signedIn = Boolean(wallet);
     while (link.firstChild) link.removeChild(link.firstChild);
     link.appendChild(el('span', 'text-base leading-none', '💰'));
     if (!wallet) {
@@ -110,7 +121,7 @@ function mountPill() {
   const cached = readCache();
   render(cached ?? null);
   document.body.appendChild(link);
-  if (cached && !onAccountPage) {
+  if (!onAccountPage) {
     refresh();
   }
   document.addEventListener('visibilitychange', () => {

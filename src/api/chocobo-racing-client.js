@@ -5,6 +5,7 @@ const PROD = {
 function bases() {
   const host = window.location.hostname;
   const isLocal = host === 'localhost' || host === '127.0.0.1';
+  // nosemgrep: javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket -- loopback-only dev backend has no TLS; all non-local traffic uses PROD (wss)
   return isLocal ? { http: `http://${host}:8004`, ws: `ws://${host}:8004` } : PROD;
 }
 
@@ -71,6 +72,10 @@ export function raceSocketUrl(sessionId) {
 
 export function houseState() {
   return request('/house/state');
+}
+
+export function liveSessions() {
+  return request('/live/sessions');
 }
 
 export function houseMe() {
