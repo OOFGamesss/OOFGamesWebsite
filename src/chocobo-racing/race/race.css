@@ -326,7 +326,7 @@ body.is-house .runner { transition: left 0.3s linear, top 0.8s ease; }
 .header-bank__sub b { color: #e2e8f0; font-variant-numeric: tabular-nums; }
 
 .runner-list { display: grid; grid-template-columns: 1fr; gap: 6px; }
-.runner-list.is-split { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, auto); grid-auto-flow: column; gap: 6px 12px; }
+.runner-list.is-split { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(var(--runner-rows, 5), auto); grid-auto-flow: column; gap: 6px 12px; }
 .runner-row { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; border: 1px solid transparent; background: color-mix(in srgb, var(--color-night-deep,#140a26) 55%, transparent); cursor: pointer; transition: border-color 0.12s, background 0.12s; }
 .runner-row:hover { border-color: color-mix(in srgb, var(--color-neon-cyan,#18e0ff) 45%, transparent); }
 .runner-row.selected { border-color: var(--color-neon-cyan,#18e0ff); background: color-mix(in srgb, var(--color-neon-cyan,#18e0ff) 12%, transparent); }

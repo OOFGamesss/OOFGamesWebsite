@@ -490,8 +490,11 @@ function renderStats(s) {
 function renderRunnerList(s) {
   const chocobos = s.chocobos || [];
 
-  el('runner-list').classList.toggle('is-split', chocobos.length > 5);
-  el('runner-list').innerHTML = chocobos.map((c) => {
+  const list = el('runner-list');
+  const split = chocobos.length > 5;
+  list.classList.toggle('is-split', split);
+  list.style.setProperty('--runner-rows', split ? Math.ceil(chocobos.length / 2) : '');
+  list.innerHTML = chocobos.map((c) => {
     const color = laneColor(c.number);
     const picked = selection.has(c.number);
     const mine = myBets.filter((b) => b.chocobo === c.number).reduce((t, b) => t + b.amount, 0);
