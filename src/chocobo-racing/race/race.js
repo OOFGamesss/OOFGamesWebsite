@@ -499,12 +499,16 @@ function renderRunnerList(s) {
     const picked = selection.has(c.number);
     const mine = myBets.filter((b) => b.chocobo === c.number).reduce((t, b) => t + b.amount, 0);
     const youLine = mine > 0 ? `<small class="runner-row__you">${fmtGil(mine)} bet placed.</small>` : '';
+    const pickLabel = picked ? 'Remove from Betslip' : 'Add to Betslip';
     return `
       <div class="runner-row ${picked ? 'selected' : ''}" data-num="${c.number}">
         <span class="runner-row__silk" style="background:${color}">${c.number}</span>
         <span class="runner-row__name">${escapeHtml(c.name)}${youLine}</span>
         <span class="runner-row__odds">Odds ${s.odds}x</span>
-        <button type="button" class="runner-row__pick">${picked ? 'Remove from Betslip' : 'Add to Betslip'}</button>
+        <button type="button" class="runner-row__pick" aria-label="${pickLabel}">
+          <span class="runner-row__pick-full" aria-hidden="true">${pickLabel}</span>
+          <span class="runner-row__pick-short" aria-hidden="true">${picked ? '−' : '+'}</span>
+        </button>
       </div>`;
   }).join('');
 }
