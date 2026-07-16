@@ -1,12 +1,18 @@
 const DISCORD_INVITE = 'https://discord.gg/vM6ff4h5Ym';
 
-function isChocoboRacePage() {
-  return window.location.pathname.includes('/chocobo-racing/race');
+const PITCH_PAGES = [
+  { path: '/chocobo-racing/race', game: 'Chocobo Racing' },
+  { path: '/mini-games-emporium/drt/bracket', game: 'Deathroll Tournament' }
+];
+
+function pitchGame() {
+  const match = PITCH_PAGES.find((page) => window.location.pathname.includes(page.path));
+  return match ? match.game : null;
 }
 
 function buildWidget() {
-  const onRacePage = isChocoboRacePage();
-  const label = onRacePage ? 'Want Chocobo Racing for your venue? Get it free on Discord' : 'Support';
+  const game = pitchGame();
+  const label = game ? `Want ${game} for your venue? Get it free on Discord` : 'Support';
 
   const anchor = document.createElement('a');
   anchor.href = DISCORD_INVITE;
