@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0612" />
+    <meta name="description" content="Follow a live Deathroll Tournament bracket in real time. Watch every roll as it happens!" />
+    <meta name="robots" content="noindex" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OOF Games" />
+    <meta property="og:title" content="Live Bracket | Deathroll Tournament" />
+    <meta property="og:description" content="Follow a live Deathroll Tournament bracket in real time. Watch every roll as it happens!" />
+    <meta property="og:url" content="https://oofgames.fyi/mini-games-emporium/drt/bracket/" />
+    <meta property="og:image" content="https://oofgames.fyi/images/minigamesemporium.png" />
+    <meta property="og:image:alt" content="MiniGames Emporium" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Live Bracket | Deathroll Tournament" />
+    <meta name="twitter:description" content="Follow a live Deathroll Tournament bracket in real time. Watch every roll as it happens!" />
+    <meta name="twitter:image" content="https://oofgames.fyi/images/minigamesemporium.png" />
+    <meta name="twitter:image:alt" content="MiniGames Emporium" />
+    <link rel="icon" type="image/png" href="/images/minigamesemporium.png" />
+    <title>Live Bracket | Deathroll Tournament</title>
+    <link rel="stylesheet" href="/assets/style.css" />
+    <link rel="stylesheet" href="./bracket.css" />
+    <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare Web Analytics beacon; Cloudflare updates the script server-side, so an SRI hash cannot be pinned. -->
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "1ae0789372b64fc5acc3abedf41cf4b3"}'></script><!-- End Cloudflare Web Analytics -->
+  </head>
+  <body>
+    <main class="drt-main">
+      <nav class="text-sm">
+        <a href="/mini-games-emporium/" class="text-neon-cyan hover:underline">⇠ Back to MiniGames Emporium</a>
+      </nav>
+
+      <header class="panel race-header">
+        <div class="race-header__title">
+          <img id="header-logo" src="/images/minigamesemporium.png" alt="" class="race-header__logo" />
+          <div>
+            <h1 class="neon-heading race-header__h1">Deathroll Tournament</h1>
+            <p id="host-line" class="race-header__sub">Connecting…</p>
+          </div>
+        </div>
+        <div id="track-stats" class="track-stats">
+          <div class="track-stat"><span class="track-stat__label">Phase</span><span id="stat-phase" class="track-stat__value">-</span></div>
+          <div class="track-stat"><span class="track-stat__label">Players</span><span id="stat-players" class="track-stat__value">-</span></div>
+          <div id="stat-entry-wrap" class="track-stat hidden"><span class="track-stat__label">Entry Cost</span><span id="stat-entry" class="track-stat__value">-</span></div>
+          <div class="track-stat track-stat--prize"><span class="track-stat__label">Prize</span><span id="stat-prize" class="track-stat__value">-</span></div>
+        </div>
+        <div class="race-header__player">
+          <span id="conn-dot" class="conn-dot" title="Live connection"></span>
+        </div>
+      </header>
+
+      <section id="code-entry" class="panel code-entry hidden">
+        <h2>Watch a tournament</h2>
+        <p>Enter the session code your host shared, or open the link they gave you.</p>
+        <form id="code-form">
+          <input id="code-input" type="text" autocomplete="off" placeholder="session code" class="drt-input" />
+          <button type="submit" class="btn-primary">Watch bracket</button>
+        </form>
+      </section>
+
+      <section id="idle-panel" class="panel code-entry hidden">
+        <h2>Waiting for the tournament…</h2>
+        <p>The host has not opened registration yet. This page updates automatically.</p>
+      </section>
+
+      <div id="drt-view" class="drt-view hidden">
+        <div class="drt-col">
+          <section id="registration-panel" class="panel hidden">
+            <div class="card-head"><h2>Registered Players</h2><span id="reg-count" class="card-head__hint"></span></div>
+            <ul id="player-list" class="player-list scroll-area"></ul>
+          </section>
+
+          <section id="bracket-panel" class="panel hidden">
+            <div class="card-head">
+              <h2>Bracket</h2>
+              <input id="bracket-search" type="search" autocomplete="off" placeholder="Find a player…"
+                     aria-label="Find a player in the bracket" class="bracket-search" />
+            </div>
+            <div id="bracket-viewport" class="bracket-viewport">
+              <div id="bracket-canvas" class="bracket-canvas">
+                <svg id="bracket-lines" class="bracket-lines" aria-hidden="true"></svg>
+                <div id="bracket" class="bracket"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="drt-side">
+          <section id="join-panel" class="panel join-panel hidden">
+            <div class="card-head card-head--center"><h2>Join this tournament</h2></div>
+            <div class="join-panel__body">
+              <form id="join-form">
+                <input id="join-name" type="text" autocomplete="off" maxlength="32" placeholder="Your character name" class="drt-input" />
+                <button type="submit" class="btn-primary btn-sm">Request to Join</button>
+              </form>
+              <p id="join-status" class="join-status hidden"></p>
+            </div>
+          </section>
+
+          <section id="bets-panel" class="panel hidden">
+            <div class="card-head"><h2>Bets</h2><span id="bets-hint" class="card-head__hint"></span></div>
+            <div class="bets-body">
+              <ul id="bets-list" class="bets-list scroll-area"></ul>
+              <div id="payouts-wrap" class="hidden">
+                <h3 class="payouts-title">Payouts</h3>
+                <ul id="payouts-list" class="bets-list"></ul>
+              </div>
+            </div>
+          </section>
+
+          <section id="active-match-panel" class="panel hidden">
+            <div class="card-head"><h2>Rolls</h2><span id="match-score" class="card-head__hint"></span></div>
+            <div class="active-match__body">
+              <p id="match-vs" class="match-vs"></p>
+              <p id="match-status" class="match-status"></p>
+              <ul id="roll-log" class="roll-log scroll-area"></ul>
+            </div>
+          </section>
+
+          <section id="winner-panel" class="panel winner-panel hidden">
+            <h2>🏆 Tournament Winner</h2>
+            <p id="winner-name" class="winner-name"></p>
+            <p id="winner-payout" class="winner-payout"></p>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/components/console-guard.js"></script>
+    <script type="module" src="/components/neon-background.js"></script>
+    <script type="module" src="./bracket.js"></script>
+  </body>
+</html>

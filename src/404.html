@@ -4,26 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0612" />
-    <script>
-      (function () {
-        var path = window.location.pathname;
-        var legacy = path.indexOf('/pages/') === 0;
-        if (legacy) {
-          path = path.slice('/pages'.length);
-        }
-        var prefix = '/chocobo-racing/race/';
-        if (path.indexOf(prefix) === 0 && path.length > prefix.length) {
-          var id = path.slice(prefix.length).replace(/\/+$/, '');
-          if (id) {
-            window.location.replace(prefix + '?s=' + encodeURIComponent(id) + window.location.hash);
-            return;
-          }
-        }
-        if (legacy) {
-          window.location.replace(path + window.location.search + window.location.hash);
-        }
-      })();
-    </script>
+    <script src="/components/pretty-path-redirect.js"></script>
     <meta name="description" content="Page not found - OOF Games" />
     <meta name="robots" content="noindex" />
     <link rel="icon" type="image/png" href="/images/oofgameslogo.png" />

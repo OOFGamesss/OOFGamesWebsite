@@ -32,18 +32,17 @@ function gameImageManifests() {
   };
 }
 
-function chocoboRaceDevFallback() {
-  const racePrefix = '/chocobo-racing/race/';
-  const raceIndex = '/chocobo-racing/race/index.html';
+function prettyPathDevFallback(name, prefix) {
+  const index = `${prefix}index.html`;
   return {
-    name: 'chocobo-race-dev-fallback',
+    name,
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
         const url = req.url || '';
-        if (url.startsWith(racePrefix) && !url.startsWith(raceIndex)) {
-          const rest = url.slice(racePrefix.length);
-          if (rest && !rest.startsWith('?') && !rest.split('?')[0].includes('.')) {
-            req.url = raceIndex;
+        if (url.startsWith(prefix) && !url.startsWith(index)) {
+          const restPath = url.slice(prefix.length).split('?')[0].replace(/^\/+|\/+$/g, '');
+          if (restPath && !restPath.includes('/') && !restPath.includes('.')) {
+            req.url = index;
           }
         }
         next();
@@ -51,6 +50,11 @@ function chocoboRaceDevFallback() {
     },
   };
 }
+
+const chocoboRaceDevFallback = () =>
+  prettyPathDevFallback('chocobo-race-dev-fallback', '/chocobo-racing/race/');
+const drtBracketDevFallback = () =>
+  prettyPathDevFallback('drt-bracket-dev-fallback', '/mini-games-emporium/drt/bracket/');
 
 function sitemap() {
   const origin = 'https://oofgames.fyi';
@@ -77,7 +81,7 @@ function sitemap() {
 export default defineConfig({
   root,
   publicDir,
-  plugins: [tailwindcss(), gameImageManifests(), chocoboRaceDevFallback(), sitemap()],
+  plugins: [tailwindcss(), gameImageManifests(), chocoboRaceDevFallback(), drtBracketDevFallback(), sitemap()],
   build: {
     outDir,
     emptyOutDir: true,
@@ -91,21 +95,22 @@ export default defineConfig({
         gambaWhere: resolve(root, 'gamba-where/index.html'),
         chocoboRacing: resolve(root, 'chocobo-racing/index.html'),
         chocoboRace: resolve(root, 'chocobo-racing/race/index.html'),
-        minigamesEmporium: resolve(root, 'minigames-emporium/index.html'),
-        eightBallPool: resolve(root, 'minigames-emporium/games/8ballpool/index.html'),
-        bar777: resolve(root, 'minigames-emporium/games/bar777/index.html'),
-        beerpong: resolve(root, 'minigames-emporium/games/beerpong/index.html'),
-        coinskipper: resolve(root, 'minigames-emporium/games/coinskipper/index.html'),
-        darts: resolve(root, 'minigames-emporium/games/darts/index.html'),
-        dealornodeal: resolve(root, 'minigames-emporium/games/dealornodeal/index.html'),
-        drt: resolve(root, 'minigames-emporium/games/drt/index.html'),
-        gamblederby: resolve(root, 'minigames-emporium/games/gamblederby/index.html'),
-        higherlower: resolve(root, 'minigames-emporium/games/higherlower/index.html'),
-        minefieldgambit: resolve(root, 'minigames-emporium/games/minefieldgambit/index.html'),
-        raffle: resolve(root, 'minigames-emporium/games/raffle/index.html'),
-        raidboss: resolve(root, 'minigames-emporium/games/raidboss/index.html'),
-        russianroulette: resolve(root, 'minigames-emporium/games/russianroulette/index.html'),
-        votingmadness: resolve(root, 'minigames-emporium/games/votingmadness/index.html')
+        minigamesEmporium: resolve(root, 'mini-games-emporium/index.html'),
+        eightBallPool: resolve(root, 'mini-games-emporium/8ballpool/index.html'),
+        bar777: resolve(root, 'mini-games-emporium/bar777/index.html'),
+        beerpong: resolve(root, 'mini-games-emporium/beerpong/index.html'),
+        coinskipper: resolve(root, 'mini-games-emporium/coinskipper/index.html'),
+        darts: resolve(root, 'mini-games-emporium/darts/index.html'),
+        dealornodeal: resolve(root, 'mini-games-emporium/dealornodeal/index.html'),
+        drt: resolve(root, 'mini-games-emporium/drt/index.html'),
+        drtBracket: resolve(root, 'mini-games-emporium/drt/bracket/index.html'),
+        gamblederby: resolve(root, 'mini-games-emporium/gamblederby/index.html'),
+        higherlower: resolve(root, 'mini-games-emporium/higherlower/index.html'),
+        minefieldgambit: resolve(root, 'mini-games-emporium/minefieldgambit/index.html'),
+        raffle: resolve(root, 'mini-games-emporium/raffle/index.html'),
+        raidboss: resolve(root, 'mini-games-emporium/raidboss/index.html'),
+        russianroulette: resolve(root, 'mini-games-emporium/russianroulette/index.html'),
+        votingmadness: resolve(root, 'mini-games-emporium/votingmadness/index.html')
       }
     }
   }
