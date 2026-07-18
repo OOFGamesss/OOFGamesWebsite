@@ -65,6 +65,10 @@ function textInput(placeholder) {
   return input;
 }
 
+function fieldLabel(text) {
+  return el('span', '-mb-2 text-xs uppercase tracking-wide text-slate-500', text);
+}
+
 function badge(text, tone) {
   const tones = {
     red: 'bg-red-500/15 text-red-400 border-red-500/40',
@@ -450,11 +454,57 @@ async function renderLottery(container) {
       }
       load();
     });
+    scheduleBox.appendChild(fieldLabel('Draw day'));
     scheduleBox.appendChild(daySelect);
+    scheduleBox.appendChild(fieldLabel('Draw time (HH:MM, UTC)'));
     scheduleBox.appendChild(timeInput);
+    scheduleBox.appendChild(fieldLabel('Ticket sales close (minutes before the draw)'));
     scheduleBox.appendChild(closeInput);
     scheduleBox.appendChild(scheduleButton);
     scheduleBox.appendChild(scheduleStatus);
+
+    scheduleBox.appendChild(el('div', 'border-t border-neon-violet/20'));
+    scheduleBox.appendChild(el('h4', 'text-sm font-semibold text-neon-gold', `One-off: draw #${data.current.draw_id}`));
+    scheduleBox.appendChild(
+      el('p', 'text-xs text-slate-500', `Currently ${when(data.current.scheduled_at)}. Move this draw to an exact date, or push it back a week if you are busy. Sold tickets stay valid either way; the weekly schedule resumes after it settles.`)
+    );
+    const moveInput = textInput('');
+    moveInput.type = 'datetime-local';
+    moveInput.value = String(data.current.scheduled_at).slice(0, 16);
+    const moveStatus = statusLine();
+    const moveButton = primaryButton('Move draw');
+    moveButton.addEventListener('click', async () => {
+      if (!moveInput.value) {
+        setStatus(moveStatus, 'Pick a date and time first.', true);
+        return;
+      }
+      moveButton.disabled = true;
+      const outcome = await adminClient.moveLotteryDraw(data.current.draw_id, moveInput.value);
+      moveButton.disabled = false;
+      if (!outcome.ok) {
+        setStatus(moveStatus, outcome.error, true);
+        return;
+      }
+      load();
+    });
+    const skipButton = subtleButton('Push back one week');
+    skipButton.addEventListener('click', async () => {
+      skipButton.disabled = true;
+      const outcome = await adminClient.skipLotteryDraw(data.current.draw_id);
+      skipButton.disabled = false;
+      if (!outcome.ok) {
+        setStatus(moveStatus, outcome.error, true);
+        return;
+      }
+      load();
+    });
+    scheduleBox.appendChild(fieldLabel('New date & time (UTC / ST)'));
+    scheduleBox.appendChild(moveInput);
+    const moveRow = el('div', 'flex items-center gap-2');
+    moveRow.appendChild(moveButton);
+    moveRow.appendChild(skipButton);
+    scheduleBox.appendChild(moveRow);
+    scheduleBox.appendChild(moveStatus);
     forms.appendChild(scheduleBox);
 
     const drawBox = el('div', 'flex flex-col gap-3 rounded-xl border border-neon-violet/25 bg-night-deep/60 p-4');

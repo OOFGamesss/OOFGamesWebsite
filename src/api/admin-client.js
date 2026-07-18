@@ -62,6 +62,9 @@ export const adminClient = {
   getLottery: (potPage = 1) => request(`/admin/lottery?pot_page=${potPage}`),
   adjustLotteryPot: (amount, note) => jsonRequest('/admin/lottery/pot-adjust', 'POST', { amount, note }),
   updateLotterySchedule: (payload) => jsonRequest('/admin/lottery/schedule', 'PUT', payload),
+  moveLotteryDraw: (drawId, scheduledAt) =>
+    jsonRequest(`/admin/lottery/draws/${drawId}/schedule`, 'PUT', { scheduled_at: scheduledAt }),
+  skipLotteryDraw: (drawId) => jsonRequest(`/admin/lottery/draws/${drawId}/skip`, 'POST', {}),
   submitLotteryDraw: (drawId, mainNumbers, bonusNumber) =>
     jsonRequest('/admin/lottery/draw', 'POST', {
       draw_id: drawId,
