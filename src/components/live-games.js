@@ -46,9 +46,14 @@ let lastDrtPayload = '';
 let clockSkewMs = 0;
 let houseClosesAt = 0;
 let houseParts = [];
+let lotteryDrawAt = 0;
+let lotterySalesOpen = false;
+let lotteryPillText = null;
 
 const gil = (n) => `${Number(n || 0).toLocaleString('en-GB')} gil`;
 const plural = (n, word) => `${n} ${n === 1 ? word : `${word}s`}`;
+const parseUtcMs = (value) =>
+  value ? Date.parse(/[Zz]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`) : 0;
 
 function phasePill(meta) {
   const pill = document.createElement('span');
@@ -256,6 +261,47 @@ function renderLottery(current) {
   }
   const tickets = plural(Number(current.ticket_count || 0), 'ticket');
   el.textContent = `${gil(current.pot)} jackpot · ${tickets} sold`;
+
+  lotteryDrawAt = parseUtcMs(current.scheduled_at);
+  lotterySalesOpen = Boolean(current.sales_open);
+  renderLotteryPill();
+}
+
+function renderLotteryPill() {
+  const status = document.querySelector('[data-lottery-status]');
+  if (!status) {
+    return;
+  }
+  status.textContent = '';
+  lotteryPillText = null;
+  if (!lotteryDrawAt) {
+    return;
+  }
+  const pill = lotterySalesOpen
+    ? phasePill({ label: 'Betting open', tone: 'green', pulse: true })
+    : phasePill({ label: 'Drawing soon', tone: 'gold', pulse: false });
+  if (lotterySalesOpen) {
+    lotteryPillText = document.createTextNode('');
+    pill.appendChild(lotteryPillText);
+  }
+  status.appendChild(pill);
+  paintLotteryCountdown();
+}
+
+function paintLotteryCountdown() {
+  if (!lotteryPillText || !lotteryDrawAt) {
+    return;
+  }
+  const remaining = lotteryDrawAt - Date.now();
+  if (remaining <= 0) {
+    lotteryPillText.data = ' · drawing…';
+    return;
+  }
+  const days = Math.floor(remaining / 86_400_000);
+  const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
+  const mins = Math.floor((remaining % 3_600_000) / 60_000);
+  const secs = Math.floor((remaining % 60_000) / 1000);
+  lotteryPillText.data = days > 0 ? ` · ${days}d ${hours}h ${mins}m` : ` · ${hours}h ${mins}m ${secs}s`;
 }
 
 async function pollLottery() {
@@ -300,7 +346,10 @@ if (grid && hostRegion) {
       poll();
     }
   }, POLL_MS);
-  setInterval(paintHouseStats, 1000);
+  setInterval(() => {
+    paintHouseStats();
+    paintLotteryCountdown();
+  }, 1000);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       poll();
