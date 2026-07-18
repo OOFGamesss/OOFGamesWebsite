@@ -59,6 +59,16 @@ export const adminClient = {
     jsonRequest('/admin/bans', 'POST', { ban_type: banType, subject_id: subjectId, reason }),
   removeBan: (banId) => request(`/admin/bans/${banId}`, { method: 'DELETE' }),
 
+  getLottery: (potPage = 1) => request(`/admin/lottery?pot_page=${potPage}`),
+  adjustLotteryPot: (amount, note) => jsonRequest('/admin/lottery/pot-adjust', 'POST', { amount, note }),
+  updateLotterySchedule: (payload) => jsonRequest('/admin/lottery/schedule', 'PUT', payload),
+  submitLotteryDraw: (drawId, mainNumbers, bonusNumber) =>
+    jsonRequest('/admin/lottery/draw', 'POST', {
+      draw_id: drawId,
+      main_numbers: mainNumbers,
+      bonus_number: bonusNumber
+    }),
+
   getPendingGames: () => request('/admin/games/pending'),
   approveGame: (gameId) => request(`/admin/games/${gameId}/approve`, { method: 'POST' }),
   rejectGame: (gameId, reason) => jsonRequest(`/admin/games/${gameId}/reject`, 'POST', { reason }),

@@ -14,6 +14,60 @@ const fmtGil = (n) => `${Number(n || 0).toLocaleString('en-GB')}`;
 const digitsOf = (s) => String(s ?? '').replace(/\D/g, '');
 const groupGil = (s) => { const d = digitsOf(s); return d ? Number(d).toLocaleString('en-GB') : ''; };
 
+const bankDisplay = { available: null, balance: null, pending: null };
+const bankAnims = {};
+
+function cancelBankAnim(key) {
+  if (bankAnims[key]) {
+    cancelAnimationFrame(bankAnims[key]);
+    delete bankAnims[key];
+  }
+}
+
+function resetBankDisplay() {
+  for (const key of Object.keys(bankAnims)) cancelBankAnim(key);
+  bankDisplay.available = null;
+  bankDisplay.balance = null;
+  bankDisplay.pending = null;
+}
+
+function animateGil(node, key, to) {
+  if (!node) return;
+  const target = Math.max(0, Math.floor(Number(to) || 0));
+  const from = bankDisplay[key];
+  if (from == null || from === target) {
+    cancelBankAnim(key);
+    bankDisplay[key] = target;
+    node.textContent = fmtGil(target);
+    node.classList.remove('is-up', 'is-down');
+    return;
+  }
+
+  cancelBankAnim(key);
+  const start = performance.now();
+  const delta = target - from;
+  const dur = Math.min(1100, Math.max(450, 380 + Math.log10(Math.abs(delta) + 1) * 160));
+  node.classList.toggle('is-up', delta > 0);
+  node.classList.toggle('is-down', delta < 0);
+
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / dur);
+    const eased = 1 - (1 - t) ** 3;
+    const cur = Math.round(from + delta * eased);
+    bankDisplay[key] = cur;
+    node.textContent = fmtGil(cur);
+    if (t < 1) {
+      bankAnims[key] = requestAnimationFrame(tick);
+      return;
+    }
+    bankDisplay[key] = target;
+    node.textContent = fmtGil(target);
+    node.classList.remove('is-up', 'is-down');
+    delete bankAnims[key];
+  };
+  bankAnims[key] = requestAnimationFrame(tick);
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -110,6 +164,7 @@ let countdownTimers = [];
 let finishPending = false;
 let finishTimer = null;
 let announcedWinner = null;
+let placingBet = false;
 
 const GN_MS_PER_YALM = 1000;
 const GN_COUNTDOWN_MS = 3000;
@@ -577,8 +632,15 @@ function updateSlipState() {
   el('slip-summary-mini').textContent = selection.size ? `${selection.size} pick${selection.size === 1 ? '' : 's'} · ${fmtGil(total)}` : '';
   const betting = currentState?.phase === 'Betting';
   const place = el('place-bet');
-  place.disabled = !betting || total <= 0;
-  place.textContent = token ? 'Place Bet' : (isHouse ? 'Log in to bet' : 'Enter PIN to bet');
+  if (placingBet) {
+    place.disabled = true;
+    place.textContent = 'Placing bet';
+    place.classList.add('is-placing');
+  } else {
+    place.disabled = !betting || total <= 0;
+    place.textContent = token ? 'Place Bet' : (isHouse ? 'Log in to bet' : 'Enter PIN to bet');
+    place.classList.remove('is-placing');
+  }
   el('slip-login-hint').classList.toggle('hidden', !!token || selection.size === 0);
 
   updatePlayerArea();
@@ -621,6 +683,7 @@ function maxBet() {
 }
 
 async function placeBets() {
+  if (placingBet) return;
   if (!token) { openModal(); return; }
   if (currentState?.phase !== 'Betting') { slipMsg('Betting is closed.', true); return; }
   const lines = [...selection.entries()]
@@ -633,19 +696,30 @@ async function placeBets() {
     return;
   }
 
-  el('place-bet').disabled = true;
+  placingBet = true;
+  const place = el('place-bet');
+  place.disabled = true;
+  place.textContent = 'Placing bet';
+  place.classList.add('is-placing');
+
   const errors = [];
   let anyOk = false;
-  for (const line of lines) {
-    const res = isHouse
-      ? await houseBet(line.num, line.amount, uuid())
-      : await placeBet(token, line.num, line.amount, uuid());
-    if (res.ok) { anyOk = true; selection.delete(line.num); }
-    else if (res.status === 401) { el('place-bet').disabled = false; handleTokenRevoked(); return; }
-    else errors.push(`#${line.num}: ${res.error}`);
+  let revoked = false;
+  try {
+    for (const line of lines) {
+      const res = isHouse
+        ? await houseBet(line.num, line.amount, uuid())
+        : await placeBet(token, line.num, line.amount, uuid());
+      if (res.ok) { anyOk = true; selection.delete(line.num); }
+      else if (res.status === 401) { revoked = true; handleTokenRevoked(); break; }
+      else errors.push(`#${line.num}: ${res.error}`);
+    }
+  } finally {
+    placingBet = false;
+    place.classList.remove('is-placing');
+    el('stake-all').value = '';
   }
-  el('place-bet').disabled = false;
-  el('stake-all').value = '';
+  if (revoked) return;
   if (anyOk) await refreshMe();
   renderRunnerList(currentState);
   renderSlip();
@@ -677,12 +751,16 @@ function renderPlayer() {
     el('player-name').textContent = player.name;
 
     const inBets = (myBets || []).reduce((t, b) => t + (b.amount || 0), 0);
-    el('bank-amount').textContent = fmtGil(available);
-    el('bank-balance').textContent = fmtGil(balance);
-    el('bank-pending').textContent = fmtGil(inBets);
+    animateGil(el('bank-amount'), 'available', available);
+    animateGil(el('bank-balance'), 'balance', balance);
+    animateGil(el('bank-pending'), 'pending', inBets);
   } else {
+    resetBankDisplay();
     el('open-join').classList.remove('hidden');
     box.classList.add('hidden');
+    if (el('bank-amount')) el('bank-amount').textContent = '-';
+    if (el('bank-balance')) el('bank-balance').textContent = '-';
+    if (el('bank-pending')) el('bank-pending').textContent = '-';
   }
   updatePlayerArea();
 }

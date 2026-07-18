@@ -1,5 +1,6 @@
 import { liveSessions } from '../api/chocobo-racing-client.js';
 import { liveSessions as drtLiveSessions } from '../api/minigames-emporium-client.js';
+import { lotteryClient } from '../api/lottery-client.js';
 import { enableCardHover } from '../utils/card-hover.js';
 
 const POLL_MS = 15000;
@@ -248,6 +249,27 @@ async function pollRaces() {
   renderHosts(sessions);
 }
 
+function renderLottery(current) {
+  const el = document.querySelector('[data-lottery-stats]');
+  if (!el || !current) {
+    return;
+  }
+  const tickets = plural(Number(current.ticket_count || 0), 'ticket');
+  el.textContent = `${gil(current.pot)} jackpot · ${tickets} sold`;
+}
+
+async function pollLottery() {
+  const el = document.querySelector('[data-lottery-stats]');
+  if (!el) {
+    return;
+  }
+  const result = await lotteryClient.getCurrent();
+  if (!result.ok || !result.data) {
+    return;
+  }
+  renderLottery(result.data);
+}
+
 async function pollDrt() {
   if (!drtSection || !drtRegion) {
     return;
@@ -267,6 +289,7 @@ async function pollDrt() {
 
 function poll() {
   pollRaces();
+  pollLottery();
   pollDrt();
 }
 

@@ -334,6 +334,234 @@ async function renderGames(container) {
   load();
 }
 
+const LOTTERY_WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const LOTTERY_TIERS = {
+  0: 'Jackpot (4 + Bonus)',
+  1: 'Match 4',
+  2: 'Match 3 + Bonus',
+  3: 'Match 3',
+  4: 'Match 2 + Bonus'
+};
+const LOTTERY_POT_TYPES = {
+  ticket_contribution: 'Ticket contribution',
+  fixed_prize: 'Fixed prize',
+  jackpot_payout: 'Jackpot payout',
+  admin_adjust: 'Admin adjustment'
+};
+
+function lotteryBalls(mains, bonus) {
+  const holder = el('span', 'font-mono text-sm text-slate-200');
+  holder.textContent = mains && mains.length ? `${mains.join(' - ')} + ${bonus}` : '-';
+  return holder;
+}
+
+async function renderLottery(container) {
+  const panel = el('section', 'panel flex flex-col gap-6 p-6');
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'Eorzea Lottery'));
+  const status = statusLine();
+  panel.appendChild(status);
+  const content = el('div', 'flex flex-col gap-6');
+  panel.appendChild(content);
+  container.appendChild(panel);
+
+  const load = async () => {
+    setStatus(status, 'Loading…');
+    const result = await adminClient.getLottery();
+    if (!result.ok) {
+      setStatus(status, result.error, true);
+      return;
+    }
+    setStatus(status, '');
+    clear(content);
+    const data = result.data;
+
+    const cards = el('div', 'grid grid-cols-2 gap-3 md:grid-cols-4');
+    cards.appendChild(statCard('True pot balance', gil(data.pot), data.pot >= 0 ? 'text-neon-gold' : 'text-red-400'));
+    cards.appendChild(statCard('Public jackpot', gil(data.display_pot), 'text-neon-gold'));
+    cards.appendChild(statCard('Tickets this draw', String(data.current.ticket_count)));
+    cards.appendChild(
+      statCard('Sales', data.current.sales_open ? 'Open' : 'Closed', data.current.sales_open ? 'text-neon-green' : 'text-red-400')
+    );
+    content.appendChild(cards);
+    if (data.pot < 0) {
+      content.appendChild(
+        el('p', 'text-xs text-red-400', 'The pot is in deficit: future ticket contributions refill it before anything rolls to a jackpot winner. The public site shows 0.')
+      );
+    }
+
+    const forms = el('div', 'grid gap-4 lg:grid-cols-3');
+
+    const adjustBox = el('div', 'flex flex-col gap-3 rounded-xl border border-neon-violet/25 bg-night-deep/60 p-4');
+    adjustBox.appendChild(el('h4', 'text-sm font-semibold text-neon-gold', 'Adjust pot'));
+    const amountInput = textInput('Amount (negative to remove)');
+    amountInput.type = 'number';
+    const noteInput = textInput('Reason (required, goes in the audit log)');
+    const adjustStatus = statusLine();
+    const adjustButton = primaryButton('Apply adjustment');
+    adjustButton.addEventListener('click', async () => {
+      const amount = Number(amountInput.value);
+      const note = noteInput.value.trim();
+      if (!Number.isInteger(amount) || amount === 0 || !note) {
+        setStatus(adjustStatus, 'Enter a non-zero whole amount and a reason.', true);
+        return;
+      }
+      adjustButton.disabled = true;
+      const outcome = await adminClient.adjustLotteryPot(amount, note);
+      adjustButton.disabled = false;
+      if (!outcome.ok) {
+        setStatus(adjustStatus, outcome.error, true);
+        return;
+      }
+      load();
+    });
+    adjustBox.appendChild(amountInput);
+    adjustBox.appendChild(noteInput);
+    adjustBox.appendChild(adjustButton);
+    adjustBox.appendChild(adjustStatus);
+    forms.appendChild(adjustBox);
+
+    const scheduleBox = el('div', 'flex flex-col gap-3 rounded-xl border border-neon-violet/25 bg-night-deep/60 p-4');
+    scheduleBox.appendChild(el('h4', 'text-sm font-semibold text-neon-gold', 'Draw schedule (UTC / ST)'));
+    const daySelect = el('select', 'neon-select');
+    LOTTERY_WEEKDAYS.forEach((label, index) => {
+      const option = el('option', '', label);
+      option.value = String(index);
+      if (index === data.schedule.draw_weekday) option.selected = true;
+      daySelect.appendChild(option);
+    });
+    const timeInput = textInput('HH:MM');
+    timeInput.value = data.schedule.draw_time_utc;
+    const closeInput = textInput('Sales close (minutes before)');
+    closeInput.type = 'number';
+    closeInput.value = String(data.schedule.sales_close_minutes);
+    const scheduleStatus = statusLine();
+    const scheduleButton = primaryButton('Save schedule');
+    scheduleButton.addEventListener('click', async () => {
+      scheduleButton.disabled = true;
+      const outcome = await adminClient.updateLotterySchedule({
+        draw_weekday: Number(daySelect.value),
+        draw_time_utc: timeInput.value.trim(),
+        sales_close_minutes: Number(closeInput.value)
+      });
+      scheduleButton.disabled = false;
+      if (!outcome.ok) {
+        setStatus(scheduleStatus, outcome.error, true);
+        return;
+      }
+      load();
+    });
+    scheduleBox.appendChild(daySelect);
+    scheduleBox.appendChild(timeInput);
+    scheduleBox.appendChild(closeInput);
+    scheduleBox.appendChild(scheduleButton);
+    scheduleBox.appendChild(scheduleStatus);
+    forms.appendChild(scheduleBox);
+
+    const drawBox = el('div', 'flex flex-col gap-3 rounded-xl border border-neon-violet/25 bg-night-deep/60 p-4');
+    drawBox.appendChild(el('h4', 'text-sm font-semibold text-neon-gold', 'Manual draw entry (fallback)'));
+    drawBox.appendChild(
+      el('p', 'text-xs text-slate-500', `Draw #${data.current.draw_id} · ${when(data.current.scheduled_at)}. Normally the host submits via the plugin; use this only if that fails. Settlement pays winners immediately.`)
+    );
+    const numbersInput = textInput('4 main numbers, e.g. 3 7 11 15');
+    const bonusInput = textInput('Bonus ball (1-5)');
+    bonusInput.type = 'number';
+    const drawStatus = statusLine();
+    const drawButton = dangerButton('Submit official result');
+    drawButton.addEventListener('click', async () => {
+      const mains = numbersInput.value.trim().split(/[\s,]+/).map(Number).filter((n) => !Number.isNaN(n));
+      const bonus = Number(bonusInput.value);
+      if (mains.length !== 4 || new Set(mains).size !== 4 || mains.some((n) => n < 1 || n > 15) || bonus < 1 || bonus > 5) {
+        setStatus(drawStatus, 'Enter 4 unique mains (1-15) and a bonus (1-5).', true);
+        return;
+      }
+      if (data.current.sales_open) {
+        setStatus(drawStatus, 'Sales are still open: the draw cannot be settled yet.', true);
+        return;
+      }
+      drawButton.disabled = true;
+      const outcome = await adminClient.submitLotteryDraw(data.current.draw_id, mains, bonus);
+      drawButton.disabled = false;
+      if (!outcome.ok) {
+        setStatus(drawStatus, outcome.error, true);
+        return;
+      }
+      load();
+    });
+    drawBox.appendChild(numbersInput);
+    drawBox.appendChild(bonusInput);
+    drawBox.appendChild(drawButton);
+    drawBox.appendChild(drawStatus);
+    forms.appendChild(drawBox);
+
+    content.appendChild(forms);
+
+    content.appendChild(el('h4', 'text-base font-semibold text-neon-gold', 'Draw history'));
+    const draws = tableShell(['Draw', 'Scheduled', 'Status', 'Numbers', 'Tickets', 'Sales', 'House cut', 'Fixed prizes', 'Jackpot', 'Pot after', 'By']);
+    for (const draw of data.draws) {
+      const tr = el('tr');
+      tr.appendChild(cell(`#${draw.draw_id}`, 'px-3 py-2 font-semibold text-slate-200'));
+      tr.appendChild(cell(when(draw.scheduled_at), 'px-3 py-2 text-xs text-slate-500'));
+      const statusCell = el('td', 'px-3 py-2');
+      statusCell.appendChild(badge(draw.status, draw.status === 'settled' ? 'green' : 'gold'));
+      tr.appendChild(statusCell);
+      const numbersCell = el('td', 'px-3 py-2');
+      numbersCell.appendChild(lotteryBalls(draw.main_numbers, draw.bonus_number));
+      tr.appendChild(numbersCell);
+      tr.appendChild(cell(String(draw.ticket_count)));
+      tr.appendChild(cell(gil(draw.sales_total), 'px-3 py-2 text-neon-gold'));
+      tr.appendChild(cell(gil(draw.house_cut), 'px-3 py-2 text-neon-green'));
+      tr.appendChild(cell(gil(draw.fixed_prizes_paid), 'px-3 py-2 text-red-400'));
+      tr.appendChild(
+        cell(
+          draw.jackpot_winner_count > 0 ? `${gil(draw.jackpot_paid)} (${draw.jackpot_winner_count})` : '-',
+          'px-3 py-2 text-neon-gold'
+        )
+      );
+      tr.appendChild(cell(draw.status === 'settled' ? gil(draw.pot_after) : '-'));
+      tr.appendChild(cell(draw.submitted_by || '-', 'px-3 py-2 text-xs text-slate-500'));
+      draws.body.appendChild(tr);
+    }
+    content.appendChild(draws.wrap);
+
+    if (data.recent_winners.length > 0) {
+      content.appendChild(el('h4', 'text-base font-semibold text-neon-gold', 'Recent winners'));
+      const winners = tableShell(['Player', 'World', 'Ticket', 'Tier', 'Prize']);
+      for (const winner of data.recent_winners) {
+        const tr = el('tr');
+        tr.appendChild(cell(winner.player_name, 'px-3 py-2 font-semibold text-slate-200'));
+        tr.appendChild(cell(winner.player_world));
+        const numbersCell = el('td', 'px-3 py-2');
+        numbersCell.appendChild(lotteryBalls(winner.main_numbers, winner.bonus_number));
+        tr.appendChild(numbersCell);
+        tr.appendChild(cell(LOTTERY_TIERS[winner.prize_tier] || String(winner.prize_tier)));
+        tr.appendChild(cell(gil(winner.prize_amount), 'px-3 py-2 font-bold text-neon-gold'));
+        winners.body.appendChild(tr);
+      }
+      content.appendChild(winners.wrap);
+    }
+
+    content.appendChild(el('h4', 'text-base font-semibold text-neon-gold', 'Pot ledger'));
+    const potTable = tableShell(['When', 'Type', 'Amount', 'Draw', 'Note / By']);
+    for (const entry of data.pot_entries) {
+      const tr = el('tr');
+      tr.appendChild(cell(when(entry.created_at), 'px-3 py-2 text-xs text-slate-500'));
+      tr.appendChild(cell(LOTTERY_POT_TYPES[entry.entry_type] || entry.entry_type));
+      tr.appendChild(
+        cell(
+          `${entry.amount > 0 ? '+' : ''}${gil(entry.amount)}`,
+          `px-3 py-2 font-bold ${entry.amount > 0 ? 'text-neon-green' : 'text-red-400'}`
+        )
+      );
+      tr.appendChild(cell(entry.draw_id ? `#${entry.draw_id}` : '-'));
+      tr.appendChild(cell([entry.note, entry.created_by].filter(Boolean).join(' · ') || '-', 'px-3 py-2 text-xs text-slate-500'));
+      potTable.body.appendChild(tr);
+    }
+    content.appendChild(potTable.wrap);
+  };
+
+  load();
+}
+
 const TYPE_LABELS = {
   deposit: 'Deposit',
   withdrawal: 'Withdrawal',
@@ -741,6 +969,7 @@ async function renderBans(container) {
 const TABS = [
   { id: 'overview', label: 'Overview', render: renderOverview },
   { id: 'games', label: 'Games', render: renderGames },
+  { id: 'lottery', label: 'Lottery', render: renderLottery },
   { id: 'ledger', label: 'Ledger', render: renderLedger },
   { id: 'players', label: 'Players', render: renderPlayers },
   { id: 'developers', label: 'Developers', render: renderDevelopers },

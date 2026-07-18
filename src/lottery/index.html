@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0612" />
+    <meta name="description" content="The Eorzea Lottery - a weekly FFXIV gil lottery drawn live in game. Pick 4 numbers and a bonus ball, watch the draw, and win a rolling jackpot!" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OOF Games" />
+    <meta property="og:title" content="Eorzea Lottery | OOF Games" />
+    <meta property="og:description" content="A weekly FFXIV gil lottery drawn live in game. Pick 4 numbers and a bonus ball and win a rolling jackpot!" />
+    <meta property="og:url" content="https://oofgames.fyi/lottery/" />
+    <meta property="og:image" content="https://oofgames.fyi/images/oofgameslogo.png" />
+    <meta property="og:image:alt" content="OOF Games logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Eorzea Lottery | OOF Games" />
+    <meta name="twitter:description" content="A weekly FFXIV gil lottery drawn live in game. Pick 4 numbers and a bonus ball and win a rolling jackpot!" />
+    <meta name="twitter:image" content="https://oofgames.fyi/images/oofgameslogo.png" />
+    <meta name="twitter:image:alt" content="OOF Games logo" />
+    <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -- SRI does not apply to canonical links; the browser never fetches this as a subresource. -->
+    <link rel="canonical" href="https://oofgames.fyi/lottery/" />
+    <link rel="icon" type="image/png" href="/images/oofgameslogo.png" />
+    <title>Eorzea Lottery | OOF Games</title>
+    <link rel="stylesheet" href="/assets/style.css" />
+    <link rel="stylesheet" href="./lottery.css" />
+    <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare Web Analytics beacon; Cloudflare updates the script server-side, so an SRI hash cannot be pinned. -->
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "1ae0789372b64fc5acc3abedf41cf4b3"}'></script><!-- End Cloudflare Web Analytics -->
+  </head>
+  <body>
+    <main class="lotto-main">
+      <nav class="text-sm">
+        <a href="/" class="text-neon-cyan hover:underline">⇠ Back to OOF Games</a>
+      </nav>
+
+      <header class="panel race-header">
+        <div class="race-header__title">
+          <img src="/images/oofgameslogo.png" alt="" class="race-header__logo" />
+          <div>
+            <h1 class="neon-heading race-header__h1">Eorzea Lottery</h1>
+            <p id="header-sub" class="race-header__sub">Loading…</p>
+          </div>
+          <button id="open-howto" type="button" class="howto-btn btn-sm" aria-haspopup="dialog">
+            How to Play
+          </button>
+        </div>
+        <div class="jackpot-hero">
+          <span class="jackpot-hero__label">💰 Jackpot 💰</span>
+          <span id="stat-pot" class="jackpot-hero__value">-</span>
+          <span class="jackpot-hero__sub">Grows every week it is not won!</span>
+        </div>
+        <div class="track-stats">
+          <div class="track-stat"><span class="track-stat__label">Next Draw</span><span id="stat-countdown" class="track-stat__value">-</span></div>
+          <div class="track-stat"><span class="track-stat__label">Tickets Sold</span><span id="stat-tickets" class="track-stat__value">-</span></div>
+          <div class="track-stat"><span class="track-stat__label">Ticket Price</span><span id="stat-price" class="track-stat__value">-</span></div>
+        </div>
+      </header>
+
+      <div class="lotto-view">
+        <div class="lotto-col">
+          <section id="machine-panel" class="panel">
+            <div class="card-head">
+              <h2>The Draw</h2>
+              <div class="card-head__actions">
+                <button id="replay-button" type="button" class="howto-btn btn-sm hidden">Replay draw</button>
+                <button id="open-history" type="button" class="howto-btn btn-sm" aria-haspopup="dialog">View past results</button>
+              </div>
+            </div>
+            <div class="machine-body">
+              <canvas id="draw-canvas" width="900" height="560" aria-label="Lottery draw machine animation"></canvas>
+              <div id="machine-overlay" class="machine-overlay hidden">
+                <p id="machine-message"></p>
+              </div>
+              <div id="winner-overlay" class="winner-overlay hidden">
+                <div class="winner-overlay__card">
+                  <button id="winner-close" class="modal__close winner-overlay__close" aria-label="Close">✕</button>
+                  <h2 id="winner-title" class="winner-overlay__title">🎉 Draw Results 🎉</h2>
+                  <div id="winner-balls" class="ball-row"></div>
+                  <div id="winner-content" class="winner-content"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="my-tickets-panel" class="panel hidden">
+            <div class="card-head">
+              <h2>My Tickets</h2>
+              <span id="my-tickets-hint" class="card-head__hint"></span>
+            </div>
+            <div class="my-tickets-body">
+              <ul id="my-current" class="ticket-list"></ul>
+              <p class="my-tickets-note">Tickets from previous draws are inside <button id="open-history-inline" type="button" class="link-button">past results</button>.</p>
+            </div>
+          </section>
+
+          <section id="buy-panel" class="panel">
+            <div class="card-head">
+              <h2>Buy Tickets</h2>
+              <span id="buy-hint" class="card-head__hint"></span>
+            </div>
+            <div class="buy-body">
+              <div id="buy-closed" class="buy-closed hidden">
+                <p>🔒 Ticket sales are closed while the draw takes place.</p>
+                <p class="buy-closed__sub">Sales reopen for next week as soon as the results are in.</p>
+              </div>
+              <div id="buy-signin" class="buy-signin hidden">
+                <p>Sign in with your OOF account token to buy tickets with your balance.</p>
+                <button id="signin-button" type="button" class="btn-primary btn-sm">Connect wallet</button>
+              </div>
+              <div id="buy-form" class="hidden">
+                <h3 class="stats-heading"><span>Main Numbers <em class="stats-heading__hint">pick 4</em></span></h3>
+                <div id="main-picker" class="picker-grid picker-grid--wide"></div>
+                <h3 class="stats-heading stats-heading--bonus"><span>Bonus Ball <em class="stats-heading__hint">pick 1</em></span></h3>
+                <div id="bonus-picker" class="picker-grid picker-grid--bonus"></div>
+                <div class="picker-actions">
+                  <button id="lucky-dip" type="button" class="btn-ghost">🎲 Lucky Dip</button>
+                  <button id="add-line" type="button" class="btn-primary btn-sm" disabled>Add ticket</button>
+                </div>
+                <div id="basket-wrap" class="basket-wrap hidden">
+                  <p class="picker-caption">Your ticket basket</p>
+                  <ul id="basket" class="basket-list"></ul>
+                  <div class="basket-total">
+                    <span id="basket-total-label">Total: 0 gil</span>
+                    <button id="buy-button" type="button" class="btn-primary btn-sm">Buy tickets</button>
+                  </div>
+                </div>
+                <p id="buy-status" class="buy-status"></p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="lotto-side">
+          <section class="panel">
+            <div class="card-head"><h2>Prizes</h2></div>
+            <div class="table-wrap">
+              <table class="prize-table">
+                <thead>
+                  <tr><th>Match</th><th>Prize</th></tr>
+                </thead>
+                <tbody id="prize-rows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="card-head">
+              <h2>Number Statistics</h2>
+              <span id="stats-hint" class="card-head__hint"></span>
+            </div>
+            <div class="stats-body">
+              <p id="stats-empty" class="stats-empty hidden">Statistics will appear after the first draw.</p>
+              <div id="stats-highlights" class="stats-highlights"></div>
+              <h3 class="stats-heading"><span>Main Numbers</span></h3>
+              <div id="stats-mains" class="stats-grid"></div>
+              <h3 class="stats-heading stats-heading--bonus"><span>Bonus Balls</span></h3>
+              <div id="stats-bonus" class="stats-grid stats-grid--bonus"></div>
+              <p class="stats-note">Every draw is completely independent - past results never change the odds. But if you believe in lucky numbers, we will not stop you!</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <div id="howto-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="howto-title">
+      <div class="panel modal__card howto-card">
+        <h2 id="howto-title" class="howto-card__title">How to Play</h2>
+        <ol class="howto-steps">
+          <li>
+            <span class="howto-steps__num">1</span>
+            <div>
+              <strong>Pick your numbers</strong>
+              <p>Choose 4 main numbers from 1 to 15 plus 1 bonus ball from 1 to 5 - or hit Lucky Dip and let fate decide.</p>
+            </div>
+          </li>
+          <li>
+            <span class="howto-steps__num">2</span>
+            <div>
+              <strong>Buy your tickets</strong>
+              <p>Each ticket costs <span data-price-text>100,000</span> gil from your OOF account balance. No ticket limit! You can also buy through any OOF Games host in game.</p>
+            </div>
+          </li>
+          <li>
+            <span class="howto-steps__num">3</span>
+            <div>
+              <strong>Watch the draw</strong>
+              <p>Every week the numbers are drawn live in game with genuine /random rolls, then replayed right here in the ball machine. Sales close <span data-close-text>5 minutes</span> before the draw.</p>
+            </div>
+          </li>
+          <li>
+            <span class="howto-steps__num">4</span>
+            <div>
+              <strong>Get paid instantly</strong>
+              <p>Prizes land straight in your OOF account the moment the draw settles. Match all 4 plus the bonus to take the rolling jackpot - if it is not won, it rolls over and keeps growing! Several jackpot tickets in one week split the pot evenly.</p>
+            </div>
+          </li>
+        </ol>
+        <button id="howto-close" type="button" class="btn-primary howto-card__cta">Let's Play!</button>
+      </div>
+    </div>
+
+    <div id="history-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="history-title">
+      <div class="panel modal__card history-card">
+        <div class="modal__head">
+          <h2 id="history-title">Past Results</h2>
+          <button id="history-close" class="modal__close" aria-label="Close">✕</button>
+        </div>
+        <div class="history-body">
+          <ul id="history-list" class="history-list"></ul>
+          <button id="history-more" type="button" class="btn-primary btn-sm hidden">Show more</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/components/console-guard.js"></script>
+    <script type="module" src="/components/neon-background.js"></script>
+    <script type="module" src="/components/discord-widget.js"></script>
+    <script type="module" src="/components/account-pill.js"></script>
+    <script type="module" src="./lottery.js"></script>
+  </body>
+</html>
