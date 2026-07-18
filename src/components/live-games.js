@@ -10,7 +10,7 @@ const RACE_FALLBACK_IMAGE = '/images/chocoboracing.png';
 const DRT_FALLBACK_IMAGE = '/images/minigamesemporium.png';
 
 const PHASES = {
-  Betting: { label: 'Betting open', tone: 'green', pulse: true },
+  Betting: { label: 'Betting Open', tone: 'green', pulse: true },
   BetsClosed: { label: 'Bets closed', tone: 'gold', pulse: false },
   Racing: { label: 'Racing now', tone: 'red', pulse: true },
   Finished: { label: 'Race finished', tone: 'violet', pulse: false },
@@ -278,7 +278,7 @@ function renderLotteryPill() {
     return;
   }
   const pill = lotterySalesOpen
-    ? phasePill({ label: 'Betting open', tone: 'green', pulse: true })
+    ? phasePill({ label: 'Ticket Sales Open', tone: 'green', pulse: true })
     : phasePill({ label: 'Drawing soon', tone: 'gold', pulse: false });
   if (lotterySalesOpen) {
     lotteryPillText = document.createTextNode('');
