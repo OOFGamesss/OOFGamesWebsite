@@ -234,7 +234,7 @@
 }
 
 @media (max-width: 640px) {
-  .track-stats { justify-content: flex-start; }
+  .track-stats { justify-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
