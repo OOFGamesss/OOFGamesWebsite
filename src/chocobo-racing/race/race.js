@@ -215,12 +215,6 @@ const currentNameFor = (n, stored) => {
 };
 const oddsValue = () => (currentState?.odds || 0);
 
-function setConn(live) {
-  const dot = el('conn-dot');
-  dot.classList.toggle('is-live', live);
-  dot.classList.toggle('is-down', !live);
-}
-
 function renderHeader(s) {
   const host = s.hostName || 'Unknown host';
   el('host-line').textContent = `Hosted by ${host}${s.venueName ? ` · ${s.venueName}` : ''}`;
@@ -1349,11 +1343,10 @@ function handleMessage(msg) {
 function connect() {
   if (ended) return;
   ws = new WebSocket(raceSocketUrl(sessionId));
-  ws.onopen = () => { setConn(true); reconnectDelay = 1000; };
+  ws.onopen = () => { reconnectDelay = 1000; };
   ws.onmessage = (ev) => { try { handleMessage(JSON.parse(ev.data)); } catch {} };
   ws.onerror = () => { try { ws.close(); } catch {} };
   ws.onclose = () => {
-    setConn(false);
     if (ended) return;
     setTimeout(connect, reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 2, 10000);

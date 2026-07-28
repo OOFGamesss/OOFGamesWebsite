@@ -70,12 +70,6 @@ function sanitizeImageUrl(url) {
   return IMAGE_URL.test(v) ? v : '';
 }
 
-function setConn(live) {
-  const dot = el('conn-dot');
-  dot.classList.toggle('is-live', live);
-  dot.classList.toggle('is-down', !live);
-}
-
 function renderHeader(s) {
   const host = s.hostName || '';
   const venue = s.venueName || '';
@@ -489,7 +483,6 @@ function connect() {
   if (ended) return;
   ws = new WebSocket(drtSocketUrl(sessionId));
   ws.onopen = () => {
-    setConn(true);
     reconnectDelay = 1000;
   };
   ws.onmessage = (ev) => {
@@ -501,7 +494,6 @@ function connect() {
     try { ws.close(); } catch {}
   };
   ws.onclose = () => {
-    setConn(false);
     if (ended) return;
     setTimeout(connect, reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 2, 10000);

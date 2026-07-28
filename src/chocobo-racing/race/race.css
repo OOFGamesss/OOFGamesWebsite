@@ -19,10 +19,6 @@
 .race-header__h1 { font-size: 1.25rem; color: var(--color-neon-gold, #ffcf4d); margin: 0; }
 .race-header__sub { font-size: 0.8rem; color: #94a3b8; margin: 0; }
 .race-header__player { flex: 1 1 220px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-.conn-dot { width: 11px; height: 11px; border-radius: 999px; background: #64748b; display: inline-block; }
-.conn-dot.is-live { background: var(--color-neon-green,#00d44a); box-shadow: 0 0 8px var(--color-neon-green,#00d44a); }
-.conn-dot.is-down { background: var(--color-neon-magenta,#ff2bd6); }
-body.is-gn .conn-dot { display: none; }
 .btn-sm { padding: 8px 14px !important; font-size: 0.85rem; }
 .player-box { display: flex; align-items: center; gap: 14px; }
 .player-box__name { font-weight: 700; color: #f1f5f9; }
