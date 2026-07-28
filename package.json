@@ -12,5 +12,8 @@
     "@tailwindcss/vite": "^4.1.11",
     "tailwindcss": "^4.1.11",
     "vite": "^8.0.16"
+  },
+  "overrides": {
+    "postcss": "^8.5.18"
   }
 }
