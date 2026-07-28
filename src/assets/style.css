@@ -54,6 +54,19 @@
     background-size: 1.1rem;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    [data-discord-widget-pitch] {
+      transition-property: none !important;
+    }
+
+    [data-discord-widget-pitch] > span {
+      translate: none !important;
+      transition-property: opacity !important;
+      transition-duration: 400ms !important;
+      transition-delay: 0s !important;
+    }
+  }
+
   .neon-select option {
     background-color: var(--color-night-panel);
     color: var(--color-slate-100, #f1f5f9);
