@@ -527,7 +527,10 @@ body.is-house .runner { transition: left 0.3s linear, top 0.8s ease; }
 .track-stat--close.is-urgent .track-stat__value { color: #ff8a8a; }
 
 @media (max-width: 640px) {
-  .race-header__player { justify-content: center; }
+  .race-header { justify-content: center; }
+  .race-header__title { flex-basis: 100%; }
+  .track-stats { flex-basis: 100%; justify-content: center; }
+  .race-header__player { flex-basis: 100%; justify-content: center; }
   .podium-overlay { padding: 10px; }
   .podium-overlay__card { padding: 12px 14px 18px; }
 
