@@ -9,6 +9,7 @@
 
 import { lotteryClient } from '../api/lottery-client.js';
 import { apiBaseUrl, walletClient } from '../api/wallet-client.js';
+import { hasRecentSession } from '../api/wallet-session.js';
 import { openLoginModal } from '../components/login-modal.js';
 import { createDrawMachine } from './draw-machine.js';
 
@@ -823,8 +824,10 @@ async function boot() {
   tickCountdown();
   const stats = await lotteryClient.getStats();
   if (stats.ok) renderStats(stats.data);
-  const wallet = await walletClient.getWallet();
-  setSignedIn(wallet.ok);
+  if (hasRecentSession()) {
+    const wallet = await walletClient.getWallet();
+    setSignedIn(wallet.ok);
+  }
 }
 
 boot();

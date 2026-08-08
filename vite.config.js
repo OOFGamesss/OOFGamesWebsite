@@ -56,6 +56,44 @@ const chocoboRaceDevFallback = () =>
 const drtBracketDevFallback = () =>
   prettyPathDevFallback('drt-bracket-dev-fallback', '/mini-games-emporium/drt/bracket/', ['demo']);
 
+// /venue-live/<slug> is a venue page, but /venue-live/ itself is the plugin
+// information page, so this cannot reuse prettyPathDevFallback: only the
+// single-segment child paths are rewritten, and "live" is the renderer's own
+// directory rather than a venue.
+function venueLiveDevFallback() {
+  const prefix = '/venue-live/';
+  const index = '/venue-live/live/index.html';
+  return {
+    name: 'venue-live-dev-fallback',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const url = req.url || '';
+        if (url.startsWith(prefix)) {
+          const restPath = url.slice(prefix.length).split('?')[0].replace(/^\/+|\/+$/g, '');
+          if (restPath && restPath !== 'live' && !restPath.includes('/') && !restPath.includes('.')) {
+            req.url = `${index}?v=${encodeURIComponent(restPath)}`;
+          }
+        }
+        next();
+      });
+    },
+  };
+}
+
+function devCspAllowsViteClient() {
+  const devSources = 'ws://localhost:* http://localhost:* ws://127.0.0.1:* http://127.0.0.1:*';
+  return {
+    name: 'dev-csp-allows-vite-client',
+    apply: 'serve',
+    transformIndexHtml(html) {
+      return html.replace(
+        /(http-equiv="Content-Security-Policy"[\s\S]*?connect-src )([^;"]*)/,
+        (_match, head, sources) => `${head}${sources} ${devSources}`
+      );
+    },
+  };
+}
+
 function sitemap() {
   const origin = 'https://oofgames.fyi';
   return {
@@ -81,7 +119,7 @@ function sitemap() {
 export default defineConfig({
   root,
   publicDir,
-  plugins: [tailwindcss(), gameImageManifests(), chocoboRaceDevFallback(), drtBracketDevFallback(), sitemap()],
+  plugins: [tailwindcss(), gameImageManifests(), chocoboRaceDevFallback(), drtBracketDevFallback(), venueLiveDevFallback(), devCspAllowsViteClient(), sitemap()],
   build: {
     outDir,
     emptyOutDir: true,
@@ -93,6 +131,8 @@ export default defineConfig({
         admin: resolve(root, 'admin/index.html'),
         developer: resolve(root, 'developer/index.html'),
         gambaWhere: resolve(root, 'gamba-where/index.html'),
+        venueLive: resolve(root, 'venue-live/index.html'),
+        venueLivePage: resolve(root, 'venue-live/live/index.html'),
         lottery: resolve(root, 'lottery/index.html'),
         chocoboRacing: resolve(root, 'chocobo-racing/index.html'),
         chocoboRace: resolve(root, 'chocobo-racing/race/index.html'),

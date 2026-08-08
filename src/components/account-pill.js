@@ -1,4 +1,5 @@
 import { walletClient } from '../api/wallet-client.js';
+import { hasRecentSession } from '../api/wallet-session.js';
 import { connectWalletSocket } from '../api/wallet-live.js';
 import { openLoginModal } from './login-modal.js';
 
@@ -118,15 +119,19 @@ function mountPill() {
     }
   };
 
-  const cached = readCache();
+  const known = hasRecentSession();
+  if (!known) writeCache(null);
+  const cached = known ? readCache() : null;
   render(cached ?? null);
   document.body.appendChild(link);
-  if (!onAccountPage) {
+  if (!onAccountPage && known) {
     refresh();
   }
   document.addEventListener('visibilitychange', () => {
     if (onAccountPage) return;
-    if (document.visibilityState === 'visible' && !disconnect && readCache()) refresh();
+    if (document.visibilityState === 'visible' && !disconnect && hasRecentSession() && readCache()) {
+      refresh();
+    }
   });
   window.addEventListener('oof-wallet-changed', (event) => {
     render(event.detail);

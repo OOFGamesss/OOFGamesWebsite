@@ -1,4 +1,5 @@
 import { apiBaseUrl } from './wallet-client.js';
+import { markSignedIn } from './wallet-session.js';
 
 const WS_URL = `${apiBaseUrl.replace(/^http/, 'ws')}/account/ws`;
 const MAX_BACKOFF_MS = 30000;
@@ -21,7 +22,10 @@ export function connectWalletSocket(onWallet) {
       } catch {
         return;
       }
-      if (data.type === 'wallet') onWallet(data);
+      if (data.type === 'wallet') {
+        markSignedIn();
+        onWallet(data);
+      }
     };
     socket.onclose = (event) => {
       socket = null;

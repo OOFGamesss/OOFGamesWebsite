@@ -1,3 +1,5 @@
+import { markSignedIn, markSignedOut } from './wallet-session.js';
+
 const PRODUCTION_API = 'https://api.oofgames.fyi/v1';
 
 function resolveBaseUrl() {
@@ -48,12 +50,23 @@ function jsonRequest(path, method, body) {
   });
 }
 
+async function tracked(pending) {
+  const result = await pending;
+  if (result.ok) markSignedIn();
+  else if (result.status === 401 || result.status === 403) markSignedOut();
+  return result;
+}
+
 export const walletClient = {
-  login: (token) => jsonRequest('/account/login', 'POST', { token }),
-  logout: () => request('/account/logout', { method: 'POST' }),
-  getWallet: () => request('/account/wallet'),
-  requestWithdrawal: (amount) => jsonRequest('/account/withdraw/request', 'POST', { amount }),
-  cancelWithdrawal: () => request('/account/withdraw/cancel', { method: 'POST' }),
+  login: (token) => tracked(jsonRequest('/account/login', 'POST', { token })),
+  logout: async () => {
+    const result = await request('/account/logout', { method: 'POST' });
+    markSignedOut();
+    return result;
+  },
+  getWallet: () => tracked(request('/account/wallet')),
+  requestWithdrawal: (amount) => tracked(jsonRequest('/account/withdraw/request', 'POST', { amount })),
+  cancelWithdrawal: () => tracked(request('/account/withdraw/cancel', { method: 'POST' })),
   getTransactions: (page = 1, type = null) =>
-    request(`/account/transactions?page=${page}${type ? `&transaction_type=${type}` : ''}`)
+    tracked(request(`/account/transactions?page=${page}${type ? `&transaction_type=${type}` : ''}`))
 };

@@ -1,4 +1,5 @@
 import { walletClient } from '../api/wallet-client.js';
+import { hasRecentSession } from '../api/wallet-session.js';
 
 const DEFAULT_INTRO = 'Enter the account token an OOF Games host gave you in-game.';
 
@@ -10,6 +11,7 @@ let status = null;
 let connect = null;
 let successHandler = null;
 let previousFocus = null;
+let openId = 0;
 
 function el(tag, className = '', text = '') {
   const node = document.createElement(tag);
@@ -109,6 +111,16 @@ function build() {
   document.body.appendChild(overlay);
 }
 
+async function probeExistingSession(id) {
+  const result = await walletClient.getWallet();
+  if (!result.ok || id !== openId) return;
+  if (overlay.style.display === 'none' || connect.disabled || input.value.trim()) return;
+  const handler = successHandler;
+  close();
+  window.dispatchEvent(new CustomEvent('oof-wallet-changed', { detail: result.data }));
+  if (handler) handler(result.data);
+}
+
 export function openLoginModal({ intro: introText, onSuccess } = {}) {
   if (!overlay) build();
   successHandler = onSuccess || null;
@@ -117,6 +129,8 @@ export function openLoginModal({ intro: introText, onSuccess } = {}) {
   overlay.style.display = 'flex';
   document.addEventListener('keydown', onKeydown);
   input.focus();
+  openId += 1;
+  if (!hasRecentSession()) probeExistingSession(openId);
 }
 
 export function closeLoginModal() {

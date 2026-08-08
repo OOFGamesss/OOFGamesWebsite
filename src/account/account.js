@@ -1,4 +1,5 @@
 import { walletClient } from '../api/wallet-client.js';
+import { hasRecentSession } from '../api/wallet-session.js';
 
 const app = document.getElementById('account-app');
 
@@ -449,6 +450,10 @@ async function refreshWallet() {
 }
 
 async function init() {
+  if (!hasRecentSession()) {
+    renderLogin();
+    return;
+  }
   const result = await walletClient.getWallet();
   if (result.ok) {
     state.wallet = result.data;
