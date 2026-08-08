@@ -69,8 +69,11 @@
           <section id="bracket-panel" class="panel hidden">
             <div class="card-head">
               <h2>Bracket</h2>
-              <input id="bracket-search" type="search" autocomplete="off" placeholder="Find a player…"
-                     aria-label="Find a player in the bracket" class="bracket-search" />
+              <div class="bracket-tools">
+                <button id="focus-current" type="button" class="bracket-focus hidden">View current match</button>
+                <input id="bracket-search" type="search" autocomplete="off" placeholder="Find a player…"
+                       aria-label="Find a player in the bracket" class="bracket-search" />
+              </div>
             </div>
             <div id="bracket-viewport" class="bracket-viewport">
               <div id="bracket-canvas" class="bracket-canvas">

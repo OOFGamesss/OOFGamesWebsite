@@ -27,6 +27,7 @@ let reconnectDelay = 1000;
 let joinPollTimer = null;
 let joinSubmitted = false;
 let linesFrame = 0;
+let bracketFocused = false;
 
 function gil(n) {
   return `${Number(n || 0).toLocaleString('en-GB')} gil`;
@@ -175,7 +176,7 @@ function slotHtml(m, which) {
     classes.push(m.winner === name ? 'is-winner' : 'is-loser');
   }
   const search = bye || !name ? '' : ` data-player="${escapeHtml(name)}"`;
-  return `<div class="${classes.join(' ')}"${search}><span>${escapeHtml(label)}</span><span class="bracket__score">${Number(wins || 0)}</span></div>`;
+  return `<div class="${classes.join(' ')}"${search}><span class="bracket__name" title="${escapeHtml(label)}">${escapeHtml(label)}</span><span class="bracket__score">${Number(wins || 0)}</span></div>`;
 }
 
 function renderBracket(s) {
@@ -200,6 +201,7 @@ function renderBracket(s) {
         + `<div class="bracket__matches">${matches}</div></div>`;
     })
     .join('');
+  show('focus-current', Boolean(currentMatchEl()));
   applyBracketSearch(false);
   scheduleBracketLines();
 }
@@ -241,7 +243,24 @@ function drawBracketLines() {
 
 function scheduleBracketLines() {
   cancelAnimationFrame(linesFrame);
-  linesFrame = requestAnimationFrame(drawBracketLines);
+  linesFrame = requestAnimationFrame(() => {
+    drawBracketLines();
+    focusInitialMatch();
+  });
+}
+
+function currentMatchEl() {
+  return el('bracket').querySelector('.bracket__match.is-current');
+}
+
+function focusInitialMatch() {
+  if (bracketFocused) return;
+  const rounds = [...el('bracket').querySelectorAll('.bracket__round')];
+  if (!rounds.length) return;
+  const target = currentMatchEl() || rounds[rounds.length - 1].querySelector('.bracket__match');
+  if (!target) return;
+  bracketFocused = true;
+  centreInViewport(target, 'auto');
 }
 
 function applyBracketSearch(scrollToFirst) {
@@ -281,14 +300,14 @@ function applyBracketSearch(scrollToFirst) {
   if (scrollToFirst && target) centreInViewport(target);
 }
 
-function centreInViewport(slot) {
+function centreInViewport(slot, behavior = 'smooth') {
   const viewport = el('bracket-viewport');
   const v = viewport.getBoundingClientRect();
   const s = slot.getBoundingClientRect();
   viewport.scrollBy({
     left: (s.left + s.width / 2) - (v.left + v.width / 2),
     top: (s.top + s.height / 2) - (v.top + v.height / 2),
-    behavior: 'smooth',
+    behavior,
   });
 }
 
@@ -516,6 +535,10 @@ async function init() {
   }
   el('join-form').addEventListener('submit', handleJoinSubmit);
   el('bracket-search').addEventListener('input', () => applyBracketSearch(true));
+  el('focus-current').addEventListener('click', () => {
+    const target = currentMatchEl();
+    if (target) centreInViewport(target);
+  });
   enableBracketDrag();
   new ResizeObserver(scheduleBracketLines).observe(el('bracket-canvas'));
 

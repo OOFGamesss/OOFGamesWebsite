@@ -108,9 +108,25 @@
 .bracket-search:focus { outline: none; border-color: var(--color-neon-cyan, #18e0ff); box-shadow: 0 0 20px rgba(24, 224, 255, 0.5); }
 .bracket-search.is-empty { border-color: var(--color-neon-magenta, #ff2bd6); box-shadow: 0 0 16px rgba(255, 43, 214, 0.4); }
 
+.bracket-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
+.bracket-focus {
+  flex: 0 0 auto; padding: 7px 14px; font-size: 0.85rem; font-weight: 700; white-space: nowrap;
+  color: var(--color-neon-gold, #ffcf4d); border-radius: 999px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--color-neon-gold, #ffcf4d) 60%, transparent);
+  background-color: rgba(10, 6, 18, 0.85);
+  box-shadow: 0 0 12px rgba(255, 207, 77, 0.22);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.bracket-focus:hover {
+  border-color: var(--color-neon-gold, #ffcf4d);
+  background-color: color-mix(in srgb, var(--color-neon-gold, #ffcf4d) 12%, rgba(10, 6, 18, 0.85));
+  box-shadow: 0 0 18px rgba(255, 207, 77, 0.42);
+}
+.bracket-focus:focus-visible { outline: 2px solid var(--color-neon-gold, #ffcf4d); outline-offset: 2px; }
+
 .bracket-viewport {
   position: relative; overflow: auto; height: max(420px, calc(100vh - 240px));
-  display: flex; padding: 4px 16px 14px; cursor: grab; overscroll-behavior: contain;
+  display: flex; align-items: flex-start; padding: 4px 16px 14px; cursor: grab; overscroll-behavior: contain;
   scrollbar-width: thin; scrollbar-color: var(--color-neon-violet, #8b5cff) transparent;
 }
 .bracket-viewport.is-dragging { cursor: grabbing; user-select: none; }
@@ -118,12 +134,12 @@
 .bracket-viewport::-webkit-scrollbar-track { background: transparent; }
 .bracket-viewport::-webkit-scrollbar-thumb { border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; background-color: var(--color-neon-violet, #8b5cff); }
 
-.bracket-canvas { position: relative; display: flex; flex: 0 0 auto; width: max-content; min-width: 100%; }
+.bracket-canvas { position: relative; display: flex; flex: 0 0 auto; width: max-content; min-width: 100%; height: max-content; min-height: 100%; }
 .bracket-lines { position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none; overflow: visible; }
 .bracket-lines path { fill: none; stroke: rgba(139, 92, 255, 0.55); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .bracket { position: relative; z-index: 1; flex: 1 1 auto; display: flex; gap: 12px; align-items: stretch; justify-content: safe center; }
 
-.bracket__round { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 156px; max-width: 260px; }
+.bracket__round { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 190px; max-width: 260px; }
 .bracket__round-title { flex: 0 0 auto; text-align: center; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.07em; color: #94a3b8; margin: 0 0 5px; }
 .bracket__matches { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-around; }
 .bracket__match { margin: 3px 0; border: 1px solid color-mix(in srgb, var(--color-neon-violet, #8b5cff) 35%, transparent); border-radius: 7px; background: rgba(10, 6, 18, 0.55); overflow: hidden; }
@@ -135,7 +151,8 @@
 .bracket__slot.is-loser { color: #64748b; text-decoration: line-through; }
 .bracket__slot.is-bye { color: #475569; font-style: italic; }
 .bracket__slot.is-found { background: color-mix(in srgb, var(--color-neon-cyan, #18e0ff) 28%, transparent); color: #ffffff; box-shadow: inset 0 0 0 1px var(--color-neon-cyan, #18e0ff); }
-.bracket__score { font-variant-numeric: tabular-nums; color: #94a3b8; font-weight: 700; }
+.bracket__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bracket__score { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: #94a3b8; font-weight: 700; }
 
 .bets-body { padding: 0 16px 14px; }
 .bets-list { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
@@ -147,4 +164,7 @@
   .race-header { justify-content: center; }
   .race-header__title { flex-basis: 100%; }
   .track-stats { flex-basis: 100%; justify-content: center; }
+  #bracket-panel .card-head { flex-wrap: wrap; gap: 8px; }
+  .bracket-tools { flex: 1 1 100%; justify-content: flex-start; }
+  .bracket-search { flex: 1 1 140px; width: auto; }
 }

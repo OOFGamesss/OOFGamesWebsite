@@ -32,7 +32,7 @@ function gameImageManifests() {
   };
 }
 
-function prettyPathDevFallback(name, prefix) {
+function prettyPathDevFallback(name, prefix, reserved = []) {
   const index = `${prefix}index.html`;
   return {
     name,
@@ -41,7 +41,7 @@ function prettyPathDevFallback(name, prefix) {
         const url = req.url || '';
         if (url.startsWith(prefix) && !url.startsWith(index)) {
           const restPath = url.slice(prefix.length).split('?')[0].replace(/^\/+|\/+$/g, '');
-          if (restPath && !restPath.includes('/') && !restPath.includes('.')) {
+          if (restPath && !reserved.includes(restPath) && !restPath.includes('/') && !restPath.includes('.')) {
             req.url = index;
           }
         }
@@ -54,7 +54,7 @@ function prettyPathDevFallback(name, prefix) {
 const chocoboRaceDevFallback = () =>
   prettyPathDevFallback('chocobo-race-dev-fallback', '/chocobo-racing/race/');
 const drtBracketDevFallback = () =>
-  prettyPathDevFallback('drt-bracket-dev-fallback', '/mini-games-emporium/drt/bracket/');
+  prettyPathDevFallback('drt-bracket-dev-fallback', '/mini-games-emporium/drt/bracket/', ['demo']);
 
 function sitemap() {
   const origin = 'https://oofgames.fyi';
