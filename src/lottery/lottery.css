@@ -9,7 +9,7 @@
 
 .race-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding: 12px 16px; }
 .race-header__title { display: flex; align-items: center; gap: 12px; flex: 1 1 220px; }
-.race-header__logo { height: 44px; width: 44px; object-fit: contain; border-radius: 8px; filter: drop-shadow(0 0 8px rgba(255, 43, 214, 0.5)); }
+.race-header__logo { height: 44px; width: 44px; object-fit: contain; border-radius: 8px; filter: drop-shadow(0 0 10px rgba(106, 48, 224, 0.75)) drop-shadow(0 0 24px rgba(139, 92, 255, 0.55)); }
 .race-header__h1 { font-size: 1.25rem; color: var(--color-neon-magenta, #ff2bd6); margin: 0; }
 .race-header__sub { font-size: 0.8rem; color: #94a3b8; margin: 0; }
 .btn-sm { padding: 8px 14px !important; font-size: 0.85rem; }
