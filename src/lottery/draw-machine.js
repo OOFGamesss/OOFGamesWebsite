@@ -114,6 +114,7 @@ function makeBalls(count, machine, bonus) {
       vz: (Math.random() - 0.5) * 0.6,
       state: 'staged',
       pathT: 0,
+      seg: 0,
       sx: 0,
       sy: 0,
       slotX: 0,
@@ -139,7 +140,7 @@ function scatterInDrum(balls, machine) {
   }
 }
 
-function updateIntake(machine, balls, dt) {
+function updateIntake(machine, balls, dt, emit) {
   if (!machine.intakeActive) return;
   const { drum, pipe } = machine;
   const inner = drum.r - BALL_R;
@@ -165,10 +166,14 @@ function updateIntake(machine, balls, dt) {
         ball.state = 'free';
         ball.vx = (Math.random() - 0.5) * 220;
         ball.z = BAR_PLANE + (Math.random() - 0.5) * 0.6;
+        emit('ball-in', { bonus: ball.bonus });
       }
     }
   }
-  if (!remaining) machine.intakeActive = false;
+  if (!remaining) {
+    machine.intakeActive = false;
+    emit('intake', { active: false });
+  }
 }
 
 function physicsStep(balls, machine, dt, agitation, omega) {
@@ -563,12 +568,35 @@ export function createDrawMachine(canvas) {
   let lastTime = performance.now();
   let running = true;
   let onRevealCallback = null;
+  let onEventCallback = null;
+  let lastTumbleKey = '';
+
+  function emit(type, detail) {
+    if (onEventCallback) onEventCallback(type, detail);
+  }
+
+  function freeCount(pool) {
+    let count = 0;
+    for (const ball of pool) {
+      if (ball.state === 'free' || ball.state === 'capturing') count += 1;
+    }
+    return count;
+  }
+
+  function emitTumble() {
+    const count = freeCount(mains) + freeCount(bonuses);
+    const key = `${count}|${agitation.toFixed(2)}`;
+    if (key === lastTumbleKey) return;
+    lastTumbleKey = key;
+    emit('tumble', { level: agitation, count });
+  }
 
   function reset() {
     mains = makeBalls(15, MAIN, false);
     bonuses = makeBalls(5, BONUS, true);
     MAIN.intakeActive = false;
     BONUS.intakeActive = false;
+    emit('intake', { active: false });
     sequence = null;
     assignedMains = new Set();
     assignedBonus = false;
@@ -628,6 +656,7 @@ export function createDrawMachine(canvas) {
     if (needsIntake) {
       MAIN.intakeActive = true;
       BONUS.intakeActive = true;
+      emit('intake', { active: true });
     }
     if (sequence) {
       sequence.steps.push(...steps);
@@ -655,11 +684,17 @@ export function createDrawMachine(canvas) {
           ball.sx = ball.x;
           ball.sy = ball.y;
           ball.pathT = arrived ? SEGMENT_SHARES[0] : 0;
+          ball.seg = 0;
         }
         return;
       }
       ball.pathT = Math.min(1, ball.pathT + dt / EXTRACT_SECONDS);
       const point = extractionPoint(machine, ball, ball.pathT);
+      if (point.seg !== ball.seg) {
+        ball.seg = point.seg;
+        if (point.seg === 1) emit('chute', { bonus: ball.bonus });
+        else if (point.seg === 2) emit('tray', { bonus: ball.bonus });
+      }
       if (point.seg === 2) {
         ball.rot += (point.x - ball.x) / BALL_R;
       }
@@ -668,7 +703,8 @@ export function createDrawMachine(canvas) {
       if (ball.pathT >= 1) {
         ball.state = 'parked';
         ball.pop = 1;
-        if (onRevealCallback) onRevealCallback();
+        emit('park', { n: ball.n, slot: ball.slot, bonus: ball.bonus });
+        if (onRevealCallback) onRevealCallback(ball);
         sequence.active = null;
         sequence.activeMachine = null;
         sequence.wait = REVEAL_GAP_SECONDS;
@@ -676,7 +712,10 @@ export function createDrawMachine(canvas) {
           const done = sequence.onDone;
           sequence = null;
           agitation = fullyRevealed() ? 0.35 : 1.8;
+          emit('done', {});
           if (done) done();
+        } else {
+          emit('gap', {});
         }
       }
       return;
@@ -697,6 +736,7 @@ export function createDrawMachine(canvas) {
     ball.slot = step.slot;
     ball.slotX = machine.slotXs[step.slot];
     ball.pathT = 0;
+    emit('capture', { bonus: step.bonus });
     sequence.active = ball;
     sequence.activeMachine = machine;
     sequence.captureTime = 0;
@@ -710,11 +750,12 @@ export function createDrawMachine(canvas) {
     const bonusOmega = BONUS.spin.dir * (1.1 + agitation * 0.8 * 1.7);
     MAIN.spin.angle += mainOmega * dt;
     BONUS.spin.angle += bonusOmega * dt;
-    updateIntake(MAIN, mains, dt);
-    updateIntake(BONUS, bonuses, dt);
+    updateIntake(MAIN, mains, dt, emit);
+    updateIntake(BONUS, bonuses, dt, emit);
     physicsStep(mains, MAIN, dt, agitation, mainOmega);
     physicsStep(bonuses, BONUS, dt, agitation * 0.8, bonusOmega);
     updateSequence(dt);
+    emitTumble();
     for (const ball of mains.concat(bonuses)) {
       if (ball.pop > 0) ball.pop = Math.max(0, ball.pop - dt * 1.4);
     }
@@ -732,6 +773,7 @@ export function createDrawMachine(canvas) {
   function load() {
     MAIN.intakeActive = true;
     BONUS.intakeActive = true;
+    emit('intake', { active: true });
     if (agitation < 1.6) agitation = 1.6;
   }
 
@@ -753,6 +795,9 @@ export function createDrawMachine(canvas) {
     revealedNumbers,
     onReveal: (fn) => {
       onRevealCallback = fn;
+    },
+    onEvent: (fn) => {
+      onEventCallback = fn;
     },
     isPlaying: () => sequence !== null,
     fullyRevealed,

@@ -12,6 +12,7 @@ import { apiBaseUrl, walletClient } from '../api/wallet-client.js';
 import { hasRecentSession } from '../api/wallet-session.js';
 import { openLoginModal } from '../components/login-modal.js';
 import { createDrawMachine } from './draw-machine.js';
+import lotteryAudio from './lottery-audio.js';
 
 const POLL_IDLE_MS = 60_000;
 const POLL_HOT_MS = 10_000;
@@ -150,6 +151,86 @@ function rollingCard(location) {
   return card;
 }
 
+const MACHINE_SOUNDS = {
+  tumble: (detail) => lotteryAudio.setTumble(detail.level, detail.count),
+  intake: (detail) => lotteryAudio.setIntake(detail.active),
+  'ball-in': () => lotteryAudio.ballIn(),
+  capture: () => {
+    lotteryAudio.setMachineBusy(true);
+    lotteryAudio.capture();
+  },
+  done: () => lotteryAudio.setMachineBusy(false),
+  chute: () => lotteryAudio.chute(),
+  tray: () => lotteryAudio.tray(),
+  park: (detail) => lotteryAudio.lock(detail.slot, detail.bonus),
+  gap: () => lotteryAudio.gap()
+};
+
+function setAudioPhase(phase) {
+  lotteryAudio.setPhase(phase);
+}
+
+function playHitSound(ball) {
+  if (!state.signedIn || state.myCurrent.length === 0) return;
+  const drawn = state.machine.revealedNumbers();
+  let best = 0;
+  for (const ticket of state.myCurrent) {
+    const holds = ball.bonus
+      ? ticket.bonus_number === ball.n
+      : ticket.main_numbers.includes(ball.n);
+    if (!holds) continue;
+    const hits = ticket.main_numbers.filter((number) => drawn.mains.includes(number)).length
+      + (drawn.bonus === ticket.bonus_number ? 1 : 0);
+    best = Math.max(best, hits);
+  }
+  if (best > 0) lotteryAudio.hit(best);
+}
+
+function playResultSting(result) {
+  const mine = state.myTicketsByDraw.get(result.draw_id) || [];
+  const myPrize = mine.reduce((sum, ticket) => sum + (ticket.prize_amount ?? 0), 0);
+  const myJackpot = mine.some((ticket) => ticket.prize_tier === 0 && (ticket.prize_amount ?? 0) > 0);
+  if (myJackpot || result.jackpot_winner_count > 0) {
+    lotteryAudio.duckMusic(5);
+    lotteryAudio.jackpot();
+  } else if (myPrize > 0) {
+    lotteryAudio.duckMusic(3);
+    lotteryAudio.win();
+  } else {
+    lotteryAudio.duckMusic(2.5);
+    lotteryAudio.noWin();
+  }
+}
+
+function renderAudioControls() {
+  const apply = (button, slider, on, volume, label) => {
+    if (button) {
+      button.classList.toggle('is-off', !on);
+      button.setAttribute('aria-pressed', String(on));
+      button.title = `${label}: ${on ? 'on' : 'off'}`;
+    }
+    if (slider) slider.value = String(Math.round(volume * 100));
+  };
+  apply($('toggle-music'), $('vol-music'), lotteryAudio.musicOn, lotteryAudio.musicVol, 'Music');
+  apply($('toggle-sfx'), $('vol-sfx'), lotteryAudio.sfxOn, lotteryAudio.sfxVol, 'Sound effects');
+}
+
+function wireAudio() {
+  lotteryAudio.init();
+  lotteryAudio.onChange = renderAudioControls;
+  state.machine.onEvent((type, detail) => {
+    const handler = MACHINE_SOUNDS[type];
+    if (handler) handler(detail);
+  });
+  $('toggle-music').addEventListener('click', () => lotteryAudio.toggleMusic());
+  $('toggle-sfx').addEventListener('click', () => lotteryAudio.toggleSfx());
+  $('vol-music').addEventListener('input', (event) =>
+    lotteryAudio.setMusicVolume(Number(event.target.value) / 100));
+  $('vol-sfx').addEventListener('input', (event) =>
+    lotteryAudio.setSfxVolume(Number(event.target.value) / 100));
+  renderAudioControls();
+}
+
 function syncMachine(data, settledTransition) {
   const machine = state.machine;
   const previous = data.previous_result;
@@ -158,6 +239,7 @@ function syncMachine(data, settledTransition) {
     $('replay-button').classList.add('hidden');
     const live = data.live_mains || [];
     const hasLive = live.length > 0 || (data.live_bonus ?? null) !== null;
+    setAudioPhase(hasLive ? 'drawing' : 'waiting');
     if (hasLive) {
       if (state.machineDraw !== data.draw_id) {
         machine.reset();
@@ -179,6 +261,7 @@ function syncMachine(data, settledTransition) {
     return;
   }
 
+  setAudioPhase('idle');
   if (!previous) return;
   if (state.machineDraw !== previous.draw_id) {
     // Page opened mid-selling: idle machine, balls staged in the feed pipes.
@@ -231,6 +314,7 @@ function renderPickers() {
     button.type = 'button';
     button.addEventListener('click', () => {
       state.pickedBonus = state.pickedBonus === number ? null : number;
+      lotteryAudio.click();
       renderPickers();
     });
     bonus.appendChild(button);
@@ -241,6 +325,7 @@ function renderPickers() {
 function toggleMain(number) {
   if (state.pickedMains.has(number)) state.pickedMains.delete(number);
   else if (state.pickedMains.size < MAIN_COUNT) state.pickedMains.add(number);
+  lotteryAudio.click();
   renderPickers();
 }
 
@@ -252,6 +337,7 @@ function pickForMe() {
   }
   state.pickedMains = new Set(pool.slice(0, MAIN_COUNT));
   state.pickedBonus = 1 + Math.floor(Math.random() * 5);
+  lotteryAudio.shuffle();
   renderPickers();
 }
 
@@ -338,6 +424,7 @@ async function buyBasket() {
   }
   const count = result.data.tickets.length;
   setBuyStatus('');
+  lotteryAudio.purchase();
   showPurchaseToast(result.data.tickets);
   state.basket = [];
   renderBasket();
@@ -654,6 +741,7 @@ async function showWinnerPopup(result, expiresAtMs) {
   const content = $('winner-content');
   content.replaceChildren(el('p', 'history-detail history-detail--muted', 'Loading the winners…'));
   $('winner-overlay').classList.remove('hidden');
+  playResultSting(result);
   clearTimeout(state.winnerPopupTimer);
   state.winnerPopupTimer = setTimeout(() => {
     $('winner-overlay').classList.add('hidden');
@@ -773,9 +861,11 @@ function connectLotterySocket() {
 
 async function boot() {
   state.machine = createDrawMachine($('draw-canvas'));
-  state.machine.onReveal(() => {
+  state.machine.onReveal((ball) => {
     if (state.signedIn) renderMyCurrent();
+    playHitSound(ball);
   });
+  wireAudio();
   renderPickers();
   renderBasket();
 
