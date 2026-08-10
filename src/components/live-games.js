@@ -260,7 +260,7 @@ function renderLottery(current) {
     return;
   }
   const tickets = plural(Number(current.ticket_count || 0), 'ticket');
-  el.textContent = `${gil(current.pot)} jackpot · ${tickets} sold`;
+  el.textContent = `${gil(current.pot)} jackpot pool · ${tickets} sold`;
 
   lotteryDrawAt = parseUtcMs(current.scheduled_at);
   lotterySalesOpen = Boolean(current.sales_open);

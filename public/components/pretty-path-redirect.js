@@ -29,6 +29,18 @@
     }
   }
 
+  // /venue-live/<slug> is a live venue page. /venue-live/ itself is the plugin
+  // information page and never reaches here, and "live" is the renderer's own
+  // directory, so neither is treated as a venue slug.
+  var venuePrefix = '/venue-live/';
+  if (path.indexOf(venuePrefix) === 0 && path.length > venuePrefix.length) {
+    var slug = path.slice(venuePrefix.length).replace(/\/+$/, '');
+    if (slug && slug !== 'live' && slug.indexOf('/') === -1) {
+      window.location.replace(venuePrefix + 'live/?v=' + encodeURIComponent(slug) + hash);
+      return;
+    }
+  }
+
   if (moved) {
     window.location.replace(path + search + hash);
   }

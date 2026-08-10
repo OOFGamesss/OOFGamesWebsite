@@ -42,9 +42,17 @@
           </button>
         </div>
         <div class="jackpot-hero">
-          <span class="jackpot-hero__label">💰 Jackpot 💰</span>
+          <span class="jackpot-hero__label">
+            💰 Jackpot Pool 💰
+            <button
+              type="button"
+              class="infotip"
+              aria-label="What is the jackpot pool?"
+              data-infotip="This is the whole prize pool, not a guaranteed payout. When someone hits the jackpot, the fixed prizes for the lower tiers are paid out of the pool first and the jackpot winner receives whatever is left."
+            >?</button>
+          </span>
           <span id="stat-pot" class="jackpot-hero__value">-</span>
-          <span class="jackpot-hero__sub">Grows every week until it is won!</span>
+          <span class="jackpot-hero__sub">Rolls over every week. Fixed prizes come out first, the jackpot winner takes the rest.</span>
         </div>
         <div class="track-stats">
           <div class="track-stat"><span class="track-stat__label">Next Draw</span><span id="stat-countdown" class="track-stat__value">-</span></div>
@@ -154,6 +162,7 @@
                 <tbody id="prize-rows"></tbody>
               </table>
             </div>
+            <p class="prize-note">The four fixed prizes are paid out of the jackpot pool first. The jackpot winner receives whatever remains, so the payout can be smaller than the pool shown at the top of the page. If several tickets hit the jackpot, they share what remains equally.</p>
           </section>
 
           <section class="panel">
@@ -204,7 +213,8 @@
             <span class="howto-steps__num">4</span>
             <div>
               <strong>Get paid instantly</strong>
-              <p>Prizes land straight in your OOF account the moment the draw settles. Match all 4 plus the bonus to take the rolling jackpot - if it is not won, it rolls over and keeps growing! Several jackpot tickets in one week split the pot evenly.</p>
+              <p>Prizes land straight in your OOF account the moment the draw settles. Match all 4 plus the bonus to take the jackpot - if nobody does, the pool rolls over and keeps growing!</p>
+              <p class="howto-steps__note">The figure at the top of the page is the jackpot <em>pool</em>, not a guaranteed payout. The four fixed prizes are paid out of that pool first, and the jackpot winner receives whatever is left, shared equally if more than one ticket wins it. A week with a lot of fixed-prize winners leaves less behind for the jackpot.</p>
             </div>
           </li>
         </ol>

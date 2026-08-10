@@ -36,6 +36,70 @@ function el(tag, className = '', text = '') {
   return node;
 }
 
+function infotip(label, text) {
+  const button = el('button', 'infotip', '?');
+  button.type = 'button';
+  button.setAttribute('aria-label', label);
+  button.dataset.infotip = text;
+  return button;
+}
+
+function wireInfotips() {
+  const bubble = el('div', 'infotip-bubble hidden');
+  bubble.id = 'infotip-bubble';
+  bubble.setAttribute('role', 'tooltip');
+  document.body.appendChild(bubble);
+  let active = null;
+
+  const hide = () => {
+    if (!active) return;
+    active.removeAttribute('aria-describedby');
+    active = null;
+    bubble.classList.add('hidden');
+  };
+
+  const show = (button) => {
+    if (active === button) return;
+    hide();
+    active = button;
+    bubble.textContent = button.dataset.infotip;
+    bubble.style.left = '0px';
+    bubble.style.top = '-9999px';
+    bubble.classList.remove('hidden');
+    button.setAttribute('aria-describedby', 'infotip-bubble');
+    const anchor = button.getBoundingClientRect();
+    const margin = 8;
+    const maxLeft = Math.max(margin, window.innerWidth - bubble.offsetWidth - margin);
+    const centred = anchor.left + anchor.width / 2 - bubble.offsetWidth / 2;
+    const above = anchor.top > bubble.offsetHeight + margin * 2;
+    bubble.style.left = `${Math.min(Math.max(margin, centred), maxLeft)}px`;
+    bubble.style.top = `${above ? anchor.top - bubble.offsetHeight - margin : anchor.bottom + margin}px`;
+  };
+
+  const tipFor = (event) => event.target.closest?.('[data-infotip]') || null;
+
+  document.addEventListener('pointerover', (event) => {
+    const button = tipFor(event);
+    if (button) show(button);
+    else if (event.pointerType === 'mouse') hide();
+  });
+  document.addEventListener('focusin', (event) => {
+    const button = tipFor(event);
+    if (button) show(button);
+    else hide();
+  });
+  document.addEventListener('click', (event) => {
+    const button = tipFor(event);
+    if (button) show(button);
+    else hide();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') hide();
+  });
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+}
+
 function ballChip(number, { bonus = false, hit = false } = {}) {
   return el('span', `ball${bonus ? ' ball--bonus' : ''}${hit ? ' ball--hit' : ''}`, String(number));
 }
@@ -121,6 +185,12 @@ function renderPrizes() {
     row.appendChild(el('td', tier.tier === 0 ? 'prize-jackpot' : '', tier.label));
     const amount = el('td', `prize-amount${tier.tier === 0 ? ' prize-jackpot' : ''}`);
     amount.textContent = tier.amount === null ? gil(state.current.pot) : gil(tier.amount);
+    if (tier.amount === null) {
+      amount.appendChild(infotip(
+        'How the jackpot payout is worked out',
+        'This is the pool as it stands right now. The fixed prizes below are paid out of it first, so the jackpot winner receives whatever is left, which can be a good deal less than the figure shown.'
+      ));
+    }
     row.appendChild(amount);
     rows.appendChild(row);
   }
@@ -618,6 +688,19 @@ function renderWinnersInto(container, drawId) {
   });
 }
 
+function poolLine(result) {
+  const pool = gil(result.pool_before ?? 0);
+  const fixed = Number(result.fixed_prizes_paid || 0);
+  if (result.jackpot_winner_count > 0) {
+    return fixed > 0
+      ? `From a jackpot pool of ${pool}, with ${gil(fixed)} paid out in fixed prizes first.`
+      : `From a jackpot pool of ${pool}, with no fixed prizes to pay out first.`;
+  }
+  return fixed > 0
+    ? `Jackpot pool of ${pool}, less ${gil(fixed)} in fixed prizes. The rest rolls over to next week.`
+    : `Jackpot pool of ${pool} rolls over to next week.`;
+}
+
 function historyDetails(draw) {
   const body = el('div', 'history-item__body');
   const drawn = { mains: draw.main_numbers, bonus: draw.bonus_number };
@@ -626,6 +709,7 @@ function historyDetails(draw) {
   if (draw.jackpot_winner_count > 0) {
     body.appendChild(el('p', 'history-detail is-jackpot', `💰 Jackpot won - ${gil(draw.jackpot_paid)} paid out!`));
   }
+  body.appendChild(el('p', 'history-detail history-detail--muted', poolLine(draw)));
   if (totalWinners === 0) {
     body.appendChild(el('p', 'history-detail', 'No winning tickets this draw.'));
   } else {
@@ -757,6 +841,7 @@ async function showWinnerPopup(result, expiresAtMs) {
     content.appendChild(el('p', 'winner-banner',
       'Nobody hit the jackpot - it rolls over and keeps growing!'));
   }
+  content.appendChild(el('p', 'winner-banner winner-banner--pool', poolLine(result)));
   if (state.current?.sales_open) {
     const nextAt = parseUtc(state.current.scheduled_at).toLocaleString('en-GB', {
       weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
@@ -866,6 +951,7 @@ async function boot() {
     playHitSound(ball);
   });
   wireAudio();
+  wireInfotips();
   renderPickers();
   renderBasket();
 
@@ -909,6 +995,7 @@ async function boot() {
   window.addEventListener('oof-wallet-changed', (event) => setSignedIn(Boolean(event.detail)));
 
   await refreshCurrent();
+  openModal('howto-modal');
   connectLotterySocket();
   setInterval(tickCountdown, 1000);
   tickCountdown();
