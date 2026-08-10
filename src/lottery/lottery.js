@@ -188,7 +188,7 @@ function renderPrizes() {
     if (tier.amount === null) {
       amount.appendChild(infotip(
         'How the jackpot payout is worked out',
-        'This is the pool as it stands right now. The fixed prizes below are paid out of it first, so the jackpot winner receives whatever is left, which can be a good deal less than the figure shown.'
+        'This is the pool as it stands right now. The fixed prizes below are paid out of it first, so the jackpot winner receives whatever is left.'
       ));
     }
     row.appendChild(amount);
