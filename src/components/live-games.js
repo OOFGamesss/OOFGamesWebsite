@@ -126,7 +126,7 @@ function buildCard({ href, title, pill, stats, cta, image }) {
   return card;
 }
 
-function grandNationalStats(session) {
+function raffleStats(session) {
   const prize = session.prizeType === 'pot' ? gil(session.netPot || session.pot) : session.prizeLabel;
   const runners = plural(session.runnerCount, 'runner');
   return prize ? `${prize} · ${runners}` : runners;
@@ -152,7 +152,7 @@ function hostCard(session) {
     href: `${RACE_BASE}?s=${encodeURIComponent(session.sessionId)}`,
     title,
     pill: racePill(session.phase),
-    stats: session.mode === 'grand_national' ? grandNationalStats(session) : classicStats(session),
+    stats: session.mode === 'grand_national' ? raffleStats(session) : classicStats(session),
     cta: 'Watch Live ➔',
     image: venueImage(session.venueImageUrl, `${title} venue image`, RACE_FALLBACK_IMAGE),
   });

@@ -166,16 +166,16 @@ let finishTimer = null;
 let announcedWinner = null;
 let placingBet = false;
 
-const GN_MS_PER_YALM = 1000;
-const GN_COUNTDOWN_MS = 3000;
-let gnStartTimer = null;
-let gnPlan = [];
-let gnRaf = 0;
-let gnStartTs = 0;
-let gnDurationMs = 20000;
-let gnLastPhase = null;
-let gnCloseTimer = null;
-const gnPos = new Map();
+const RAFFLE_MS_PER_YALM = 1000;
+const RAFFLE_COUNTDOWN_MS = 3000;
+let raffleStartTimer = null;
+let rafflePlan = [];
+let raffleRaf = 0;
+let raffleStartTs = 0;
+let raffleDurationMs = 20000;
+let raffleLastPhase = null;
+let raffleCloseTimer = null;
+const rafflePos = new Map();
 
 let rollCount = 0;
 let lastKwehRoll = -999;
@@ -200,9 +200,9 @@ function hslToHex(h, s, l) {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-const gnColor = (n) => hslToHex((n * 47) % 360, 68, 56);
-const isGn = (s) => !!s && s.mode === 'grand_national';
-const colorFor = (n) => (isGn(currentState) ? gnColor(n) : laneColor(n));
+const raffleColor = (n) => hslToHex((n * 47) % 360, 68, 56);
+const isRaffle = (s) => !!s && s.mode === 'grand_national';
+const colorFor = (n) => (isRaffle(currentState) ? raffleColor(n) : laneColor(n));
 
 const chocoboName = (n) => {
   const c = (currentState?.chocobos || []).find((x) => x.number === n);
@@ -252,9 +252,9 @@ function ensureTrack(s) {
   if (sig === trackSig) return;
   trackSig = sig;
   const n = chocobos.length;
-  const gn = isGn(s);
-  const GN_MIN_CHOCOBOS = 5;
-  const sizeN = gn ? Math.max(n, GN_MIN_CHOCOBOS) : n;
+  const gn = isRaffle(s);
+  const RAFFLE_MIN_CHOCOBOS = 5;
+  const sizeN = gn ? Math.max(n, RAFFLE_MIN_CHOCOBOS) : n;
   const track = el('track');
   const sprite = spriteSizeFor(sizeN);
   const grassTop = 112;
@@ -365,7 +365,7 @@ function renderStandings(s) {
 
   const order = [...(s.chocobos || [])].sort((a, b) => (b.position - a.position) || (a.number - b.number));
   const medals = ['podium--1', 'podium--2', 'podium--3'];
-  const shown = isGn(s) ? order.slice(0, 5) : order;
+  const shown = isRaffle(s) ? order.slice(0, 5) : order;
 
   standings.innerHTML = shown.map((c, i) => {
     if (i < 3) {
@@ -387,7 +387,7 @@ function renderStandings(s) {
 
   const finish = s.finishLine || 0;
   const lead = order.length ? order[0].position : 0;
-  el('yalms').innerHTML = (!isGn(s) && finish) ? `<b>${Math.floor(Math.min(lead, finish))}</b>/${finish} yalms` : '';
+  el('yalms').innerHTML = (!isRaffle(s) && finish) ? `<b>${Math.floor(Math.min(lead, finish))}</b>/${finish} yalms` : '';
 }
 
 function renderPodiumOverlay(s) {
@@ -830,7 +830,7 @@ function openModal() {
 }
 function closeModal() { el('pin-modal').classList.add('hidden'); el('pin-msg').classList.add('hidden'); el('pin-input').value = ''; }
 
-const HOWTO_GN_STEPS = [
+const HOWTO_RAFFLE_STEPS = [
   ['Trade Gil to your host', 'Pay the entry fee to your race host to join the runner list.'],
   ['Get your chocobo', 'The host adds you to the race and gives you a numbered chocobo carrying your name.'],
   ['Watch the race', 'When the host starts, the server draws the winner and the chocobos race it out.'],
@@ -862,7 +862,7 @@ function howToStepsHtml(steps) {
 }
 
 function openHowTo() {
-  const steps = isHouse ? HOWTO_HOUSE_STEPS : (isGn(currentState) ? HOWTO_GN_STEPS : HOWTO_CLASSIC_STEPS);
+  const steps = isHouse ? HOWTO_HOUSE_STEPS : (isRaffle(currentState) ? HOWTO_RAFFLE_STEPS : HOWTO_CLASSIC_STEPS);
   const list = el('howto-steps');
   if (list) list.innerHTML = howToStepsHtml(steps);
   el('howto-modal').classList.remove('hidden');
@@ -896,8 +896,8 @@ function renderAll(s) {
   hideLoader();
   currentState = s;
 
-  if (isGn(s)) { renderAllGn(s); return; }
-  exitGnMode();
+  if (isRaffle(s)) { renderAllRaffle(s); return; }
+  exitRaffleMode();
 
   const phase = s.phase;
   if (lastPhase && lastPhase !== 'Racing' && phase === 'Racing') startCountdown();
@@ -930,47 +930,47 @@ function setStatLabel(valueId, text) {
   if (label) label.textContent = text;
 }
 
-function exitGnMode() {
+function exitRaffleMode() {
   document.body.classList.remove('is-gn');
   el('all-bets-card')?.classList.remove('hidden');
-  el('gn-runners-card')?.classList.add('hidden');
+  el('raffle-runners-card')?.classList.add('hidden');
   const sp = el('race-stats')?.closest('.panel');
   if (sp) sp.classList.remove('hidden');
   setStatLabel('stat-payout', 'Payout Odds');
   setStatLabel('stat-track', 'Track');
-  stopGnRace();
-  if (gnCloseTimer) { clearInterval(gnCloseTimer); gnCloseTimer = null; }
-  el('gn-close')?.classList.add('hidden');
-  gnLastPhase = null;
+  stopRaffleRace();
+  if (raffleCloseTimer) { clearInterval(raffleCloseTimer); raffleCloseTimer = null; }
+  el('raffle-close')?.classList.add('hidden');
+  raffleLastPhase = null;
 }
 
-function renderAllGn(s) {
+function renderAllRaffle(s) {
   document.body.classList.add('is-gn');
   el('open-join').classList.add('hidden');
   el('all-bets-card')?.classList.add('hidden');
   el('your-bets-card')?.classList.add('hidden');
-  el('gn-runners-card')?.classList.remove('hidden');
+  el('raffle-runners-card')?.classList.remove('hidden');
   const sp = el('race-stats')?.closest('.panel');
   if (sp) sp.classList.add('hidden');
 
   audio.setBgm(s.phase === 'Racing');
   audio.setLobby(s.phase === 'Betting' || s.phase === 'BetsClosed');
 
-  renderHeaderGn(s);
-  syncGnChocobos(s);
+  renderHeaderRaffle(s);
+  syncRaffleChocobos(s);
   ensureTrack(s);
   renderVenue(s);
-  handleGnPhase(s);
+  handleRafflePhase(s);
   updateRunners(s);
   renderStandings(s);
-  renderGnPodium(s);
-  renderGnRunners(s);
-  renderGnCloseTime(s);
-  renderLastResultsGn((s.results || []).filter((r) => r.mode === 'grand_national'));
+  renderRafflePodium(s);
+  renderRaffleRunners(s);
+  renderRaffleCloseTime(s);
+  renderLastResultsRaffle((s.results || []).filter((r) => r.mode === 'grand_national'));
 
-  if (!gnCloseTimer) {
-    gnCloseTimer = setInterval(() => {
-      if (currentState && isGn(currentState)) renderGnCloseTime(currentState);
+  if (!raffleCloseTimer) {
+    raffleCloseTimer = setInterval(() => {
+      if (currentState && isRaffle(currentState)) renderRaffleCloseTime(currentState);
     }, 1000);
   }
 }
@@ -979,7 +979,7 @@ function pad2(n) {
   return String(Number(n) || 0).padStart(2, '0');
 }
 
-function gnCloseSecs(hour, minute) {
+function raffleCloseSecs(hour, minute) {
   const now = Date.now();
   const d = new Date();
   const target = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hour, minute, 0);
@@ -995,38 +995,38 @@ function fmtDur(secs) {
   return h >= 1 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
 }
 
-function renderGnCloseTime(s) {
-  const box = el('gn-close');
+function renderRaffleCloseTime(s) {
+  const box = el('raffle-close');
   if (!box) return;
   const show = !!s && !!s.closeTimeEnabled && s.phase === 'Betting';
   box.classList.toggle('hidden', !show);
   if (!show) { box.innerHTML = ''; return; }
   const hour = Number(s.closeHour) || 0;
   const minute = Number(s.closeMinute) || 0;
-  const secs = gnCloseSecs(hour, minute);
+  const secs = raffleCloseSecs(hour, minute);
   const count = secs > 0 ? fmtDur(secs) : 'Closing...';
   box.classList.toggle('is-urgent', secs > 0 && secs <= 60);
-  box.innerHTML = `<span class="gn-close__icon" aria-hidden="true">&#9201;</span>`
-    + `<span class="gn-close__label">Registration closes ${pad2(hour)}:${pad2(minute)} ST</span>`
-    + `<span class="gn-close__count">${count}</span>`;
+  box.innerHTML = `<span class="raffle-close__icon" aria-hidden="true">&#9201;</span>`
+    + `<span class="raffle-close__label">Registration closes ${pad2(hour)}:${pad2(minute)} ST</span>`
+    + `<span class="raffle-close__count">${count}</span>`;
 }
 
-function gnIsPot(prizeType) {
+function raffleIsPot(prizeType) {
   return (prizeType || 'pot') === 'pot';
 }
 
-function gnPrizeText(prizeType, prizeLabel, netPot, pot) {
-  if (!gnIsPot(prizeType)) return prizeLabel || 'Prize';
+function rafflePrizeText(prizeType, prizeLabel, netPot, pot) {
+  if (!raffleIsPot(prizeType)) return prizeLabel || 'Prize';
   return fmtGil(netPot || pot || 0);
 }
 
-function renderHeaderGn(s) {
+function renderHeaderRaffle(s) {
   const host = s.hostName || 'Unknown host';
   el('host-line').textContent = `Hosted by ${host}${s.venueName ? ` · ${s.venueName}` : ''}`;
   setStatLabel('stat-round', 'Race');
-  el('stat-round').textContent = s.gnRaceNumber ?? '-';
-  setStatLabel('stat-payout', gnIsPot(s.prizeType) ? 'Pot' : 'Prize');
-  el('stat-payout').textContent = gnPrizeText(s.prizeType, s.prizeLabel, s.netPot, s.pot);
+  el('stat-round').textContent = s.raffleRaceNumber ?? '-';
+  setStatLabel('stat-payout', raffleIsPot(s.prizeType) ? 'Pot' : 'Prize');
+  el('stat-payout').textContent = rafflePrizeText(s.prizeType, s.prizeLabel, s.netPot, s.pot);
   const ew = el('stat-entry-wrap');
   if (s.entryFee) {
     el('stat-entry').textContent = fmtGil(s.entryFee);
@@ -1047,51 +1047,51 @@ function renderHeaderGn(s) {
   }
 }
 
-function gnPositionFor(n, s) {
+function rafflePositionFor(n, s) {
   const finish = s.finishLine || 20;
-  if (s.phase === 'Racing') return gnPos.get(n) || 0;
+  if (s.phase === 'Racing') return rafflePos.get(n) || 0;
   if (s.phase === 'Finished') {
     if (n === (s.winner || 0)) return finish;
-    return gnPos.has(n) ? gnPos.get(n) : Math.max(0, finish - 3);
+    return rafflePos.has(n) ? rafflePos.get(n) : Math.max(0, finish - 3);
   }
   return 0;
 }
 
-function syncGnChocobos(s) {
+function syncRaffleChocobos(s) {
   if (!s.finishLine) s.finishLine = 20;
   s.chocobos = (s.runners || []).map((r) => ({
-    number: r.number, name: r.name, world: r.world, position: gnPositionFor(r.number, s),
+    number: r.number, name: r.name, world: r.world, position: rafflePositionFor(r.number, s),
   }));
   s.winningChocobo = s.phase === 'Finished' ? (s.winner || 0) : 0;
 }
 
-function handleGnPhase(s) {
+function handleRafflePhase(s) {
   const phase = s.phase;
-  if (gnLastPhase !== 'Racing' && phase === 'Racing') {
+  if (raffleLastPhase !== 'Racing' && phase === 'Racing') {
     startCountdown();
-    if (gnStartTimer) clearTimeout(gnStartTimer);
-    gnStartTimer = setTimeout(() => {
-      if (currentState && isGn(currentState) && currentState.phase === 'Racing') startGnRace(currentState);
-    }, GN_COUNTDOWN_MS);
+    if (raffleStartTimer) clearTimeout(raffleStartTimer);
+    raffleStartTimer = setTimeout(() => {
+      if (currentState && isRaffle(currentState) && currentState.phase === 'Racing') startRaffleRace(currentState);
+    }, RAFFLE_COUNTDOWN_MS);
   }
-  if (phase !== 'Racing') stopGnRace();
-  if (phase === 'Finished') finishGnRace(s);
-  if (phase === 'Betting' || phase === 'BetsClosed' || phase === 'Idle') gnPos.clear();
-  gnLastPhase = phase;
+  if (phase !== 'Racing') stopRaffleRace();
+  if (phase === 'Finished') finishRaffleRace(s);
+  if (phase === 'Betting' || phase === 'BetsClosed' || phase === 'Idle') rafflePos.clear();
+  raffleLastPhase = phase;
 }
 
-function startGnRace(s) {
-  stopGnRaceTimer();
-  gnPlan = Array.isArray(s.racePlan) ? s.racePlan.slice() : [];
+function startRaffleRace(s) {
+  stopRaffleRaceTimer();
+  rafflePlan = Array.isArray(s.racePlan) ? s.racePlan.slice() : [];
   const finish = s.finishLine || 20;
-  gnDurationMs = Math.max(5000, finish * GN_MS_PER_YALM);
-  gnPos.clear();
-  (s.runners || []).forEach((r) => gnPos.set(r.number, 0));
-  gnStartTs = (typeof performance !== 'undefined' ? performance : Date).now();
-  gnRaf = requestAnimationFrame(gnFrame);
+  raffleDurationMs = Math.max(5000, finish * RAFFLE_MS_PER_YALM);
+  rafflePos.clear();
+  (s.runners || []).forEach((r) => rafflePos.set(r.number, 0));
+  raffleStartTs = (typeof performance !== 'undefined' ? performance : Date).now();
+  raffleRaf = requestAnimationFrame(raffleFrame);
 }
 
-function gnPosAtT(points, t) {
+function rafflePosAtT(points, t) {
   if (!Array.isArray(points) || points.length === 0) return 0;
   if (t <= points[0][0]) return points[0][1];
   for (let i = 1; i < points.length; i++) {
@@ -1106,87 +1106,87 @@ function gnPosAtT(points, t) {
   return points[points.length - 1][1];
 }
 
-function gnFrame(now) {
-  if (!currentState || !isGn(currentState) || currentState.phase !== 'Racing') { gnRaf = 0; return; }
+function raffleFrame(now) {
+  if (!currentState || !isRaffle(currentState) || currentState.phase !== 'Racing') { raffleRaf = 0; return; }
   const finish = currentState.finishLine || 20;
-  const t = Math.max(0, Math.min(1, (now - gnStartTs) / gnDurationMs));
-  for (const p of gnPlan) {
-    const pos = Math.max(0, Math.min(finish, gnPosAtT(p.points, t)));
-    gnPos.set(p.number, pos);
+  const t = Math.max(0, Math.min(1, (now - raffleStartTs) / raffleDurationMs));
+  for (const p of rafflePlan) {
+    const pos = Math.max(0, Math.min(finish, rafflePosAtT(p.points, t)));
+    rafflePos.set(p.number, pos);
   }
-  syncGnChocobos(currentState);
+  syncRaffleChocobos(currentState);
   updateRunners(currentState);
   renderStandings(currentState);
-  gnRaf = t < 1 ? requestAnimationFrame(gnFrame) : 0;
+  raffleRaf = t < 1 ? requestAnimationFrame(raffleFrame) : 0;
 }
 
-function stopGnRaceTimer() {
-  if (gnRaf) { cancelAnimationFrame(gnRaf); gnRaf = 0; }
+function stopRaffleRaceTimer() {
+  if (raffleRaf) { cancelAnimationFrame(raffleRaf); raffleRaf = 0; }
 }
 
-function stopGnRace() {
-  stopGnRaceTimer();
-  if (gnStartTimer) { clearTimeout(gnStartTimer); gnStartTimer = null; }
+function stopRaffleRace() {
+  stopRaffleRaceTimer();
+  if (raffleStartTimer) { clearTimeout(raffleStartTimer); raffleStartTimer = null; }
 }
 
-function finishGnRace(s) {
-  stopGnRace();
+function finishRaffleRace(s) {
+  stopRaffleRace();
   const finish = s.finishLine || 20;
-  if (s.winner) gnPos.set(s.winner, finish);
+  if (s.winner) rafflePos.set(s.winner, finish);
   if (announcedWinner !== (s.winner || 0)) {
     announcedWinner = s.winner || 0;
     if (audio.playWin) audio.playWin();
   }
 }
 
-function renderGnPodium(s) {
+function renderRafflePodium(s) {
   const overlay = el('podium-overlay');
   if (s.phase !== 'Finished') { overlay.classList.add('hidden'); overlay.innerHTML = ''; return; }
   const w = (s.runners || []).find((r) => r.number === (s.winner || 0));
   if (!w) { overlay.classList.add('hidden'); return; }
-  const color = gnColor(w.number);
+  const color = raffleColor(w.number);
   overlay.innerHTML = `
     <div class="podium-overlay__card">
-      <h3 class="podium-overlay__title">🏁 Grand National Winner</h3>
-      <div class="gn-podium">
-        <span class="gn-podium__silk" style="background:${color}">${w.number}</span>
-        <span class="gn-podium__name">${escapeHtml(w.name)}${w.world ? ` <small>(${escapeHtml(w.world)})</small>` : ''}</span>
+      <h3 class="podium-overlay__title">🏁 Raffle Winner</h3>
+      <div class="raffle-podium">
+        <span class="raffle-podium__silk" style="background:${color}">${w.number}</span>
+        <span class="raffle-podium__name">${escapeHtml(w.name)}${w.world ? ` <small>(${escapeHtml(w.world)})</small>` : ''}</span>
       </div>
-      <div class="gn-podium__pot">${gnIsPot(s.prizeType) ? 'Takes' : 'Prize:'} ${gnPrizeText(s.prizeType, s.prizeLabel, s.netPot, s.pot)}</div>
+      <div class="raffle-podium__pot">${raffleIsPot(s.prizeType) ? 'Takes' : 'Prize:'} ${rafflePrizeText(s.prizeType, s.prizeLabel, s.netPot, s.pot)}</div>
     </div>`;
   overlay.classList.remove('hidden');
 }
 
-function renderGnRunners(s) {
+function renderRaffleRunners(s) {
   const runners = s.runners || [];
-  el('gn-runner-count').textContent = String(runners.length);
+  el('raffle-runner-count').textContent = String(runners.length);
   if (runners.length === 0) {
-    el('gn-runners').innerHTML = '<div class="bets-empty">Waiting for runners to register...</div>';
+    el('raffle-runners').innerHTML = '<div class="bets-empty">Waiting for runners to register...</div>';
     return;
   }
   const win = s.phase === 'Finished' ? (s.winner || 0) : 0;
-  el('gn-runners').innerHTML = runners.map((r) => {
-    const color = gnColor(r.number);
+  el('raffle-runners').innerHTML = runners.map((r) => {
+    const color = raffleColor(r.number);
     const won = r.number === win;
     return `
-      <div class="gn-run ${won ? 'is-won' : ''}">
-        <span class="gn-run__silk" style="background:${color}">${r.number}</span>
-        <span class="gn-run__name">${escapeHtml(r.name)}${r.world ? `<small class="gn-run__world">${escapeHtml(r.world)}</small>` : ''}</span>
-        ${won ? '<span class="gn-run__tag">WINNER</span>' : ''}
+      <div class="raffle-run ${won ? 'is-won' : ''}">
+        <span class="raffle-run__silk" style="background:${color}">${r.number}</span>
+        <span class="raffle-run__name">${escapeHtml(r.name)}${r.world ? `<small class="raffle-run__world">${escapeHtml(r.world)}</small>` : ''}</span>
+        ${won ? '<span class="raffle-run__tag">WINNER</span>' : ''}
       </div>`;
   }).join('');
 }
 
-function renderLastResultsGn(results) {
+function renderLastResultsRaffle(results) {
   const box = el('last-results');
   if (!results || results.length === 0) { box.innerHTML = '<div class="bets-empty">No races yet</div>'; return; }
   box.innerHTML = results.map((r) => `
     <div class="result-item">
       <div class="result-item__head"><span class="result-item__round">Race ${r.round}</span></div>
-      <div class="gn-result">
-        <span class="gn-run__silk" style="background:${gnColor(r.winner)}">${r.winner}</span>
-        <span class="gn-run__name">${escapeHtml(r.winnerName || `Runner ${r.winner}`)}${r.winnerWorld ? `<small class="gn-run__world">${escapeHtml(r.winnerWorld)}</small>` : ''}</span>
-        <span class="gn-result__pot">${gnPrizeText(r.prizeType, r.prizeLabel, r.netPot, r.pot)}</span>
+      <div class="raffle-result">
+        <span class="raffle-run__silk" style="background:${raffleColor(r.winner)}">${r.winner}</span>
+        <span class="raffle-run__name">${escapeHtml(r.winnerName || `Runner ${r.winner}`)}${r.winnerWorld ? `<small class="raffle-run__world">${escapeHtml(r.winnerWorld)}</small>` : ''}</span>
+        <span class="raffle-result__pot">${rafflePrizeText(r.prizeType, r.prizeLabel, r.netPot, r.pot)}</span>
       </div>
     </div>`).join('');
 }
