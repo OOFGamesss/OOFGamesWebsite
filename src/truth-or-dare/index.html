@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0612" />
+    <meta name="description" content="Run Truth or Dare rounds at your FFXIV venue. A timed entry window, automatic roll tracking, editable truth and dare prompts, per-channel announcements, and saveable settings profiles." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OOF Games" />
+    <meta property="og:title" content="Truth or Dare | OOF Games" />
+    <meta property="og:description" content="Run Truth or Dare rounds at your FFXIV venue. A timed entry window, automatic roll tracking, editable truth and dare prompts, per-channel announcements, and saveable settings profiles." />
+    <meta property="og:url" content="https://oofgames.fyi/truth-or-dare/" />
+    <meta property="og:image" content="https://oofgames.fyi/images/oofgameslogo.png" />
+    <meta property="og:image:alt" content="OOF Games logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Truth or Dare | OOF Games" />
+    <meta name="twitter:description" content="Run Truth or Dare rounds at your FFXIV venue. A timed entry window, automatic roll tracking, editable truth and dare prompts, per-channel announcements, and saveable settings profiles." />
+    <meta name="twitter:image" content="https://oofgames.fyi/images/oofgameslogo.png" />
+    <meta name="twitter:image:alt" content="OOF Games logo" />
+    <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -- SRI does not apply to canonical links; the browser never fetches this as a subresource. -->
+    <link rel="canonical" href="https://oofgames.fyi/truth-or-dare/" />
+    <link rel="icon" type="image/png" href="/images/oofgameslogo.png" />
+    <title>Truth or Dare | OOF Games</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Truth or Dare",
+        "url": "https://oofgames.fyi/truth-or-dare/",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Windows",
+        "image": "https://oofgames.fyi/images/truthordare.png",
+        "description": "Run Truth or Dare rounds at your FFXIV venue. A timed entry window, automatic roll tracking, editable truth and dare prompts, per-channel announcements, and saveable settings profiles.",
+        "publisher": { "@id": "https://oofgames.fyi/#organization" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+    <link rel="stylesheet" href="/assets/style.css" />
+  </head>
+  <body>
+    <main class="relative z-0 mx-auto flex max-w-4xl flex-col gap-10 px-4 py-12">
+      <nav class="text-sm">
+        <a href="/" class="text-neon-cyan hover:underline">⇠ Back to the hub</a>
+      </nav>
+
+      <header class="text-center">
+        <h1 class="neon-heading text-3xl font-black sm:text-5xl" style="color: #1d4ed8; -webkit-text-stroke: 2px #000; text-shadow: 0 0 8px rgba(29, 78, 216, 1), 0 0 20px rgba(29, 78, 216, 0.85), 0 0 50px rgba(29, 78, 216, 0.55), 0 0 100px rgba(29, 78, 216, 0.25);">Truth or Dare</h1>
+        <p class="mt-3 text-slate-300">Run Truth or Dare rounds at your venue without tracking rolls by hand.</p>
+      </header>
+
+      <section data-game-id="truthordare" data-accent="#3b82f6" class="w-full">
+        <div class="panel flex aspect-video w-full flex-col items-center justify-center gap-3">
+          <p class="text-sm uppercase tracking-widest text-slate-400">Screenshots coming soon</p>
+        </div>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.9), 0 0 25px rgba(59, 130, 246, 0.6), 0 0 50px rgba(59, 130, 246, 0.3);">About the plugin</h2>
+        <p class="text-slate-300">
+          Truth or Dare is a Dalamud plugin that opens a timed entry window, records every player's roll, and works
+          out who asks and who answers. Players enter with <code>/random</code> or <code>/dice</code> and the plugin
+          handles the rest: tiebreaks, the countdown, the result, and the announcement. Prompt lists are editable in
+          two ratings, every announcement is a template you can rewrite in your venue's voice, and each message type
+          can be routed to its own chat channel. Settings save into named profiles so a host can move a whole setup
+          between characters or venues.
+        </p>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-6 text-2xl font-semibold" style="color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.9), 0 0 25px rgba(59, 130, 246, 0.6), 0 0 50px rgba(59, 130, 246, 0.3);">Key Features</h2>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Timed Entry Window</span>
+            <p class="mt-1 text-sm text-slate-400">Entry runs for 60 seconds by default, with an automatic warning posted when time is nearly up. Both the window and the warning are configurable.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Automatic Roll Capture</span>
+            <p class="mt-1 text-sm text-slate-400">Rolls from <code>/random</code> and <code>/dice</code> are recorded as they land, each independently toggleable, with one roll kept per player and later rolls discarded.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Ties Broken by Arrival Order</span>
+            <p class="mt-1 text-sm text-slate-400">Whoever rolled the number first keeps it, so a shared roll never needs a re-roll or a host ruling to settle.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Six Resolution Modes</span>
+            <p class="mt-1 text-sm text-slate-400">Highest asks lowest, Highest roller, Lowest roller, Highest and lowest, Middle roller, or Random player, switchable mid-session without leaving the round.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Join Gating</span>
+            <p class="mt-1 text-sm text-slate-400">Turn on Require a join and players must type <code>!join</code> first, so rolls from an overlapping bingo or deathroll never land in your round.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Editable Prompt Library</span>
+            <p class="mt-1 text-sm text-slate-400">160 truths and dares ship across two ratings, tame and spicy, with your own additions alongside them and the last 15 drawn prompts held back so the same line does not keep coming up.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Fresh Picks Every Round</span>
+            <p class="mt-1 text-sm text-slate-400">No-repeat winners pass over anyone picked last round, pass-to-next hands the pick on for anyone who would rather sit one out, and an auto-skip list covers regulars who never want to be chosen.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Jackpot and Bonus Prizes</span>
+            <p class="mt-1 text-sm text-slate-400">A jackpot number, 666 by default, overrides the normal result when someone lands it exactly, and bonus prizes on chosen numbers are announced without affecting who is picked.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Fully Editable Announcements</span>
+            <p class="mt-1 text-sm text-slate-400">Every line the plugin says is a template with placeholders, so the announcements read in your venue's voice rather than the plugin's.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Per-Channel Message Routing</span>
+            <p class="mt-1 text-sm text-slate-400">Rules, countdowns, status, results, prompts, jackpots, and bonus prizes each get their own chat channel, with an optional per-winner channel on top.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Settings Profiles</span>
+            <p class="mt-1 text-sm text-slate-400">Save the full game settings and prompt list under a name, then load, import, or export it through the clipboard to move a setup between characters, venues, or co-hosts.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Crash and Reload Recovery</span>
+            <p class="mt-1 text-sm text-slate-400">The live round is written to disk as it runs, so a crash or a plugin reload picks the round back up where it left off instead of losing the rolls.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.9), 0 0 25px rgba(59, 130, 246, 0.6), 0 0 50px rgba(59, 130, 246, 0.3);">How a round runs</h2>
+        <ol class="flex flex-col gap-3">
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">1.</span>
+            <span class="text-slate-300">The host starts a round, either from the Round panel or by typing <code>!tod</code> in chat.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">2.</span>
+            <span class="text-slate-300">The plugin announces the game and opens the entry window, 60 seconds by default.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">3.</span>
+            <span class="text-slate-300">Players enter with <code>/random</code>. With <span class="font-semibold text-slate-200">Require a join</span> switched on they must type <code>!join</code> first, and any unrelated roll is ignored.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">4.</span>
+            <span class="text-slate-300">One roll is recorded per player. Later rolls from the same player are discarded.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">5.</span>
+            <span class="text-slate-300">With 10 seconds left, the plugin posts a warning to chat.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">6.</span>
+            <span class="text-slate-300">When the window closes, the lowest roller picks truth or dare and the highest roller sets the question or the dare.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">7.</span>
+            <span class="text-slate-300">If nobody can think of anything, either picked player can type <code>!truth</code> or <code>!dare</code> to draw a random prompt from the plugin's list.</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.9), 0 0 25px rgba(59, 130, 246, 0.6), 0 0 50px rgba(59, 130, 246, 0.3);">Interface</h2>
+        <p class="mb-6 text-sm text-slate-400">
+          Truth or Dare organises everything through an icon sidebar covering the guide, the round, prompts, profiles, settings, and support.
+        </p>
+
+        <div class="flex flex-col gap-8">
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #93c5fd; text-shadow: 0 0 8px rgba(147, 197, 253, 0.9), 0 0 20px rgba(147, 197, 253, 0.6), 0 0 40px rgba(147, 197, 253, 0.25);">Guide</h3>
+            <p class="text-sm text-slate-300">
+              A walkthrough of how a round runs, the slash commands, and the chat triggers, so a new host can get
+              going without leaving the game.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #93c5fd; text-shadow: 0 0 8px rgba(147, 197, 253, 0.9), 0 0 20px rgba(147, 197, 253, 0.6), 0 0 40px rgba(147, 197, 253, 0.25);">Round</h3>
+            <p class="text-sm text-slate-300">
+              Start, watch, and resolve a round. The status card shows the live phase and entry countdown, the rolls
+              table fills as players enter and marks anyone skipped, picked, or holding a bonus, and the result card
+              carries the pick alongside buttons to draw a truth, draw a dare, pass the pick to the next player, copy
+              the result, or cancel the round outright. The resolution controls sit here too, so you can change how
+              the round resolves without opening Settings, and a statistics card tracks both session and all-time
+              counters.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #93c5fd; text-shadow: 0 0 8px rgba(147, 197, 253, 0.9), 0 0 20px rgba(147, 197, 253, 0.6), 0 0 40px rgba(147, 197, 253, 0.25);">Prompts</h3>
+            <p class="text-sm text-slate-300">
+              Edit the truth and dare lists. Covers the 160 prompts that ship with the plugin and your own additions,
+              filtered by kind and by rating, with controls for the rating drawn from, how many recent prompts to
+              avoid repeating, and whether drawn prompts are posted to chat. Shipped prompts can be hidden rather than
+              deleted, and Restore Hidden brings them all back, so your choices survive future updates to the list.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #93c5fd; text-shadow: 0 0 8px rgba(147, 197, 253, 0.9), 0 0 20px rgba(147, 197, 253, 0.6), 0 0 40px rgba(147, 197, 253, 0.25);">Profiles</h3>
+            <p class="text-sm text-slate-300">
+              Save, load, and delete named settings profiles. Each profile carries the full game settings and prompt
+              list, and Copy Selected, Copy All, Paste One, and Paste All move them through the clipboard as plain
+              text, so a setup can go to another character or straight to a co-host.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #93c5fd; text-shadow: 0 0 8px rgba(147, 197, 253, 0.9), 0 0 20px rgba(147, 197, 253, 0.6), 0 0 40px rgba(147, 197, 253, 0.25);">Settings</h3>
+            <p class="text-sm text-slate-300">
+              Manage the plugin from the <span class="font-semibold text-slate-200">Settings</span> sidebar group,
+              split into <span class="font-semibold text-slate-200">Game</span>,
+              <span class="font-semibold text-slate-200">Chat Channels</span>,
+              <span class="font-semibold text-slate-200">Announcements</span>,
+              <span class="font-semibold text-slate-200">Extras</span>, and
+              <span class="font-semibold text-slate-200">UI</span>. Set the entry window and its warning, the minimum
+              number of players, how players enter, and how the round resolves; route each kind of message to its own
+              chat channel and pick which channels chat triggers are read from; rewrite every line the plugin says as
+              a template, with a placeholder reference for each one; switch on the jackpot roll, bonus prizes,
+              the auto-skip list, and the forfeit list; and choose the two theme colours that every other colour in
+              the window is derived from.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #93c5fd; text-shadow: 0 0 8px rgba(147, 197, 253, 0.9), 0 0 20px rgba(147, 197, 253, 0.6), 0 0 40px rgba(147, 197, 253, 0.25);">Support</h3>
+            <p class="text-sm text-slate-300">
+              A built-in FAQ covering starting a round, why rolls are being ignored, keeping an overlapping game out
+              of your round, editing the prompts, routing messages per channel, testing without spamming the room,
+              and hosting at more than one venue. A Discord link connects you directly to the Truth or Dare support
+              channel for anything not covered there.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.9), 0 0 25px rgba(59, 130, 246, 0.6), 0 0 50px rgba(59, 130, 246, 0.3);">Commands</h2>
+        <ul class="flex flex-col gap-3">
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">/tod</code>
+            <span class="ml-2 text-slate-300">Open the main plugin window.</span>
+          </li>
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">/tod config</code>
+            <span class="ml-2 text-slate-300">Open directly to the settings section.</span>
+          </li>
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">/todstart</code>
+            <span class="ml-2 text-slate-300">Start a round.</span>
+          </li>
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">/todstop</code>
+            <span class="ml-2 text-slate-300">Cancel the round in progress.</span>
+          </li>
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">/todstatus</code>
+            <span class="ml-2 text-slate-300">Print the current round state to your own chat log.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.9), 0 0 25px rgba(59, 130, 246, 0.6), 0 0 50px rgba(59, 130, 246, 0.3);">Chat Triggers</h2>
+        <ul class="flex flex-col gap-3">
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">!tod</code>
+            <span class="ml-2 text-slate-300">Start a round. Restricted to the host by default.</span>
+          </li>
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">!join</code>
+            <span class="ml-2 text-slate-300">Register for the round, used when Require a join is switched on. Anyone can use it.</span>
+          </li>
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">!truth</code>
+            <span class="ml-2 text-slate-300">Draw a random truth prompt. Available to the players the round picked.</span>
+          </li>
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">!dare</code>
+            <span class="ml-2 text-slate-300">Draw a random dare prompt. Available to the players the round picked.</span>
+          </li>
+        </ul>
+        <p class="mt-4 text-sm text-slate-400">
+          The <code>!</code> prefix is configurable, and you choose which chat channels the plugin listens to. By
+          default it watches Say, Shout, and Yell.
+        </p>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.9), 0 0 25px rgba(59, 130, 246, 0.6), 0 0 50px rgba(59, 130, 246, 0.3);">How to install</h2>
+        <ol class="flex flex-col gap-3">
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">1.</span>
+            <span>Type <code>/xlsettings</code> in the in-game chat to open the Dalamud settings window.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">2.</span>
+            <span>Navigate to the <span class="font-semibold text-slate-200">Experimental</span> tab.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">3.</span>
+            <span>Paste the following link into the Custom Plugin Repositories field at the bottom:</span>
+          </li>
+        </ol>
+        <div class="my-4 flex items-center gap-3 rounded border border-slate-700 bg-slate-900 px-4 py-3">
+          <code class="flex-1 break-all text-sm text-neon-cyan">https://puni.sh/api/repository/oof-games</code>
+          <button
+            id="copy-repo-url"
+            class="shrink-0 rounded border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-300 transition hover:border-neon-cyan hover:text-neon-cyan"
+          >
+            Copy
+          </button>
+        </div>
+        <ol class="flex flex-col gap-3" start="4">
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">4.</span>
+            <span>Click the <span class="font-semibold text-slate-200">+</span> button, ensure the repository is set to <span class="font-semibold text-slate-200">Enabled</span>, then click <span class="font-semibold text-slate-200">Save and Close</span>.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">5.</span>
+            <span>Type <code>/xlplugins</code>, search for <span class="font-semibold text-slate-200">Truth or Dare</span>, and click <span class="font-semibold text-slate-200">Install</span>.</span>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <script type="module" src="/components/console-guard.js"></script><script type="module" src="/components/neon-background.js"></script>
+    <script type="module" src="/components/discord-widget.js"></script>
+    <script type="module" src="/components/game-carousel.js"></script>
+    <script type="module">
+      document.getElementById('copy-repo-url').addEventListener('click', () => {
+        const url = 'https://puni.sh/api/repository/oof-games';
+        navigator.clipboard.writeText(url).then(() => {
+          const btn = document.getElementById('copy-repo-url');
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+        }).catch(() => {});
+      });
+    </script>
+    <script type="module" src="/components/account-pill.js"></script>
+  </body>
+</html>

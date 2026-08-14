@@ -131,6 +131,7 @@ export default defineConfig({
         admin: resolve(root, 'admin/index.html'),
         developer: resolve(root, 'developer/index.html'),
         gambaWhere: resolve(root, 'gamba-where/index.html'),
+        truthOrDare: resolve(root, 'truth-or-dare/index.html'),
         // venue-live sources are not committed yet; restore these on release.
         // venueLive: resolve(root, 'venue-live/index.html'),
         // venueLivePage: resolve(root, 'venue-live/live/index.html'),
