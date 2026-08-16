@@ -343,7 +343,7 @@ function syncMachine(data, settledTransition) {
     scheduleMachineReset();
   }
   setOverlay(false);
-  $('replay-button').classList.toggle('hidden', reducedMotion);
+  $('replay-button').classList.remove('hidden');
 }
 
 const RESULT_LINGER_MS = 12_000;
