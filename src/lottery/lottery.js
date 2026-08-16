@@ -300,6 +300,11 @@ function wireAudio() {
   renderAudioControls();
 }
 
+function drawnOrder(result) {
+  const order = result.draw_order || [];
+  return order.length === result.main_numbers.length ? order : result.main_numbers;
+}
+
 function syncMachine(data, settledTransition) {
   const machine = state.machine;
   const previous = data.previous_result;
@@ -338,7 +343,7 @@ function syncMachine(data, settledTransition) {
     machine.reset();
     state.machineDraw = previous.draw_id;
   } else if (settledTransition) {
-    machine.reveal(previous.main_numbers, previous.bonus_number);
+    machine.reveal(drawnOrder(previous), previous.bonus_number);
     scheduleMachineReset();
   }
   setOverlay(false);
@@ -980,7 +985,7 @@ async function boot() {
   $('replay-button').addEventListener('click', () => {
     const previous = state.current?.previous_result;
     if (previous && !state.machine.isPlaying()) {
-      state.machine.play(previous.main_numbers, previous.bonus_number);
+      state.machine.play(drawnOrder(previous), previous.bonus_number);
       state.machineDraw = previous.draw_id;
       scheduleMachineReset();
     }
