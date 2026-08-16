@@ -45,6 +45,7 @@ function jsonRequest(path, method, body) {
 export const adminClient = {
   getMe: () => request('/users/me'),
   getSummary: () => request('/admin/wallet/summary'),
+  adjustChest: (payload) => jsonRequest('/admin/wallet/chest-adjust', 'POST', payload),
   getLedger: (page = 1) => request(`/admin/wallet/ledger?page=${page}`),
   getGamesProfit: (period = '7d') => request(`/admin/games/summary?period=${encodeURIComponent(period)}`),
   getPlayers: (page = 1, search = '') =>

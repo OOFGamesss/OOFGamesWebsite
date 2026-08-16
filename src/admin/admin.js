@@ -208,53 +208,170 @@ function statCard(label, value, accent = 'text-neon-cyan') {
   return card;
 }
 
+function chestAdjustBox(summary, onDone) {
+  const box = el('div', 'flex flex-col gap-3 rounded-xl border border-neon-violet/25 bg-night-deep/60 p-4');
+  box.appendChild(el('h4', 'text-sm font-semibold text-neon-gold', 'Adjust gil in chest'));
+  box.appendChild(
+    el('p', 'text-xs text-slate-500', 'For gil physically added to or taken out of the chest outside deposits and withdrawals. Player balances are untouched, so house profit held moves by the same amount.')
+  );
+
+  const modeSelect = el('select', 'neon-select');
+  for (const [value, label] of [['delta', 'Adjust by'], ['total', 'Set chest total to']]) {
+    const option = el('option', '', label);
+    option.value = value;
+    modeSelect.appendChild(option);
+  }
+  const amountInput = textInput('Amount (negative to remove)');
+  amountInput.type = 'number';
+  const noteInput = textInput('Reason (required, goes in the audit log)');
+  const preview = el('p', 'text-xs text-slate-400');
+  const adjustStatus = statusLine();
+  const applyButton = primaryButton('Apply adjustment');
+
+  const delta = () => {
+    const value = Number(amountInput.value);
+    if (amountInput.value.trim() === '' || !Number.isInteger(value)) return null;
+    return modeSelect.value === 'total' ? value - summary.chest_gil : value;
+  };
+
+  const refreshPreview = () => {
+    const change = delta();
+    if (change === null || change === 0) {
+      preview.textContent = modeSelect.value === 'total'
+        ? `Chest currently holds ${gil(summary.chest_gil)}.`
+        : '';
+      return;
+    }
+    const verb = change > 0 ? 'Adds' : 'Removes';
+    preview.textContent = `${verb} ${gil(Math.abs(change))}, leaving ${gil(summary.chest_gil + change)} in the chest.`;
+  };
+
+  modeSelect.addEventListener('change', () => {
+    amountInput.placeholder = modeSelect.value === 'total' ? 'New chest total' : 'Amount (negative to remove)';
+    amountInput.value = modeSelect.value === 'total' ? String(summary.chest_gil) : '';
+    refreshPreview();
+  });
+  amountInput.addEventListener('input', refreshPreview);
+  refreshPreview();
+
+  applyButton.addEventListener('click', async () => {
+    const change = delta();
+    const note = noteInput.value.trim();
+    if (change === null || !note) {
+      setStatus(adjustStatus, 'Enter a whole amount and a reason.', true);
+      return;
+    }
+    if (change === 0) {
+      setStatus(adjustStatus, 'That leaves the chest unchanged.', true);
+      return;
+    }
+    applyButton.disabled = true;
+    const payload = modeSelect.value === 'total'
+      ? { target_total: Number(amountInput.value), note }
+      : { amount: change, note };
+    const outcome = await adminClient.adjustChest(payload);
+    applyButton.disabled = false;
+    if (!outcome.ok) {
+      setStatus(adjustStatus, outcome.error, true);
+      return;
+    }
+    onDone();
+  });
+
+  box.appendChild(modeSelect);
+  box.appendChild(amountInput);
+  box.appendChild(noteInput);
+  box.appendChild(preview);
+  box.appendChild(applyButton);
+  box.appendChild(adjustStatus);
+  return box;
+}
+
+function chestAdjustmentsTable(adjustments) {
+  const { wrap, body } = tableShell(['When', 'Change', 'Chest after', 'Reason', 'By']);
+  if (adjustments.length === 0) {
+    body.appendChild(el('tr')).appendChild(cell('No manual adjustments yet'));
+  }
+  for (const row of adjustments) {
+    const tr = el('tr');
+    tr.appendChild(cell(when(row.created_at)));
+    tr.appendChild(
+      cell(
+        `${row.amount > 0 ? '+' : '-'}${gil(Math.abs(row.amount))}`,
+        `px-3 py-2 font-semibold ${row.amount > 0 ? 'text-neon-green' : 'text-red-400'}`
+      )
+    );
+    tr.appendChild(cell(gil(row.chest_after), 'px-3 py-2 text-neon-gold'));
+    tr.appendChild(cell(row.note));
+    tr.appendChild(cell(row.created_by_name));
+    body.appendChild(tr);
+  }
+  return wrap;
+}
+
 async function renderOverview(container) {
   const panel = el('section', 'panel flex flex-col gap-5 p-6');
   const status = statusLine();
   panel.appendChild(status);
+  const content = el('div', 'flex flex-col gap-5');
+  panel.appendChild(content);
   container.appendChild(panel);
-  setStatus(status, 'Loading…');
-  const result = await adminClient.getSummary();
-  if (!result.ok) {
-    setStatus(status, result.error, true);
-    return;
-  }
-  setStatus(status, '');
-  const s = result.data;
 
-  const cards = el('div', 'grid grid-cols-2 gap-3 md:grid-cols-4');
-  cards.appendChild(statCard('Gil in chest', gil(s.chest_gil), 'text-neon-gold'));
-  cards.appendChild(statCard('Owed to players', gil(s.total_balance)));
-  cards.appendChild(statCard('House profit held', gil(s.house_profit), s.house_profit >= 0 ? 'text-neon-green' : 'text-red-400'));
-  cards.appendChild(statCard('Active holds', gil(s.total_holds)));
-  cards.appendChild(statCard('Players', String(s.player_count)));
-  cards.appendChild(statCard('Ledger entries', String(s.ledger_entries)));
-  cards.appendChild(statCard('Deposited 24h', gil(s.deposited_24h), 'text-neon-green'));
-  cards.appendChild(statCard('Withdrawn 24h', gil(s.withdrawn_24h), 'text-red-400'));
-  cards.appendChild(statCard('Deposited 7d', gil(s.deposited_7d), 'text-neon-green'));
-  cards.appendChild(statCard('Withdrawn 7d', gil(s.withdrawn_7d), 'text-red-400'));
-  panel.appendChild(cards);
+  const load = async () => {
+    setStatus(status, 'Loading…');
+    const result = await adminClient.getSummary();
+    if (!result.ok) {
+      setStatus(status, result.error, true);
+      return;
+    }
+    setStatus(status, '');
+    clear(content);
+    const s = result.data;
 
-  const cacheLine = el(
-    'p',
-    'text-xs text-slate-500',
-    `Host keys active: ${s.host_cache_active_keys} · sheet last synced: ${s.host_cache_last_success ? when(s.host_cache_last_success) : 'never'} · transactions in last 24h: ${s.transactions_24h}`
-  );
-  panel.appendChild(cacheLine);
+    const cards = el('div', 'grid grid-cols-2 gap-3 md:grid-cols-4');
+    cards.appendChild(statCard('Gil in chest', gil(s.chest_gil), 'text-neon-gold'));
+    cards.appendChild(statCard('Owed to players', gil(s.total_balance)));
+    cards.appendChild(statCard('House profit held', gil(s.house_profit), s.house_profit >= 0 ? 'text-neon-green' : 'text-red-400'));
+    cards.appendChild(statCard('Active holds', gil(s.total_holds)));
+    cards.appendChild(statCard('Players', String(s.player_count)));
+    cards.appendChild(statCard('Ledger entries', String(s.ledger_entries)));
+    cards.appendChild(statCard('Deposited 24h', gil(s.deposited_24h), 'text-neon-green'));
+    cards.appendChild(statCard('Withdrawn 24h', gil(s.withdrawn_24h), 'text-red-400'));
+    cards.appendChild(statCard('Deposited 7d', gil(s.deposited_7d), 'text-neon-green'));
+    cards.appendChild(statCard('Withdrawn 7d', gil(s.withdrawn_7d), 'text-red-400'));
+    content.appendChild(cards);
 
-  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'Top balances'));
-  const { wrap, body } = tableShell(['Player', 'World', 'Balance']);
-  if (s.top_balances.length === 0) {
-    body.appendChild(el('tr')).appendChild(cell('No balances yet'));
-  }
-  for (const row of s.top_balances) {
-    const tr = el('tr');
-    tr.appendChild(cell(row.name, 'px-3 py-2 font-semibold text-slate-200'));
-    tr.appendChild(cell(row.world));
-    tr.appendChild(cell(gil(row.balance), 'px-3 py-2 text-neon-gold'));
-    body.appendChild(tr);
-  }
-  panel.appendChild(wrap);
+    const cacheLine = el(
+      'p',
+      'text-xs text-slate-500',
+      `Host keys active: ${s.host_cache_active_keys} · sheet last synced: ${s.host_cache_last_success ? when(s.host_cache_last_success) : 'never'} · transactions in last 24h: ${s.transactions_24h}`
+    );
+    content.appendChild(cacheLine);
+
+    content.appendChild(chestAdjustBox(s, load));
+
+    content.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'Manual chest adjustments'));
+    content.appendChild(
+      el('p', 'text-xs text-slate-500', `Net effect on the chest so far: ${gil(s.chest_adjustment_total)}.`)
+    );
+    content.appendChild(chestAdjustmentsTable(s.chest_adjustments));
+
+    content.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'Top balances'));
+    const { wrap, body } = tableShell(['Player', 'World', 'Balance']);
+    if (s.top_balances.length === 0) {
+      body.appendChild(el('tr')).appendChild(cell('No balances yet'));
+    }
+    for (const row of s.top_balances) {
+      const tr = el('tr');
+      tr.appendChild(cell(row.name, 'px-3 py-2 font-semibold text-slate-200'));
+      tr.appendChild(cell(row.world));
+      tr.appendChild(cell(gil(row.balance), 'px-3 py-2 text-neon-gold'));
+      body.appendChild(tr);
+    }
+    content.appendChild(wrap);
+  };
+
+  await load();
 }
 
 async function renderGames(container) {
