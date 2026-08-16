@@ -20,7 +20,6 @@ const POLL_LIVE_MS = 6_000;
 const MAIN_COUNT = 4;
 
 const $ = (id) => document.getElementById(id);
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const gil = (value) => `${Number(value).toLocaleString('en-GB')} gil`;
 
@@ -981,7 +980,7 @@ async function boot() {
   $('replay-button').addEventListener('click', () => {
     const previous = state.current?.previous_result;
     if (previous && !state.machine.isPlaying()) {
-      state.machine.play(previous.main_numbers, previous.bonus_number, { instant: reducedMotion });
+      state.machine.play(previous.main_numbers, previous.bonus_number);
       state.machineDraw = previous.draw_id;
       scheduleMachineReset();
     }
