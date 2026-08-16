@@ -212,7 +212,7 @@ function chestAdjustBox(summary, onDone) {
   const box = el('div', 'flex flex-col gap-3 rounded-xl border border-neon-violet/25 bg-night-deep/60 p-4');
   box.appendChild(el('h4', 'text-sm font-semibold text-neon-gold', 'Adjust gil in chest'));
   box.appendChild(
-    el('p', 'text-xs text-slate-500', 'For gil physically added to or taken out of the chest outside deposits and withdrawals. Player balances are untouched, so house profit held moves by the same amount.')
+    el('p', 'text-xs text-slate-500', 'For gil physically added to or taken out of the chest outside deposits and withdrawals. Player balances are untouched, so house profit held moves by the same amount. To take the profit of a single game, use the Games tab instead so the withdrawal is tagged to that game.')
   );
 
   const modeSelect = el('select', 'neon-select');
@@ -289,7 +289,7 @@ function chestAdjustBox(summary, onDone) {
 }
 
 function chestAdjustmentsTable(adjustments) {
-  const { wrap, body } = tableShell(['When', 'Change', 'Chest after', 'Reason', 'By']);
+  const { wrap, body } = tableShell(['When', 'Change', 'Chest after', 'Game', 'Reason', 'By']);
   if (adjustments.length === 0) {
     body.appendChild(el('tr')).appendChild(cell('No manual adjustments yet'));
   }
@@ -303,6 +303,7 @@ function chestAdjustmentsTable(adjustments) {
       )
     );
     tr.appendChild(cell(gil(row.chest_after), 'px-3 py-2 text-neon-gold'));
+    tr.appendChild(cell(row.game_label || 'General'));
     tr.appendChild(cell(row.note));
     tr.appendChild(cell(row.created_by_name));
     body.appendChild(tr);
@@ -375,6 +376,64 @@ async function renderOverview(container) {
   await load();
 }
 
+function takeProfitBox(game, onDone) {
+  const box = el('div', 'flex flex-col gap-3 rounded-xl border border-neon-violet/25 bg-night-deep/60 p-4');
+  box.appendChild(el('h5', 'text-sm font-semibold text-neon-gold', 'Take profit out of the chest'));
+  box.appendChild(
+    el(
+      'p',
+      'text-xs text-slate-500',
+      `All time net profit ${gil(game.net_profit_all_time)}, of which ${gil(game.profit_taken)} has already been taken out. Records a chest adjustment tagged to ${game.label}, so no player balance moves.`
+    )
+  );
+  const amountInput = textInput('Amount to take out');
+  amountInput.type = 'number';
+  if (game.profit_remaining > 0) amountInput.value = String(game.profit_remaining);
+  const noteInput = textInput('Reason (required, goes in the audit log)');
+  noteInput.value = `${game.label} house profit taken`;
+  const hint = el('p', 'text-xs text-slate-400');
+  const takeStatus = statusLine();
+  const takeButton = primaryButton('Take out of chest');
+
+  const refreshHint = () => {
+    const amount = Number(amountInput.value);
+    if (!Number.isInteger(amount) || amount <= 0) {
+      hint.textContent = '';
+      return;
+    }
+    hint.textContent = amount > game.profit_remaining
+      ? `Warning: that is ${gil(amount - game.profit_remaining)} more than this game has left in the chest.`
+      : `Leaves ${gil(game.profit_remaining - amount)} of this game's profit in the chest.`;
+    hint.classList.toggle('text-red-400', amount > game.profit_remaining);
+  };
+  amountInput.addEventListener('input', refreshHint);
+  refreshHint();
+
+  takeButton.addEventListener('click', async () => {
+    const amount = Number(amountInput.value);
+    const note = noteInput.value.trim();
+    if (!Number.isInteger(amount) || amount <= 0 || !note) {
+      setStatus(takeStatus, 'Enter a positive whole amount and a reason.', true);
+      return;
+    }
+    takeButton.disabled = true;
+    const outcome = await adminClient.adjustChest({ amount: -amount, game: game.game, note });
+    takeButton.disabled = false;
+    if (!outcome.ok) {
+      setStatus(takeStatus, outcome.error, true);
+      return;
+    }
+    onDone(`${gil(amount)} of ${game.label} profit taken out, chest now holds ${gil(outcome.data.chest_gil)}.`);
+  });
+
+  box.appendChild(amountInput);
+  box.appendChild(noteInput);
+  box.appendChild(hint);
+  box.appendChild(takeButton);
+  box.appendChild(takeStatus);
+  return box;
+}
+
 async function renderGames(container) {
   const panel = el('section', 'panel flex flex-col gap-5 p-6');
   panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'House game profits'));
@@ -388,7 +447,7 @@ async function renderGames(container) {
   const buttons = new Map();
   let period = '7d';
 
-  const load = async () => {
+  const load = async (message = '') => {
     for (const [id, button] of buttons) {
       button.classList.toggle('border-neon-cyan', id === period);
       button.classList.toggle('text-neon-cyan', id === period);
@@ -399,10 +458,10 @@ async function renderGames(container) {
       setStatus(status, result.error, true);
       return;
     }
-    setStatus(status, '');
+    setStatus(status, message);
     clear(results);
     if (result.data.games.length === 0) {
-      results.appendChild(el('p', 'text-sm text-slate-500', 'No game activity in this period.'));
+      results.appendChild(el('p', 'text-sm text-slate-500', 'No game activity yet.'));
     }
     for (const game of result.data.games) {
       const box = el('div', 'flex flex-col gap-3');
@@ -414,7 +473,12 @@ async function renderGames(container) {
       cards.appendChild(statCard('Net profit', gil(game.net_profit), game.net_profit >= 0 ? 'text-neon-green' : 'text-red-400'));
       cards.appendChild(statCard('Bets', String(game.bets)));
       cards.appendChild(statCard('Bettors', String(game.unique_players)));
+      cards.appendChild(statCard('Profit taken (all time)', gil(game.profit_taken), 'text-slate-300'));
+      cards.appendChild(
+        statCard('Left in chest (all time)', gil(game.profit_remaining), game.profit_remaining >= 0 ? 'text-neon-gold' : 'text-red-400')
+      );
       box.appendChild(cards);
+      box.appendChild(takeProfitBox(game, load));
       box.appendChild(el('p', 'text-xs uppercase tracking-wide text-slate-500', 'Top players by amount staked'));
       const { wrap, body } = tableShell(['Player', 'World', 'Bets', 'Staked', 'Returned', 'Player net']);
       if (game.top_players.length === 0) {
