@@ -275,7 +275,8 @@ function chestAdjustBox(summary, onDone) {
       setStatus(adjustStatus, outcome.error, true);
       return;
     }
-    onDone();
+    const verb = change > 0 ? 'added to' : 'removed from';
+    onDone(`${gil(Math.abs(change))} ${verb} the chest, now holding ${gil(outcome.data.chest_gil)}.`);
   });
 
   box.appendChild(modeSelect);
@@ -317,14 +318,14 @@ async function renderOverview(container) {
   panel.appendChild(content);
   container.appendChild(panel);
 
-  const load = async () => {
+  const load = async (message = '') => {
     setStatus(status, 'Loading…');
     const result = await adminClient.getSummary();
     if (!result.ok) {
       setStatus(status, result.error, true);
       return;
     }
-    setStatus(status, '');
+    setStatus(status, message);
     clear(content);
     const s = result.data;
 
