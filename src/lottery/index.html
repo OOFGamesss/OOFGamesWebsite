@@ -117,7 +117,13 @@
           <section id="buy-panel" class="panel">
             <div class="card-head">
               <h2>Buy Tickets</h2>
-              <span id="buy-hint" class="card-head__hint"></span>
+              <div class="card-head__actions">
+                <span id="buy-hint" class="card-head__hint"></span>
+                <button id="open-hosts" type="button" class="howto-btn btn-sm" aria-haspopup="dialog">
+                  🔎 Find a host in game
+                  <span id="hosts-count" class="hosts-count hidden"></span>
+                </button>
+              </div>
             </div>
             <div class="buy-body">
               <div id="buy-closed" class="buy-closed hidden">
@@ -231,6 +237,22 @@
         <div class="history-body">
           <ul id="history-list" class="history-list"></ul>
           <button id="history-more" type="button" class="btn-primary btn-sm hidden">Show more</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hosts-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="hosts-title">
+      <div class="panel modal__card hosts-card">
+        <div class="modal__head">
+          <h2 id="hosts-title">Find a Host</h2>
+          <button id="hosts-close" class="modal__close" aria-label="Close">✕</button>
+        </div>
+        <p class="hosts-intro">
+          These are the OOF Games hosts selling lottery tickets right now.
+          Head to their location, give them a /tell and trade to put funds into your account.
+        </p>
+        <div class="hosts-body">
+          <ul id="hosts-list" class="hosts-list"></ul>
         </div>
       </div>
     </div>

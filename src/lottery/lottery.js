@@ -7,6 +7,7 @@
 // while watching, the machine re-enacts the new result with full suspense,
 // otherwise the latest result is parked instantly.
 
+import { getLotteryHosts } from '../api/lottery-hosts-client.js';
 import { lotteryClient } from '../api/lottery-client.js';
 import { apiBaseUrl, walletClient } from '../api/wallet-client.js';
 import { hasRecentSession } from '../api/wallet-session.js';
@@ -780,6 +781,124 @@ async function loadHistory(append = false) {
 }
 
 
+const DISCORD_INVITE = 'https://discord.gg/vM6ff4h5Ym';
+
+function hostName(characterName) {
+  const words = String(characterName || '').trim().split(/\s+/);
+  return words.length > 2 ? words.slice(0, -1).join(' ') : words.join(' ');
+}
+
+function locationParts(location) {
+  const parts = String(location || '').split('•').map((part) => part.trim()).filter(Boolean);
+  return parts.length > 1 ? parts.slice(1) : parts;
+}
+
+function lifestreamCommand(location) {
+  const parts = locationParts(location).filter((part) => !/^[xy]\s*:/i.test(part));
+  return parts.length > 0 ? `/li ${parts.join(' ')}` : '';
+}
+
+function hostAvatar(host) {
+  const source = host.profile_image_url || host.image_url;
+  if (!source) return null;
+  const image = el('img', 'host-card__avatar');
+  image.src = source;
+  image.alt = '';
+  image.loading = 'lazy';
+  image.addEventListener('error', () => image.remove());
+  return image;
+}
+
+function hostCopyButton(command) {
+  const button = el('button', 'howto-btn btn-sm host-card__copy', 'Copy Lifestream');
+  button.type = 'button';
+  button.title = command;
+  button.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(command);
+      button.textContent = 'Copied!';
+    } catch {
+      button.textContent = 'Copy failed';
+    }
+    setTimeout(() => {
+      button.textContent = 'Copy Lifestream';
+    }, 1600);
+  });
+  return button;
+}
+
+function hostCard(host) {
+  const item = el('li', 'host-card');
+  const avatar = hostAvatar(host);
+  if (avatar) item.appendChild(avatar);
+
+  const body = el('div', 'host-card__body');
+  body.appendChild(el('span', 'host-card__name', hostName(host.character_name)));
+
+  if (host.venue_name && host.venue_name.toLowerCase() !== 'no venue') {
+    const meta = el('div', 'host-card__meta');
+    meta.appendChild(el('span', 'host-card__venue', host.venue_name));
+    body.appendChild(meta);
+  }
+  const address = locationParts(host.location).join(' • ');
+  body.appendChild(el('span', 'host-card__location', address || 'Location not shared'));
+  item.appendChild(body);
+
+  const command = lifestreamCommand(host.location);
+  if (command) item.appendChild(hostCopyButton(command));
+  return item;
+}
+
+function hostsNote(text) {
+  return el('li', 'hosts-empty', text);
+}
+
+function hostsEmpty() {
+  const item = el('li', 'hosts-empty');
+  item.appendChild(el('strong', '', 'No hosts are in game right now'));
+  const line = el('span');
+  line.append('You can still buy tickets above with your OOF account balance, or ask in the ');
+  const link = el('a', 'link-button', 'OOF Games Discord');
+  link.href = DISCORD_INVITE;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  line.append(link, ' to find out when a host will be around.');
+  item.appendChild(line);
+  return item;
+}
+
+function renderHostsCount(result) {
+  const badge = $('hosts-count');
+  badge.classList.toggle('hidden', !result || !result.ok);
+  if (!result || !result.ok) return;
+  const count = result.hosts.length;
+  badge.textContent = String(count);
+  badge.classList.toggle('is-live', count > 0);
+  $('open-hosts').setAttribute(
+    'aria-label',
+    count === 1 ? '1 host in game now' : `${count} hosts in game now`
+  );
+}
+
+function renderHosts(result) {
+  renderHostsCount(result);
+  const list = $('hosts-list');
+  if (!result) {
+    list.replaceChildren(hostsNote('Looking for hosts…'));
+    return;
+  }
+  if (!result.ok) {
+    list.replaceChildren(hostsNote('Could not load the host list. Please try again in a moment.'));
+    return;
+  }
+  if (result.hosts.length === 0) {
+    list.replaceChildren(hostsEmpty());
+    return;
+  }
+  list.replaceChildren(...result.hosts.map(hostCard));
+}
+
+
 function openModal(id) {
   $(id).classList.remove('hidden');
   document.addEventListener('keydown', onModalKeydown);
@@ -788,6 +907,7 @@ function openModal(id) {
 function closeModals() {
   $('howto-modal').classList.add('hidden');
   $('history-modal').classList.add('hidden');
+  $('hosts-modal').classList.add('hidden');
   document.removeEventListener('keydown', onModalKeydown);
 }
 
@@ -976,8 +1096,10 @@ async function boot() {
   $('open-history').addEventListener('click', openHistory);
   $('open-history-inline').addEventListener('click', openHistory);
   $('history-close').addEventListener('click', closeModals);
+  $('open-hosts').addEventListener('click', () => openModal('hosts-modal'));
+  $('hosts-close').addEventListener('click', closeModals);
   $('winner-close').addEventListener('click', dismissWinnerOverlay);
-  for (const id of ['howto-modal', 'history-modal']) {
+  for (const id of ['howto-modal', 'history-modal', 'hosts-modal']) {
     $(id).addEventListener('click', (event) => {
       if (event.target === $(id)) closeModals();
     });
@@ -997,6 +1119,9 @@ async function boot() {
     })
   );
   window.addEventListener('oof-wallet-changed', (event) => setSignedIn(Boolean(event.detail)));
+
+  renderHosts(null);
+  getLotteryHosts().then(renderHosts);
 
   await refreshCurrent();
   openModal('howto-modal');
