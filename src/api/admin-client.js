@@ -74,6 +74,14 @@ export const adminClient = {
     }),
 
   getPendingGames: () => request('/admin/games/pending'),
+  getAllGames: ({ page = 1, status = '', search = '' } = {}) => {
+    const params = new URLSearchParams({ page: String(page) });
+    if (status) params.set('status', status);
+    if (search) params.set('search', search);
+    return request(`/admin/games?${params}`);
+  },
+  updateGame: (gameId, payload) => jsonRequest(`/admin/games/${gameId}`, 'PUT', payload),
+  deleteGame: (gameId) => request(`/games/${gameId}`, { method: 'DELETE' }),
   approveGame: (gameId) => request(`/admin/games/${gameId}/approve`, { method: 'POST' }),
   rejectGame: (gameId, reason) => jsonRequest(`/admin/games/${gameId}/reject`, 'POST', { reason }),
   createGameType: (payload) => jsonRequest('/admin/game-types', 'POST', payload),

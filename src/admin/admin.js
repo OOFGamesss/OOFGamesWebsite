@@ -383,7 +383,7 @@ function takeProfitBox(game, onDone) {
     el(
       'p',
       'text-xs text-slate-500',
-      `All time net profit ${gil(game.net_profit_all_time)}, of which ${gil(game.profit_taken)} has already been taken out. Records a chest adjustment tagged to ${game.label}, so no player balance moves.`
+      `All time house profit ${gil(game.house_profit_all_time)}, of which ${gil(game.profit_taken)} has already been taken out. Records a chest adjustment tagged to ${game.label}, so no player balance moves.`
     )
   );
   const amountInput = textInput('Amount to take out');
@@ -438,7 +438,7 @@ async function renderGames(container) {
   const panel = el('section', 'panel flex flex-col gap-5 p-6');
   panel.appendChild(el('h3', 'text-lg font-semibold text-neon-violet', 'House game profits'));
   panel.appendChild(
-    el('p', 'text-xs text-slate-500', 'Computed from the wallet ledger, so every figure reconciles with the system ledger. Host-run sessions are host money and never appear here.')
+    el('p', 'text-xs text-slate-500', 'Computed from the wallet ledger, so every figure reconciles with the system ledger. House profit is what the house actually keeps: for a pot game the gil parked in the pot is owed to a future winner, so it is taken off the ledger net. Host-run sessions are host money and never appear here.')
   );
   const periods = [['24h', 'Today'], ['7d', '7 days'], ['30d', '30 days'], ['all', 'All time']];
   const picker = el('div', 'flex flex-wrap gap-2');
@@ -467,12 +467,22 @@ async function renderGames(container) {
       const box = el('div', 'flex flex-col gap-3');
       box.appendChild(el('h4', 'text-base font-semibold text-neon-gold', game.label));
       const cards = el('div', 'grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6');
+      const hasPot = game.pot_change !== 0 || game.pot_held !== 0;
       cards.appendChild(statCard('Staked', gil(game.staked)));
       cards.appendChild(statCard('Paid out', gil(game.paid_out), 'text-red-400'));
       cards.appendChild(statCard('Refunded', gil(game.refunded), 'text-slate-300'));
-      cards.appendChild(statCard('Net profit', gil(game.net_profit), game.net_profit >= 0 ? 'text-neon-green' : 'text-red-400'));
+      if (hasPot) {
+        cards.appendChild(statCard('Ledger net', gil(game.net_profit), 'text-slate-300'));
+        cards.appendChild(statCard('Into the pot', gil(game.pot_change), 'text-slate-300'));
+      }
+      cards.appendChild(statCard('House profit', gil(game.house_profit), game.house_profit >= 0 ? 'text-neon-green' : 'text-red-400'));
       cards.appendChild(statCard('Bets', String(game.bets)));
       cards.appendChild(statCard('Bettors', String(game.unique_players)));
+      if (hasPot) {
+        cards.appendChild(
+          statCard('Pot owed to players', gil(game.pot_held), game.pot_held >= 0 ? 'text-neon-violet' : 'text-red-400')
+        );
+      }
       cards.appendChild(statCard('Profit taken (all time)', gil(game.profit_taken), 'text-slate-300'));
       cards.appendChild(
         statCard('Left in chest (all time)', gil(game.profit_remaining), game.profit_remaining >= 0 ? 'text-neon-gold' : 'text-red-400')

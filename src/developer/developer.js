@@ -355,17 +355,8 @@ function gameCard(game, { withdrawable }) {
   return card;
 }
 
-function renderSubmitGameTab(container) {
-  const editing = state.editingGame;
-  const initial = editing ? { ...editing, ...(editing.pending_changes || {}) } : null;
-
-  const formPanel = el('div', 'panel flex flex-col gap-4 p-6');
-  formPanel.appendChild(el('h2', 'text-xl font-semibold text-neon-violet', editing ? `Editing "${editing.name}"` : 'Submit a game'));
-  formPanel.appendChild(el('p', 'text-sm text-slate-400', editing && editing.status === 'approved'
-    ? 'Your live listing stays published while these changes wait for admin review.'
-    : 'Submissions are reviewed by an admin before appearing in the public catalogue.'));
-
-  const formStatus = statusLine();
+function gameFormFields(initial) {
+  const node = el('div', 'flex flex-col gap-4');
 
   const typeBlock = el('div');
   typeBlock.appendChild(fieldLabel('Game type'));
@@ -377,27 +368,27 @@ function renderSubmitGameTab(container) {
   }
   if (initial) typeSelect.value = String(initial.game_type_id);
   typeBlock.appendChild(typeSelect);
-  formPanel.appendChild(typeBlock);
+  node.appendChild(typeBlock);
 
   const nameBlock = el('div');
   nameBlock.appendChild(fieldLabel('Plugin Name'));
   const nameInput = textInput('e.g. Triple Triad Royale', initial ? initial.name : '');
   nameInput.maxLength = 100;
   nameBlock.appendChild(nameInput);
-  formPanel.appendChild(nameBlock);
+  node.appendChild(nameBlock);
 
   const authorsBlock = el('div');
   authorsBlock.appendChild(fieldLabel('Authors'));
   const authorsInput = textInput('Everyone who created the game, e.g. Alice, Bob', initial ? initial.authors : '');
   authorsInput.maxLength = 200;
   authorsBlock.appendChild(authorsInput);
-  formPanel.appendChild(authorsBlock);
+  node.appendChild(authorsBlock);
 
   const imageBlock = el('div');
   imageBlock.appendChild(fieldLabel('Game image URL'));
   const imageInput = textInput('https://…', initial ? initial.image_url : '');
   imageBlock.appendChild(imageInput);
-  formPanel.appendChild(imageBlock);
+  node.appendChild(imageBlock);
 
   const descriptionBlock = el('div');
   descriptionBlock.appendChild(fieldLabel('Description'));
@@ -407,7 +398,7 @@ function renderSubmitGameTab(container) {
   descriptionInput.placeholder = 'What is the game and how is it played?';
   if (initial) descriptionInput.value = initial.description;
   descriptionBlock.appendChild(descriptionInput);
-  formPanel.appendChild(descriptionBlock);
+  node.appendChild(descriptionBlock);
 
   const playersBlock = el('div');
   playersBlock.appendChild(fieldLabel('Player count (optional)'));
@@ -437,32 +428,29 @@ function renderSubmitGameTab(container) {
   playersRow.appendChild(playersSelect);
   playersRow.appendChild(overLabel);
   playersBlock.appendChild(playersRow);
-  formPanel.appendChild(playersBlock);
+  node.appendChild(playersBlock);
 
   const repoBlock = el('div');
   repoBlock.appendChild(fieldLabel('Download link (optional)'));
   const repoInput = textInput('https://…', initial ? initial.repo_url || '' : '');
   repoBlock.appendChild(repoInput);
-  formPanel.appendChild(repoBlock);
+  node.appendChild(repoBlock);
 
   const infoBlock = el('div');
   infoBlock.appendChild(fieldLabel('Information link (optional)'));
   const infoInput = textInput('https://…', initial ? initial.info_url || '' : '');
   infoBlock.appendChild(infoInput);
-  formPanel.appendChild(infoBlock);
+  node.appendChild(infoBlock);
 
   const inviteBlock = el('div');
   inviteBlock.appendChild(fieldLabel('Discord invite (optional)'));
   const inviteInput = textInput('https://discord.gg/…', initial ? initial.discord_invite_url || '' : '');
   inviteBlock.appendChild(inviteInput);
-  formPanel.appendChild(inviteBlock);
+  node.appendChild(inviteBlock);
 
-  const buttonRow = el('div', 'flex flex-wrap gap-2');
-  const submitButton = primaryButton(editing ? 'Save changes for review' : 'Submit for review');
-  submitButton.addEventListener('click', async () => {
-    setStatus(formStatus, 'Submitting…');
-    submitButton.disabled = true;
-    const payload = {
+  return {
+    node,
+    read: () => ({
       game_type_id: Number(typeSelect.value),
       name: nameInput.value,
       authors: authorsInput.value,
@@ -473,7 +461,30 @@ function renderSubmitGameTab(container) {
       repo_url: repoInput.value.trim() || null,
       info_url: infoInput.value.trim() || null,
       discord_invite_url: inviteInput.value.trim() || null
-    };
+    })
+  };
+}
+
+function renderSubmitGameTab(container) {
+  const editing = state.editingGame;
+  const initial = editing ? { ...editing, ...(editing.pending_changes || {}) } : null;
+
+  const formPanel = el('div', 'panel flex flex-col gap-4 p-6');
+  formPanel.appendChild(el('h2', 'text-xl font-semibold text-neon-violet', editing ? `Editing "${editing.name}"` : 'Submit a game'));
+  formPanel.appendChild(el('p', 'text-sm text-slate-400', editing && editing.status === 'approved'
+    ? 'Your live listing stays published while these changes wait for admin review.'
+    : 'Submissions are reviewed by an admin before appearing in the public catalogue.'));
+
+  const formStatus = statusLine();
+  const fields = gameFormFields(initial);
+  formPanel.appendChild(fields.node);
+
+  const buttonRow = el('div', 'flex flex-wrap gap-2');
+  const submitButton = primaryButton(editing ? 'Save changes for review' : 'Submit for review');
+  submitButton.addEventListener('click', async () => {
+    setStatus(formStatus, 'Submitting…');
+    submitButton.disabled = true;
+    const payload = fields.read();
     const result = editing
       ? await accountClient.editGame(editing.id, payload)
       : await accountClient.submitGame(payload);
@@ -609,6 +620,225 @@ function buildChangesDiff(game) {
   return block;
 }
 
+const ADMIN_STATUS_OPTIONS = [
+  ['pending', 'Pending review'],
+  ['approved', 'Approved (public)'],
+  ['rejected', 'Rejected']
+];
+
+function adminGameEditor(game, { onSaved, onCancel }) {
+  const panel = el('div', 'flex flex-col gap-4 rounded-xl border border-neon-cyan/40 bg-neon-cyan/5 p-4');
+  panel.appendChild(el('h3', 'text-lg font-semibold text-neon-cyan', `Editing "${game.name}"`));
+  panel.appendChild(el('p', 'text-xs text-slate-400', game.developer_name
+    ? `Submitted by ${game.developer_name}. Saved changes go live immediately, with no review step.`
+    : 'Saved changes go live immediately, with no review step.'));
+  if (game.pending_changes) {
+    panel.appendChild(el('p', 'text-xs text-neon-gold', 'This game also has developer changes waiting in the review queue. Editing here changes the live listing only and leaves that proposal untouched.'));
+  }
+
+  const fields = gameFormFields(game);
+  panel.appendChild(fields.node);
+
+  const statusBlock = el('div');
+  statusBlock.appendChild(fieldLabel('Listing status'));
+  const statusSelect = el('select', 'neon-select mt-1 w-56');
+  for (const [value, label] of ADMIN_STATUS_OPTIONS) {
+    const option = el('option', '', label);
+    option.value = value;
+    statusSelect.appendChild(option);
+  }
+  statusSelect.value = game.status;
+  statusBlock.appendChild(statusSelect);
+  panel.appendChild(statusBlock);
+
+  const reasonBlock = el('div');
+  reasonBlock.appendChild(fieldLabel('Reason shown to the developer'));
+  const reasonInput = textInput('Why is this listing rejected?', game.rejection_reason || '');
+  reasonInput.maxLength = 500;
+  reasonBlock.appendChild(reasonInput);
+  panel.appendChild(reasonBlock);
+
+  const syncReason = () => {
+    reasonBlock.classList.toggle('hidden', statusSelect.value !== 'rejected');
+  };
+  statusSelect.addEventListener('change', syncReason);
+  syncReason();
+
+  const editorStatus = statusLine();
+  const actions = el('div', 'flex flex-wrap gap-2');
+  const save = primaryButton('Save changes');
+  save.addEventListener('click', async () => {
+    setStatus(editorStatus, 'Saving…');
+    save.disabled = true;
+    const payload = {
+      ...fields.read(),
+      status: statusSelect.value,
+      rejection_reason: statusSelect.value === 'rejected' ? reasonInput.value.trim() : null
+    };
+    const result = await adminClient.updateGame(game.id, payload);
+    save.disabled = false;
+    if (result.ok) {
+      onSaved();
+    } else {
+      setStatus(editorStatus, result.error, true);
+    }
+  });
+  const cancel = subtleButton('Cancel');
+  cancel.addEventListener('click', onCancel);
+  actions.appendChild(save);
+  actions.appendChild(cancel);
+  panel.appendChild(actions);
+  panel.appendChild(editorStatus);
+
+  return panel;
+}
+
+function renderAdminCataloguePanel({ onChanged }) {
+  const panel = el('div', 'panel flex flex-col gap-4 p-6');
+  panel.appendChild(el('h2', 'text-xl font-semibold text-neon-violet', 'All games'));
+  panel.appendChild(el('p', 'text-sm text-slate-400', 'Every listing in the catalogue, whatever its status. Edits here go live immediately.'));
+
+  const controls = el('div', 'flex flex-wrap items-end gap-3');
+  const searchBlock = el('div', 'min-w-48 flex-1');
+  searchBlock.appendChild(fieldLabel('Search'));
+  const searchInput = textInput('Game, author or developer');
+  searchInput.maxLength = 100;
+  searchBlock.appendChild(searchInput);
+  const filterBlock = el('div');
+  filterBlock.appendChild(fieldLabel('Status'));
+  const filterSelect = el('select', 'neon-select mt-1 w-44');
+  const allOption = el('option', '', 'All statuses');
+  allOption.value = '';
+  filterSelect.appendChild(allOption);
+  for (const [value, label] of ADMIN_STATUS_OPTIONS) {
+    const option = el('option', '', label);
+    option.value = value;
+    filterSelect.appendChild(option);
+  }
+  filterBlock.appendChild(filterSelect);
+  const searchButton = primaryButton('Search');
+  controls.appendChild(searchBlock);
+  controls.appendChild(filterBlock);
+  controls.appendChild(searchButton);
+  panel.appendChild(controls);
+
+  const listStatus = statusLine();
+  panel.appendChild(listStatus);
+  const list = el('div', 'flex flex-col gap-4');
+  panel.appendChild(list);
+  const pager = el('div', 'flex items-center justify-end gap-2');
+  panel.appendChild(pager);
+
+  const view = { page: 1, editing: null, games: [], hasMore: false };
+
+  const renderList = () => {
+    clear(list);
+    clear(pager);
+    if (view.editing) {
+      list.appendChild(adminGameEditor(view.editing, {
+        onSaved: () => {
+          view.editing = null;
+          load('Game updated and live.');
+          onChanged();
+        },
+        onCancel: () => {
+          view.editing = null;
+          setStatus(listStatus, '');
+          renderList();
+        }
+      }));
+      return;
+    }
+    for (const game of view.games) {
+      const card = gameCard(game, { withdrawable: false });
+      card.appendChild(el('p', 'text-xs text-slate-400', game.developer_name
+        ? `Submitted by ${game.developer_name}`
+        : 'No developer account attached'));
+      const actions = el('div', 'flex flex-wrap justify-end gap-2');
+      const edit = subtleButton('Edit');
+      edit.addEventListener('click', () => {
+        view.editing = game;
+        setStatus(listStatus, '');
+        renderList();
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      const remove = dangerButton('Delete');
+      remove.addEventListener('click', async () => {
+        if (!window.confirm(`Delete "${game.name}" from the catalogue? This cannot be undone.`)) return;
+        const result = await adminClient.deleteGame(game.id);
+        if (result.ok) {
+          load(`"${game.name}" deleted.`);
+          onChanged();
+        } else {
+          setStatus(listStatus, result.error, true);
+        }
+      });
+      actions.appendChild(edit);
+      actions.appendChild(remove);
+      card.appendChild(actions);
+      list.appendChild(card);
+    }
+    if (view.page > 1 || view.hasMore) {
+      const previous = subtleButton('Previous');
+      previous.disabled = view.page <= 1;
+      previous.classList.toggle('opacity-40', view.page <= 1);
+      previous.addEventListener('click', () => {
+        view.page -= 1;
+        load();
+      });
+      const next = subtleButton('Next');
+      next.disabled = !view.hasMore;
+      next.classList.toggle('opacity-40', !view.hasMore);
+      next.addEventListener('click', () => {
+        view.page += 1;
+        load();
+      });
+      pager.appendChild(el('span', 'mr-auto text-xs text-slate-400', `Page ${view.page}`));
+      pager.appendChild(previous);
+      pager.appendChild(next);
+    }
+  };
+
+  const load = async (message = '') => {
+    const result = await adminClient.getAllGames({
+      page: view.page,
+      status: filterSelect.value,
+      search: searchInput.value.trim()
+    });
+    if (!result.ok) {
+      view.games = [];
+      view.hasMore = false;
+      clear(list);
+      clear(pager);
+      setStatus(listStatus, result.error, true);
+      return;
+    }
+    view.games = result.data.games;
+    view.hasMore = result.data.has_more;
+    if (view.games.length === 0 && view.page > 1) {
+      view.page = 1;
+      await load(message);
+      return;
+    }
+    setStatus(listStatus, view.games.length === 0 ? 'No games match that filter.' : message);
+    renderList();
+  };
+
+  const runSearch = () => {
+    view.page = 1;
+    view.editing = null;
+    load();
+  };
+  searchButton.addEventListener('click', runSearch);
+  filterSelect.addEventListener('change', runSearch);
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') runSearch();
+  });
+
+  load();
+  return { node: panel, reload: () => { if (!view.editing) load(); } };
+}
+
 async function renderAdminTab(container) {
   const wrapper = el('div', 'flex flex-col gap-6');
 
@@ -619,6 +849,9 @@ async function renderAdminTab(container) {
   const queueList = el('div', 'flex flex-col gap-4');
   queuePanel.appendChild(queueList);
   wrapper.appendChild(queuePanel);
+
+  const catalogue = renderAdminCataloguePanel({ onChanged: () => refreshQueue() });
+  wrapper.appendChild(catalogue.node);
 
   const typesPanel = el('div', 'panel flex flex-col gap-4 p-6');
   typesPanel.appendChild(el('h2', 'text-xl font-semibold text-neon-violet', 'Game types'));
@@ -820,14 +1053,20 @@ async function renderAdminTab(container) {
       const approve = primaryButton('Approve');
       approve.addEventListener('click', async () => {
         const approval = await adminClient.approveGame(game.id);
-        if (approval.ok) refreshQueue();
+        if (approval.ok) {
+          refreshQueue();
+          catalogue.reload();
+        }
       });
       const reject = dangerButton('Reject');
       reject.addEventListener('click', async () => {
         const reason = window.prompt(`Why is "${game.name}" being rejected?`);
         if (!reason || !reason.trim()) return;
         const rejection = await adminClient.rejectGame(game.id, reason.trim());
-        if (rejection.ok) refreshQueue();
+        if (rejection.ok) {
+          refreshQueue();
+          catalogue.reload();
+        }
       });
       actions.appendChild(approve);
       actions.appendChild(reject);
