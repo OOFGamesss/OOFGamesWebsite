@@ -1,4 +1,5 @@
-import { getState, submitJoin, joinStatus, drtSocketUrl } from '/api/minigames-emporium-client.js';
+import { getState, submitJoin, joinStatus, drtSocketUrl, chatBases } from '/api/minigames-emporium-client.js';
+import { mountChat } from '/components/chat/chat-panel.js';
 
 const BRACKET_PREFIX = '/mini-games-emporium/drt/bracket/';
 const DRT_HOME = '/mini-games-emporium/drt/';
@@ -549,6 +550,7 @@ async function init() {
   }
   if (ok && data) renderAll(data);
   connect();
+  mountChat({ ...chatBases(), game: 'drt', roomKey: sessionId, title: 'Tournament Chat' });
 }
 
 init();

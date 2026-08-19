@@ -65,6 +65,7 @@ async function submit() {
 
 function build() {
   overlay = el('div', 'fixed inset-0 z-[70] flex items-center justify-center px-4');
+  overlay.id = 'account-login-modal';
   overlay.style.display = 'none';
   overlay.style.background = 'rgba(5,3,12,0.78)';
   overlay.setAttribute('role', 'dialog');

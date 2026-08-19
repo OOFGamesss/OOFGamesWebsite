@@ -12,6 +12,7 @@ import { lotteryClient } from '../api/lottery-client.js';
 import { apiBaseUrl, walletClient } from '../api/wallet-client.js';
 import { hasRecentSession } from '../api/wallet-session.js';
 import { openLoginModal } from '../components/login-modal.js';
+import { mountChat } from '../components/chat/chat-panel.js';
 import { createDrawMachine } from './draw-machine.js';
 import lotteryAudio from './lottery-audio.js';
 
@@ -1126,6 +1127,13 @@ async function boot() {
   await refreshCurrent();
   openModal('howto-modal');
   connectLotterySocket();
+  mountChat({
+    httpBase: apiBaseUrl,
+    wsBase: apiBaseUrl.replace(/^http/, 'ws'),
+    game: 'lot',
+    roomKey: 'current',
+    title: 'Lottery Chat',
+  });
   setInterval(tickCountdown, 1000);
   tickCountdown();
   const stats = await lotteryClient.getStats();

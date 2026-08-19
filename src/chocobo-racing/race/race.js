@@ -1,6 +1,8 @@
 import './race.css';
 import { getState, houseBet, houseMe, login, me, placeBet, raceSocketUrl, uuid } from '../../api/chocobo-racing-client.js';
 import { openLoginModal } from '../../components/login-modal.js';
+import { mountChat } from '../../components/chat/chat-panel.js';
+import { chatBases } from '../../api/chocobo-racing-client.js';
 import audio from './race-audio.js';
 
 const RACE_PREFIX = '/chocobo-racing/race/';
@@ -147,6 +149,9 @@ const tokenKey = sessionId && !isHouse ? `cr_token_${sessionId}` : null;
 
 let currentState = null;
 let token = tokenKey ? sessionStorage.getItem(tokenKey) : null;
+let chatPanel = null;
+
+const MODAL_IDS = ['howto-modal', 'pin-modal', 'pin-changed-modal', 'account-login-modal'];
 let player = null;
 let balance = 0;
 let available = 0;
@@ -795,6 +800,7 @@ function applyMe(data) {
 }
 
 function logout() {
+  if (chatPanel) chatPanel.resetIdentity();
   token = null;
   player = null;
   myBets = [];
@@ -885,6 +891,31 @@ async function submitPin(e) {
   if (tokenKey) sessionStorage.setItem(tokenKey, token);
   closeModal();
   await refreshMe();
+  if (chatPanel) chatPanel.refreshIdentity();
+}
+
+function anyModalOpen() {
+  return MODAL_IDS.some((id) => {
+    const node = el(id);
+    return node ? getComputedStyle(node).display !== 'none' : false;
+  });
+}
+
+function watchModals() {
+  const syncChat = () => { if (chatPanel) chatPanel.setBlocked(anyModalOpen()); };
+  const watched = new WeakSet();
+  const attributes = new MutationObserver(syncChat);
+  const watch = (node) => {
+    if (!node || watched.has(node)) return;
+    watched.add(node);
+    attributes.observe(node, { attributes: true, attributeFilter: ['class', 'style'] });
+  };
+  MODAL_IDS.forEach((id) => watch(el(id)));
+  new MutationObserver(() => {
+    MODAL_IDS.forEach((id) => watch(el(id)));
+    syncChat();
+  }).observe(document.body, { childList: true });
+  syncChat();
 }
 
 function hideLoader() {
@@ -1532,6 +1563,15 @@ async function init() {
   if (isHouse || token) await refreshMe();
   openHowTo();
   connect();
+  chatPanel = mountChat({
+    ...chatBases(),
+    game: 'race',
+    roomKey: sessionId,
+    title: 'Race Chat',
+    startOpen: false,
+    getAuthToken: () => (token && token !== 'house' ? token : null),
+  });
+  watchModals();
 }
 
 init();

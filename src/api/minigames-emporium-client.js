@@ -9,6 +9,11 @@ function bases() {
   return isLocal ? { http: `http://${host}:8005`, ws: `ws://${host}:8005` } : PROD;
 }
 
+export function chatBases() {
+  const { http, ws } = bases();
+  return { httpBase: http, wsBase: ws };
+}
+
 export function uuid() {
   if (window.crypto && typeof window.crypto.randomUUID === 'function') {
     return window.crypto.randomUUID();
