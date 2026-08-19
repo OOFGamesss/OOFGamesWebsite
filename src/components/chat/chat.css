@@ -180,12 +180,6 @@
   letter-spacing: 0.06em;
 }
 
-.oof-chat__verified {
-  margin-left: 5px;
-  color: var(--oof-chat-accent);
-  font-size: 11px;
-}
-
 .oof-chat__text {
   color: var(--oof-chat-text);
 }

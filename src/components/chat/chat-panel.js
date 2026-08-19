@@ -200,10 +200,6 @@ export function mountChat({
       row.append(el('span', 'oof-chat__badge', 'Host'));
     } else if (message.tier === 'guest') {
       row.append(el('span', 'oof-chat__tag', 'guest'));
-    } else {
-      const verified = el('span', 'oof-chat__verified', '●');
-      verified.title = 'Verified character';
-      row.append(verified);
     }
 
     row.append(document.createTextNode(': '));
