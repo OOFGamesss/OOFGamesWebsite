@@ -48,17 +48,9 @@
         <p class="mt-3 text-slate-300">Find and host FFXIV gambling events near you.</p>
       </header>
 
-      <section class="aspect-video w-full">
-        <div class="panel h-full w-full overflow-hidden">
-          <iframe
-            class="h-full w-full border-0"
-            src="https://www.youtube-nocookie.com/embed/Gt1I7c3gLbg?autoplay=1&mute=1&rel=0&modestbranding=1"
-            title="Gamba Where trailer"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen
-            loading="lazy"
-            referrerpolicy="strict-origin-when-cross-origin"
-          ></iframe>
+      <section data-game-id="gambawhere" data-accent="#6a30e0" class="w-full">
+        <div class="panel flex aspect-video w-full flex-col items-center justify-center gap-3">
+          <p class="text-sm uppercase tracking-widest text-slate-400">Screenshots coming soon</p>
         </div>
       </section>
 
@@ -314,6 +306,7 @@
 
     <script type="module" src="/components/console-guard.js"></script><script type="module" src="/components/neon-background.js"></script>
     <script type="module" src="/components/discord-widget.js"></script>
+    <script type="module" src="/components/game-carousel.js"></script>
     <script type="module">
       document.getElementById('copy-repo-url').addEventListener('click', () => {
         const url = 'https://puni.sh/api/repository/oof-games';
