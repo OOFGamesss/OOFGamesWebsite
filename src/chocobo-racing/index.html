@@ -4,17 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0612" />
-    <meta name="description" content="Bring Gold Saucer racing to your FFXIV venue. Automated betting, integrated bank tracking, decimal payout odds, and live race commentary for hosts." />
+    <meta name="description" content="Host live FFXIV Chocobo Racing at your venue. Classic betting races, raffle mode, integrated banks, decimal payout odds, and a live website for spectators and PIN betting." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="OOF Games" />
     <meta property="og:title" content="Chocobo Racing | OOF Games" />
-    <meta property="og:description" content="Bring Gold Saucer racing to your FFXIV venue. Automated betting, integrated bank tracking, decimal payout odds, and live race commentary for hosts." />
+    <meta property="og:description" content="Host live FFXIV Chocobo Racing at your venue. Classic betting races, raffle mode, integrated banks, decimal payout odds, and a live website for spectators and PIN betting." />
     <meta property="og:url" content="https://oofgames.fyi/chocobo-racing/" />
     <meta property="og:image" content="https://oofgames.fyi/images/oofgameslogo.png" />
     <meta property="og:image:alt" content="OOF Games logo" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Chocobo Racing | OOF Games" />
-    <meta name="twitter:description" content="Bring Gold Saucer racing to your FFXIV venue. Automated betting, integrated bank tracking, decimal payout odds, and live race commentary for hosts." />
+    <meta name="twitter:description" content="Host live FFXIV Chocobo Racing at your venue. Classic betting races, raffle mode, integrated banks, decimal payout odds, and a live website for spectators and PIN betting." />
     <meta name="twitter:image" content="https://oofgames.fyi/images/oofgameslogo.png" />
     <meta name="twitter:image:alt" content="OOF Games logo" />
     <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -- SRI does not apply to canonical links; the browser never fetches this as a subresource. -->
@@ -30,7 +30,7 @@
         "applicationCategory": "GameApplication",
         "operatingSystem": "Windows",
         "image": "https://oofgames.fyi/images/chocoboracing.png",
-        "description": "Bring Gold Saucer racing to your FFXIV venue. Automated betting, integrated bank tracking, decimal payout odds, and live race commentary for hosts.",
+        "description": "Host live FFXIV Chocobo Racing at your venue. Classic betting races, raffle mode, integrated banks, decimal payout odds, and a live website for spectators and PIN betting.",
         "publisher": { "@id": "https://oofgames.fyi/#organization" },
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
       }
@@ -45,7 +45,7 @@
 
       <header class="text-center">
         <h1 class="neon-heading text-3xl font-black sm:text-5xl" style="color: #c98500; -webkit-text-stroke: 2px #000; text-shadow: 0 0 8px rgba(201, 133, 0, 1), 0 0 20px rgba(201, 133, 0, 0.85), 0 0 50px rgba(201, 133, 0, 0.55), 0 0 100px rgba(201, 133, 0, 0.25);">Chocobo Racing</h1>
-        <p class="mt-3 text-slate-300">Bet on the birds and watch the track ignite.</p>
+        <p class="mt-3 text-slate-300">Bet on the birds, run a raffle, and watch the track ignite.</p>
       </header>
 
       <section data-game-id="chocoboracing" data-accent="#c98500" class="w-full">
@@ -57,12 +57,12 @@
       <section class="panel p-6">
         <h2 class="mb-4 text-2xl font-semibold" style="color: #f5c518; text-shadow: 0 0 10px rgba(245, 197, 24, 0.9), 0 0 25px rgba(245, 197, 24, 0.6), 0 0 50px rgba(245, 197, 24, 0.3);">About the plugin</h2>
         <p class="text-slate-300">
-          Bring the excitement of the Gold Saucer to your own venue or housing ward with this comprehensive racing
-          and betting suite. Designed for hosts who want a professional, automated, and engaging experience, this
-          plugin handles everything from the first bet to the final payout. Players place their bets on chocobo
-          numbers, and as the race progresses numbers are called out using the in-game <code>/dice</code> command.
-          Each corresponding chocobo moves forward on the track, and the first bird to cross the finish line is
-          declared the winner.
+          Bring racing to your own venue with this host suite for Classic betting races and
+          Raffle races. Designed for hosts who want a professional, automated event, the plugin covers everything from
+          the first bet or registration through to the final payout. In Classic mode, players back a chocobo and the
+          host advances the field with in-game <code>/dice</code>. In Raffle mode, each player becomes a numbered
+          chocobo, the server draws the winner, and the race plays out live on the website. Spectators can watch either
+          mode online, and Classic players can place bets on the site with a PIN.
         </p>
       </section>
 
@@ -70,12 +70,20 @@
         <h2 class="mb-6 text-2xl font-semibold" style="color: #f5c518; text-shadow: 0 0 10px rgba(245, 197, 24, 0.9), 0 0 25px rgba(245, 197, 24, 0.6), 0 0 50px rgba(245, 197, 24, 0.3);">Key Features</h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Classic and Raffle Modes</span>
+            <p class="mt-1 text-sm text-slate-400">Run a traditional betting race, or switch to raffle racing where registered runners become numbered chocobos and the website draws the winner.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
             <span class="font-semibold text-slate-200">Automatic Bet Detection</span>
-            <p class="mt-1 text-sm text-slate-400">The plugin reads chat in real time and logs bets the moment a player types them, so no manual bookkeeping is ever needed from the host.</p>
+            <p class="mt-1 text-sm text-slate-400">In Classic, the plugin reads party and alliance chat in real time and logs bets the moment a player types them, so no manual bookkeeping is needed from the host.</p>
           </div>
           <div class="install-step flex-col items-start gap-1">
             <span class="font-semibold text-slate-200">Integrated Bank System</span>
-            <p class="mt-1 text-sm text-slate-400">Each player's balance and winnings are tracked automatically, with a one-click trade button and a private tell feature to send any player their current funds.</p>
+            <p class="mt-1 text-sm text-slate-400">Each player's balance is tracked automatically, with add, take, and tip controls, a one-click trade button, auto payout, private tells, and cash-out alerts when a player asks in chat.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Live Webview and PIN Betting</span>
+            <p class="mt-1 text-sm text-slate-400">Mirror the session to the website so anyone can watch live. Classic players can bet online with a PIN from the Banks tab. Raffle races must be live on the webview, because the draw runs on the site.</p>
           </div>
           <div class="install-step flex-col items-start gap-1">
             <span class="font-semibold text-slate-200">Console and Vanilla Client Friendly</span>
@@ -83,23 +91,31 @@
           </div>
           <div class="install-step flex-col items-start gap-1">
             <span class="font-semibold text-slate-200">Scalable Race Size</span>
-            <p class="mt-1 text-sm text-slate-400">Run intimate head-to-head duels with two chocobos or grand prix events with up to ten birds, configurable before each race from the Settings tab.</p>
+            <p class="mt-1 text-sm text-slate-400">Classic races run from two chocobos up to ten, configurable before each race from Classic Race settings.</p>
           </div>
           <div class="install-step flex-col items-start gap-1">
             <span class="font-semibold text-slate-200">Adjustable Track Length</span>
-            <p class="mt-1 text-sm text-slate-400">Set the finish line anywhere between 5 and 15 yalms to tune races for fast-paced sprints or longer, tension-building endurance events.</p>
+            <p class="mt-1 text-sm text-slate-400">Set the Classic finish line between 5 and 15 yalms, or stretch a raffle track from 5 to 100 yalms for a longer show.</p>
           </div>
           <div class="install-step flex-col items-start gap-1">
             <span class="font-semibold text-slate-200">Decimal Payout Odds</span>
-            <p class="mt-1 text-sm text-slate-400">Set precise fractional odds per chocobo to control your house edge, with automatic payout calculation applied at the end of each race.</p>
+            <p class="mt-1 text-sm text-slate-400">Set a single payout multiplier for the field to control your house edge, with automatic payout calculation at the end of each Classic race.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Perfect Race</span>
+            <p class="mt-1 text-sm text-slate-400">Optionally pay higher odds when only the winning chocobo ever advanced: every roll was their number and no other bird moved.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Raffle Prizes and Registration</span>
+            <p class="mt-1 text-sm text-slate-400">Offer a gil pot with host boost and venue cut, an item, or a custom prize. Runners join from nearby players, a chat keyword, or a right-click menu, with paid entries numbered onto the grid.</p>
           </div>
           <div class="install-step flex-col items-start gap-1">
             <span class="font-semibold text-slate-200">Customisable Chat Profiles</span>
-            <p class="mt-1 text-sm text-slate-400">Every automated message the plugin sends to chat can be edited to match your venue's tone and theme, with different profiles saved per venue.</p>
+            <p class="mt-1 text-sm text-slate-400">Edit every automated message, including Advertise shouts, Classic race calls, and raffle registration or winner lines. Named presets can be saved, exported, and imported between hosts.</p>
           </div>
           <div class="install-step flex-col items-start gap-1">
             <span class="font-semibold text-slate-200">Full Race History and Reporting</span>
-            <p class="mt-1 text-sm text-slate-400">A complete log of every race, bet, and payout is stored for review, alongside a profit and loss tracker so hosts can monitor margins over time.</p>
+            <p class="mt-1 text-sm text-slate-400">A complete log of every Classic and Raffle round is stored for review, alongside a profit and loss tracker so hosts can monitor margins over time.</p>
           </div>
         </div>
       </section>
@@ -107,48 +123,84 @@
       <section class="panel p-6">
         <h2 class="mb-4 text-2xl font-semibold" style="color: #f5c518; text-shadow: 0 0 10px rgba(245, 197, 24, 0.9), 0 0 25px rgba(245, 197, 24, 0.6), 0 0 50px rgba(245, 197, 24, 0.3);">Interface</h2>
         <p class="mb-6 text-sm text-slate-400">
-          Chocobo Racing provides six tabs covering everything from running a race to reviewing your margins.
+          The plugin is organised through a sidebar. Race expands to Classic and Raffle. Settings expands to Classic Race, Classic Chat, Raffle Chat, and Sounds. Support expands to Help and Game Key.
         </p>
 
         <div class="flex flex-col gap-8">
 
           <div class="flex flex-col gap-3">
-            <h3 class="text-lg font-semibold" style="color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.9), 0 0 20px rgba(252, 211, 77, 0.6), 0 0 40px rgba(252, 211, 77, 0.25);">Race</h3>
+            <h3 class="text-lg font-semibold" style="color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.9), 0 0 20px rgba(252, 211, 77, 0.6), 0 0 40px rgba(252, 211, 77, 0.25);">Race: Classic</h3>
             <p class="text-sm text-slate-300">
-              The central control panel for taking and recording bets. Use the race control buttons to open and
-              close betting, and the rules announcement buttons to post your rule set to chat. Once the race
-              starts, the tab transforms into a live chocobo racetrack so you can watch each bird advance in
-              real time as dice are called. When the race concludes, the tab displays the winners, their winning
-              amount, and their updated bank balance. Payouts are not triggered automatically - they are
-              processed from the Banks tab.
+              The control panel for taking and recording bets. You must be in a party or alliance to use Classic host
+              controls. Race Info lets you announce rules, shout your Advertise message, and repost the chocobo list
+              while betting is open. Race Control opens betting, calls last bets, closes betting, starts the race,
+              rolls <code>/dice</code>, voids a race, or ends the round. Once the race starts, the tab shows a live
+              racetrack. When it concludes, winners, winnings, and updated bank balances are listed. Payouts are
+              processed from the Banks tab, not automatically.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.9), 0 0 20px rgba(252, 211, 77, 0.6), 0 0 40px rgba(252, 211, 77, 0.25);">Race: Raffle</h3>
+            <p class="text-sm text-slate-300">
+              A raffle race needs a live web session first: open Webview, enter your game key and venue details, then
+              press Go Live. On setup you choose a gil pot (host boost plus an optional venue cut), an item, or a
+              custom prize, set the entry fee (zero is free), pick a finish line from 5 to 100 yalms, and optionally
+              enable a chat join keyword and a closing time in Server Time. Open Registration, add runners from nearby
+              players, the join keyword, or a right-click Add to Raffle menu, then mark fees paid. Paid runners receive
+              a grid number, and you can still adjust the pot boost while registration is open. Close once at least two
+              eligible runners are in, start the race, and the website draws the winner and plays it out. Afterwards
+              you can announce, trade, or auto-pay a pot prize. Advertise is available in every raffle phase and shouts
+              the message from Raffle Chat settings.
             </p>
           </div>
 
           <div class="flex flex-col gap-3">
             <h3 class="text-lg font-semibold" style="color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.9), 0 0 20px rgba(252, 211, 77, 0.6), 0 0 40px rgba(252, 211, 77, 0.25);">Banks</h3>
             <p class="text-sm text-slate-300">
-              A table of every player in your party or alliance. This is where you collect entry fees and store
-              them into each player's bank, with options to add funds, remove them, or keep an amount as a tip.
-              Tell buttons let you send any player a private message with their current balance, the trade button
-              opens a trade window to take or pay out gil, and the auto payout button handles bulk payouts for
-              larger winning amounts.
+              Classic only: this tab is disabled during raffle races. A table of party members plus any external
+              players you add. Collect funds into each player's bank, add or remove gil, or keep an amount as a tip.
+              Tell buttons send a private balance message, Tell All Balances walks the whole list, Trade opens a trade
+              window, and Auto Payout handles bulk payouts. Add people from the nearby-player list, or right-click a
+              player (or their name in chat) and choose Add to Chocobo Racing. External players can bet, but they will
+              not see party or alliance rolls in chat. When a player types <code>cash out</code> in chat, their row is
+              highlighted. While a web session is live, each bank also has a PIN you can generate and tell so they can
+              bet on the website.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.9), 0 0 20px rgba(252, 211, 77, 0.6), 0 0 40px rgba(252, 211, 77, 0.25);">Webview</h3>
+            <p class="text-sm text-slate-300">
+              Start and stop the live website session. Enter your game key, set the venue name and image shown on the
+              site, then Go Live. Copy the spectator link to share with guests. Classic players need their PIN from the
+              Banks tab to bet online. Raffle hosts must be live here before registration can open. Presets can also be
+              selected, exported, and imported from this tab.
             </p>
           </div>
 
           <div class="flex flex-col gap-3">
             <h3 class="text-lg font-semibold" style="color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.9), 0 0 20px rgba(252, 211, 77, 0.6), 0 0 40px rgba(252, 211, 77, 0.25);">Settings</h3>
             <p class="text-sm text-slate-300">
-              Split into two sub-tabs: Race Settings, where you configure the number of chocobos, track length,
-              and payout odds before each event; and Chat Settings, where you can edit every automated message
-              the plugin posts to in-game chat so the race commentary matches your venue's voice and style.
+              Four sections, plus named presets on Classic Race, Classic Chat, Raffle Chat, and Webview. Presets cannot
+              be switched or edited while a race or raffle is running. <span class="font-semibold text-slate-200">Classic Race</span>
+              covers chocobo count (2-10), finish line (5-15 yalms), max bet per chocobo, payout odds for the field,
+              optional Perfect Race odds, and chocobo renaming. <span class="font-semibold text-slate-200">Classic Chat</span>
+              edits every automated Classic message, including Advertise, betting calls, winner text, bank-balance
+              tells, web PIN tells, and emotes, plus whether the bet list is split by chocobo or by player.
+              <span class="font-semibold text-slate-200">Raffle Chat</span> covers raffle Advertise, registration,
+              closing time, winner, fee-request, and runner-invite messages, with toggles to auto-announce registration,
+              auto-announce the winner, and auto-tell a paid runner their race link.
+              <span class="font-semibold text-slate-200">Sounds</span> can alert you when a runner joins the raffle by
+              typing the join keyword.
             </p>
           </div>
 
           <div class="flex flex-col gap-3">
             <h3 class="text-lg font-semibold" style="color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.9), 0 0 20px rgba(252, 211, 77, 0.6), 0 0 40px rgba(252, 211, 77, 0.25);">History</h3>
             <p class="text-sm text-slate-300">
-              A complete log of every race run, showing each entrant, the chocobo they backed, the amount
-              wagered, and the final result - useful for reviewing individual sessions, settling disputes, or
+              A complete log of every round, tagged as Classic or Raffle, showing the winner, the bets or payouts, and
+              tools to delete a round or a whole session. Useful for reviewing individual events, settling disputes, or
               understanding betting patterns across your events.
             </p>
           </div>
@@ -157,7 +209,7 @@
             <h3 class="text-lg font-semibold" style="color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.9), 0 0 20px rgba(252, 211, 77, 0.6), 0 0 40px rgba(252, 211, 77, 0.25);">Profit/Loss</h3>
             <p class="text-sm text-slate-300">
               A running summary of your net position across all sessions, breaking down total bets taken, total
-              payouts made, and your overall margin so you can track performance over time and calculate any
+              payouts made, tips, and your overall margin so you can track performance over time and calculate any
               percentage fees owed to your venue owner.
             </p>
           </div>
@@ -165,8 +217,10 @@
           <div class="flex flex-col gap-3">
             <h3 class="text-lg font-semibold" style="color: #fcd34d; text-shadow: 0 0 8px rgba(252, 211, 77, 0.9), 0 0 20px rgba(252, 211, 77, 0.6), 0 0 40px rgba(252, 211, 77, 0.25);">Support</h3>
             <p class="text-sm text-slate-300">
-              A built-in help section covering common setup questions and troubleshooting steps. A Discord link
-              connects you directly to the Chocobo Racing support channel for anything not covered there.
+              Help covers common questions for bug reports, feature requests, and software commissions, with links to
+              the OOF Games Discord and website. Game Key explains how to claim a free key from the
+              <code>#game_keys</code> channel with <code>/keys</code>, what it unlocks for the live webview, and the
+              rules for keeping it. Keys must never be shared.
             </p>
           </div>
 
