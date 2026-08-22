@@ -342,7 +342,8 @@ export function mountChat({
     }
     if (frame.type === 'chat_cleared') {
       clearMessages();
-      appendNotice('Chat was reset.');
+      const notice = frame.data && frame.data.notice;
+      if (notice) appendNotice(notice);
       return;
     }
     if (frame.type === 'chat_closed') {

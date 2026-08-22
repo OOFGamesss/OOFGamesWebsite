@@ -404,8 +404,9 @@ body {
   transition: padding-right 0.25s ease;
 }
 
-[data-discord-widget] {
-  transition-property: right, background-color;
+[data-discord-widget],
+[data-account-pill] {
+  transition-property: right, background-color, border-color;
   transition-duration: 0.25s;
   transition-timing-function: ease;
 }
@@ -415,7 +416,8 @@ body {
     padding-right: var(--oof-chat-width);
   }
 
-  body.oof-chat-pushed [data-discord-widget] {
+  body.oof-chat-pushed [data-discord-widget],
+  body.oof-chat-pushed [data-account-pill] {
     right: calc(1rem + var(--oof-chat-width));
     max-width: calc(100vw - 2rem - var(--oof-chat-width));
   }
@@ -424,7 +426,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .oof-chat__panel,
   body,
-  [data-discord-widget] {
+  [data-discord-widget],
+  [data-account-pill] {
     transition: none;
   }
 }
