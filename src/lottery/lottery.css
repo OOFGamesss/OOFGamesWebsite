@@ -158,7 +158,7 @@
 
 .stats-body { padding: 0 16px 16px; }
 .stats-empty { color: #94a3b8; font-size: 0.9rem; margin: 0 0 8px; }
-.stats-highlights { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.stats-highlights { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 12px; }
 .stat-chip { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(10, 6, 18, 0.55); border: 1px solid rgba(139, 92, 255, 0.3); font-size: 0.8rem; color: #cbd5e1; }
 .stat-chip .ball { width: 26px; height: 26px; font-size: 0.8rem; }
 .picker-caption { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin: 12px 0 6px; }
