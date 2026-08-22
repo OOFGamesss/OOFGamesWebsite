@@ -1,5 +1,6 @@
 import './chat.css';
 import { createChatClient } from './chat-client.js';
+import { createEmojiPicker, createShortcodeMenu, insertIntoField } from './emoji-picker.js';
 
 const OPEN_KEY = 'oof-chat-open';
 const RECONNECT_STEPS = [1000, 2000, 4000, 8000, 15000];
@@ -135,8 +136,26 @@ export function mountChat({
   const sendButton = el('button', 'oof-chat__send', 'Send');
   sendButton.type = 'submit';
   const composerSwatches = el('div', 'oof-chat__swatches oof-chat__hidden');
-  sendRow.append(el('span'), sendButton);
-  composer.append(composerRow, textInput, composerSwatches, sendRow);
+  const picker = createEmojiPicker({
+    onPick: (char) => {
+      insertIntoField(textInput, char);
+      picker.close();
+      textInput.focus();
+    }
+  });
+  const shortcodes = createShortcodeMenu({
+    field: textInput,
+    onPick: () => textInput.focus()
+  });
+  sendRow.append(picker.button, sendButton);
+  composer.append(
+    composerRow,
+    textInput,
+    composerSwatches,
+    sendRow,
+    picker.popup,
+    shortcodes.element
+  );
 
   footer.append(status, joinForm, composer);
   panel.append(header, messages, footer);
@@ -154,6 +173,10 @@ export function mountChat({
     document.body.classList.toggle('oof-chat-pushed', isOpen);
     handle.setAttribute('aria-expanded', String(isOpen));
     if (persist) writeOpen(isOpen);
+    if (!isOpen) {
+      picker.close();
+      shortcodes.close();
+    }
     if (isOpen) {
       state.unread = 0;
       root.classList.remove('oof-chat--unread');
@@ -423,13 +446,19 @@ export function mountChat({
     if (sent) {
       textInput.value = '';
       updateCounter();
+      shortcodes.close();
       setStatus('');
     }
     textInput.focus();
   });
 
-  textInput.addEventListener('input', updateCounter);
+  textInput.addEventListener('input', () => {
+    updateCounter();
+    shortcodes.refresh();
+  });
+  textInput.addEventListener('blur', () => shortcodes.close());
   textInput.addEventListener('keydown', (event) => {
+    if (shortcodes.handleKeydown(event)) return;
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       composer.requestSubmit();
@@ -439,6 +468,19 @@ export function mountChat({
   recolour.addEventListener('click', () => {
     composerSwatches.classList.toggle('oof-chat__hidden');
   });
+
+  function handleDocumentClick(event) {
+    if (!picker.isOpen()) return;
+    if (picker.popup.contains(event.target) || picker.button.contains(event.target)) return;
+    picker.close();
+  }
+
+  function handleDocumentKeydown(event) {
+    if (event.key === 'Escape' && picker.isOpen()) picker.close();
+  }
+
+  document.addEventListener('click', handleDocumentClick);
+  document.addEventListener('keydown', handleDocumentKeydown);
 
   async function start() {
     const info = await client.info();
@@ -489,6 +531,8 @@ export function mountChat({
     setBlocked,
     destroy() {
       state.destroyed = true;
+      document.removeEventListener('click', handleDocumentClick);
+      document.removeEventListener('keydown', handleDocumentKeydown);
       clearTimeout(state.reconnectTimer);
       if (state.socket) {
         try {
