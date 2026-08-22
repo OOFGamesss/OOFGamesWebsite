@@ -40,10 +40,14 @@
 .track-stat__value { font-size: 1.05rem; font-weight: 900; color: #f1f5f9; font-variant-numeric: tabular-nums; line-height: 1.05; white-space: nowrap; }
 .track-stat--prize .track-stat__value { color: var(--color-neon-gold, #ffcf4d); text-shadow: 0 0 14px rgba(255, 207, 77, 0.5); }
 
-.card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; padding: 14px 16px 0; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding: 14px 16px 0; gap: 10px; }
 .card-head h2 { font-size: 1.02rem; font-weight: 700; color: #f1f5f9; margin: 0; }
 .card-head__hint { font-size: 0.74rem; color: #94a3b8; }
 .card-head__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sort-toggle { display: inline-flex; overflow: hidden; border-radius: 999px; border: 1px solid rgba(139, 92, 255, 0.4); background: rgba(10, 6, 18, 0.45); }
+.sort-toggle__btn { border: none; background: transparent; color: #94a3b8; font: inherit; font-size: 0.72rem; font-weight: 700; padding: 5px 10px; cursor: pointer; }
+.sort-toggle__btn:hover { color: #e2e8f0; }
+.sort-toggle__btn.is-active { color: #0a0612; background: var(--color-neon-cyan, #18e0ff); }
 
 .lotto-view { display: flex; flex-direction: column; gap: 14px; }
 .lotto-col, .lotto-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
@@ -203,16 +207,27 @@
 .pick-ball:hover { border-color: var(--color-neon-cyan, #18e0ff); }
 .pick-ball.is-picked { background: var(--color-neon-violet, #8b5cff); border-color: var(--color-neon-violet, #8b5cff); color: #ffffff; box-shadow: 0 0 12px rgba(139, 92, 255, 0.5); }
 .picker-grid--bonus .pick-ball.is-picked { background: var(--color-neon-gold, #ffcf4d); border-color: var(--color-neon-gold, #ffcf4d); color: #1a1208; box-shadow: 0 0 12px rgba(255, 207, 77, 0.5); }
-.picker-actions { display: flex; gap: 12px; margin-top: 12px; justify-content: center; }
-.btn-ghost { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 12px; border: 1px solid rgba(24, 224, 255, 0.5); background: transparent; color: var(--color-neon-cyan, #18e0ff); font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: background 0.12s ease; }
+.picker-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; }
+.btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 12px; border: 1px solid rgba(24, 224, 255, 0.5); background: transparent; color: var(--color-neon-cyan, #18e0ff); font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: background 0.12s ease; }
 .btn-ghost:hover { background: rgba(24, 224, 255, 0.12); }
+.btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
+.lucky-batch { margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(139, 92, 255, 0.18); }
+.lucky-batch__caption { margin: 0 0 8px; text-align: center; }
+.lucky-batch__row { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: center; gap: 10px; }
+.lucky-batch__hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: #64748b; min-height: 1.1em; }
+.lucky-batch__stepper { display: inline-flex; align-items: stretch; border-radius: 12px; overflow: hidden; border: 1px solid rgba(139, 92, 255, 0.4); background: rgba(10, 6, 18, 0.55); }
+.lucky-batch__step { width: 32px; border: none; background: transparent; color: var(--color-neon-cyan, #18e0ff); font-size: 1.05rem; font-weight: 800; cursor: pointer; }
+.lucky-batch__step:hover { background: rgba(24, 224, 255, 0.12); }
+.lucky-batch__step:disabled { opacity: 0.35; cursor: not-allowed; }
+#lucky-count { width: 44px; border: none; background: transparent; color: #f1f5f9; font-weight: 800; font-size: 0.95rem; text-align: center; font-variant-numeric: tabular-nums; outline: none; -moz-appearance: textfield; appearance: textfield; }
+#lucky-count::-webkit-outer-spin-button,
+#lucky-count::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
 .basket-wrap { margin-top: 4px; }
-.basket-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--color-neon-violet, #8b5cff) transparent; }
-.basket-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 10px; background: rgba(10, 6, 18, 0.5); }
-.basket-list .ball { width: 26px; height: 26px; font-size: 0.78rem; }
-.basket-remove { border: none; background: transparent; color: #64748b; cursor: pointer; font-size: 1rem; padding: 2px 6px; }
+.basket-list li { position: relative; }
+.basket-remove { position: absolute; top: 2px; right: 2px; border: none; background: transparent; color: #64748b; cursor: pointer; font-size: 0.92rem; padding: 2px 6px; line-height: 1; }
 .basket-remove:hover { color: var(--color-neon-magenta, #ff2bd6); }
 .basket-total { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
 #basket-total-label { color: var(--color-neon-gold, #ffcf4d); font-weight: 800; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
@@ -225,6 +240,13 @@
 .ticket-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px; border-radius: 10px; background: rgba(10, 6, 18, 0.5); }
 .ticket-list .ball { width: 26px; height: 26px; font-size: 0.78rem; }
 .ticket-list li.is-winner { border: 1px solid rgba(255, 207, 77, 0.5); background: rgba(60, 42, 5, 0.35); }
+.ticket-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); gap: 8px; max-height: 360px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--color-neon-violet, #8b5cff) transparent; }
+.ticket-grid li { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 8px 10px; border-radius: 10px; background: rgba(10, 6, 18, 0.5); }
+.ticket-grid .ball-row { gap: 5px; }
+.ticket-grid .ball { width: 26px; height: 26px; font-size: 0.78rem; }
+.ticket-grid li.is-winner { border: 1px solid rgba(255, 207, 77, 0.5); background: rgba(60, 42, 5, 0.35); }
+.ticket-grid .ticket-result { text-align: center; white-space: normal; }
+.ticket-grid .ticket-empty { grid-column: 1 / -1; padding: 14px 9px; }
 .ticket-result { font-size: 0.76rem; color: #94a3b8; text-align: right; white-space: nowrap; }
 .ticket-result.is-hitting { color: #00ff5e; font-weight: 800; text-shadow: 0 0 8px rgba(0, 255, 94, 0.5); }
 .ticket-result .win-amount { color: var(--color-neon-gold, #ffcf4d); font-weight: 800; display: block; }

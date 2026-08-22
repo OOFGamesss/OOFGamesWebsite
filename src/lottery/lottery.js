@@ -20,6 +20,8 @@ const POLL_IDLE_MS = 60_000;
 const POLL_HOT_MS = 10_000;
 const POLL_LIVE_MS = 6_000;
 const MAIN_COUNT = 4;
+const BASKET_LIMIT = 50;
+const SORT_BEST_KEY = 'oof-lottery-sort-best';
 
 const $ = (id) => document.getElementById(id);
 
@@ -118,6 +120,7 @@ function ballRow(mains, bonus, drawn = null) {
 const state = {
   current: null,
   signedIn: false,
+  available: null,
   pickedMains: new Set(),
   pickedBonus: null,
   basket: [],
@@ -132,7 +135,8 @@ const state = {
   winnerPopupDismissed: null,
   winnerPopupTimer: null,
   winnerPopupWaiter: null,
-  machineResetTimer: null
+  machineResetTimer: null,
+  sortBest: true
 };
 
 
@@ -374,7 +378,14 @@ function renderPickers() {
     });
     bonus.appendChild(button);
   }
-  $('add-line').disabled = !(state.pickedMains.size === MAIN_COUNT && state.pickedBonus !== null);
+  syncAddLine();
+}
+
+function syncAddLine() {
+  const add = $('add-line');
+  if (!add) return;
+  add.disabled = !(state.pickedMains.size === MAIN_COUNT && state.pickedBonus !== null)
+    || basketRoom() <= 0;
 }
 
 function toggleMain(number) {
@@ -384,26 +395,124 @@ function toggleMain(number) {
   renderPickers();
 }
 
-function pickForMe() {
+function randomLine() {
   const pool = Array.from({ length: 15 }, (_, i) => i + 1);
   for (let i = pool.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  state.pickedMains = new Set(pool.slice(0, MAIN_COUNT));
-  state.pickedBonus = 1 + Math.floor(Math.random() * 5);
+  return {
+    main_numbers: pool.slice(0, MAIN_COUNT).sort((a, b) => a - b),
+    bonus_number: 1 + Math.floor(Math.random() * 5)
+  };
+}
+
+function pickForMe() {
+  const line = randomLine();
+  state.pickedMains = new Set(line.main_numbers);
+  state.pickedBonus = line.bonus_number;
   lotteryAudio.shuffle();
   renderPickers();
 }
 
+function ticketPrice() {
+  return state.current?.ticket_price || 100_000;
+}
+
+function affordableTickets() {
+  if (typeof state.available !== 'number') return null;
+  const price = ticketPrice();
+  if (price <= 0) return BASKET_LIMIT;
+  return Math.floor(state.available / price);
+}
+
+function basketCap() {
+  const affordable = affordableTickets();
+  if (affordable === null) return BASKET_LIMIT;
+  return Math.min(BASKET_LIMIT, Math.max(0, affordable));
+}
+
+function basketRoom() {
+  return Math.max(0, basketCap() - state.basket.length);
+}
+
+function basketFullMessage() {
+  const affordable = affordableTickets();
+  const price = gil(ticketPrice());
+  if (affordable !== null && affordable <= state.basket.length) {
+    if (affordable <= 0) return `Not enough gil - each ticket costs ${price}.`;
+    return `That's all your balance covers (${affordable} ticket${affordable === 1 ? '' : 's'} at ${price} each).`;
+  }
+  return `Basket is full (${BASKET_LIMIT} tickets max per purchase).`;
+}
+
+function enforceBasketCap() {
+  const cap = basketCap();
+  if (state.basket.length <= cap) return false;
+  state.basket.length = cap;
+  return true;
+}
+
+function luckyCountValue() {
+  const raw = Number.parseInt($('lucky-count').value, 10);
+  return Number.isFinite(raw) ? raw : 1;
+}
+
+function syncLuckyBatch() {
+  const input = $('lucky-count');
+  const room = basketRoom();
+  const max = Math.max(1, room);
+  const value = Math.min(Math.max(1, luckyCountValue()), max);
+  input.max = String(max);
+  input.value = String(value);
+  $('lucky-minus').disabled = value <= 1;
+  $('lucky-plus').disabled = value >= max || room === 0;
+  $('lucky-batch').disabled = room === 0;
+  $('lucky-batch').textContent = value === 1 ? 'Add 1 to basket' : `Add ${value} to basket`;
+  const hint = $('lucky-afford-hint');
+  if (!hint) return;
+  const affordable = affordableTickets();
+  if (affordable === null) {
+    hint.textContent = '';
+    return;
+  }
+  if (affordable <= 0) hint.textContent = `Need ${gil(ticketPrice())} per ticket`;
+  else if (affordable < BASKET_LIMIT) hint.textContent = `Your balance covers ${affordable} ticket${affordable === 1 ? '' : 's'}`;
+  else hint.textContent = `Up to ${BASKET_LIMIT} tickets per purchase`;
+}
+
+function stepLuckyCount(delta) {
+  const before = luckyCountValue();
+  $('lucky-count').value = String(before + delta);
+  syncLuckyBatch();
+  if (luckyCountValue() !== before) lotteryAudio.click();
+}
+
+function addLuckyDips() {
+  syncLuckyBatch();
+  const count = Math.min(luckyCountValue(), basketRoom());
+  if (count <= 0) {
+    setBuyStatus(basketFullMessage(), 'error');
+    return;
+  }
+  for (let i = 0; i < count; i += 1) state.basket.push(randomLine());
+  lotteryAudio.shuffle();
+  renderBasket();
+}
+
 function addLine() {
   if (state.pickedMains.size !== MAIN_COUNT || state.pickedBonus === null) return;
+  if (basketRoom() <= 0) {
+    setBuyStatus(basketFullMessage(), 'error');
+    return;
+  }
   state.basket.push({
     main_numbers: [...state.pickedMains].sort((a, b) => a - b),
     bonus_number: state.pickedBonus
   });
   state.pickedMains = new Set();
   state.pickedBonus = null;
+  lotteryAudio.click();
   renderPickers();
   renderBasket();
 }
@@ -428,6 +537,8 @@ function renderBasket() {
   });
   const total = state.basket.length * (state.current?.ticket_price ?? 0);
   $('basket-total-label').textContent = `Total: ${gil(total)} (${state.basket.length} ticket${state.basket.length === 1 ? '' : 's'})`;
+  syncLuckyBatch();
+  syncAddLine();
 }
 
 function setBuyStatus(message, kind = '') {
@@ -478,11 +589,19 @@ async function buyBasket() {
     return;
   }
   const count = result.data.tickets.length;
+  const spent = count * ticketPrice();
+  const available = asGil(result.data.available)
+    ?? (typeof state.available === 'number' ? Math.max(0, state.available - spent) : null);
+  const balance = asGil(result.data.balance) ?? available;
+  if (available != null || balance != null) {
+    announceWallet({ available, balance });
+  }
   setBuyStatus('');
   lotteryAudio.purchase();
   showPurchaseToast(result.data.tickets);
   state.basket = [];
   renderBasket();
+  renderPickers();
   state.current.pot = result.data.pot;
   state.current.ticket_count += count;
   renderHeader();
@@ -498,14 +617,108 @@ function renderBuyPanel() {
   $('buy-hint').textContent = open ? '' : 'Sales closed';
 }
 
-function setSignedIn(signedIn) {
-  if (state.signedIn === signedIn) return;
-  state.signedIn = signedIn;
-  renderBuyPanel();
-  $('my-tickets-panel').classList.toggle('hidden', !signedIn);
-  if (signedIn) loadMyTickets();
+function setWallet(wallet) {
+  const signedIn = Boolean(wallet);
+  if (signedIn && typeof wallet === 'object') {
+    const raw = asGil(wallet.available) ?? asGil(wallet.balance);
+    if (raw != null) state.available = raw;
+  } else if (!signedIn) {
+    state.available = null;
+  }
+  if (state.signedIn !== signedIn) {
+    state.signedIn = signedIn;
+    renderBuyPanel();
+    $('my-tickets-panel').classList.toggle('hidden', !signedIn);
+    if (signedIn) loadMyTickets();
+  }
+  if (enforceBasketCap()) {
+    setBuyStatus(basketFullMessage(), 'error');
+    renderBasket();
+  } else {
+    syncLuckyBatch();
+  }
+  syncAddLine();
 }
 
+function asGil(value) {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function announceWallet(partial) {
+  window.dispatchEvent(new CustomEvent('oof-wallet-changed', { detail: partial }));
+}
+
+async function refreshWallet() {
+  if (!state.signedIn) return;
+  const wallet = await walletClient.getWallet();
+  if (wallet.ok) announceWallet(wallet.data);
+}
+
+function setSignedIn(signedIn) {
+  if (!signedIn) setWallet(null);
+}
+
+
+function livePrizeValue(mainsHit, bonusHit) {
+  if (mainsHit >= 4 && bonusHit) {
+    const pot = state.current?.pot;
+    return typeof pot === 'number' ? pot + 1 : Number.MAX_SAFE_INTEGER;
+  }
+  const tier = mainsHit >= 4 ? 1
+    : mainsHit === 3 && bonusHit ? 2
+    : mainsHit === 3 ? 3
+    : mainsHit === 2 && bonusHit ? 4
+    : null;
+  if (tier === null) return 0;
+  const row = state.current?.prize_tiers?.find((item) => item.tier === tier);
+  return typeof row?.amount === 'number' ? row.amount : 0;
+}
+
+function ticketPotential(ticket, drawn) {
+  const mainsHit = drawn
+    ? ticket.main_numbers.filter((number) => drawn.mains.includes(number)).length
+    : 0;
+  const bonusHit = drawn && drawn.bonus === ticket.bonus_number ? 1 : 0;
+  const value = (ticket.prize_amount ?? 0) > 0
+    ? ticket.prize_amount
+    : livePrizeValue(mainsHit, bonusHit);
+  return { hits: mainsHit + bonusHit, value, mainsHit, bonusHit };
+}
+
+function sortedTickets(tickets, drawn) {
+  return [...tickets].sort((left, right) => {
+    const a = ticketPotential(left, drawn);
+    const b = ticketPotential(right, drawn);
+    return (b.hits - a.hits) || (b.value - a.value) || (b.mainsHit - a.mainsHit) || (b.bonusHit - a.bonusHit);
+  });
+}
+
+function ticketsForDisplay(tickets, drawn) {
+  return state.sortBest ? sortedTickets(tickets, drawn) : tickets;
+}
+
+function readSortBest() {
+  try {
+    const stored = localStorage.getItem(SORT_BEST_KEY);
+    if (stored === null) return true;
+    return stored === '1';
+  } catch {
+    return true;
+  }
+}
+
+function setSortBest(sortBest) {
+  state.sortBest = Boolean(sortBest);
+  try {
+    localStorage.setItem(SORT_BEST_KEY, state.sortBest ? '1' : '0');
+  } catch {}
+  $('sort-best').classList.toggle('is-active', state.sortBest);
+  $('sort-bought').classList.toggle('is-active', !state.sortBest);
+  $('sort-best').setAttribute('aria-pressed', String(state.sortBest));
+  $('sort-bought').setAttribute('aria-pressed', String(!state.sortBest));
+  if (state.signedIn) renderMyCurrent();
+}
 
 function ticketItem(ticket, drawn) {
   const item = el('li');
@@ -513,14 +726,11 @@ function ticketItem(ticket, drawn) {
   item.appendChild(ballRow(ticket.main_numbers, ticket.bonus_number, drawn));
   const result = el('span', 'ticket-result');
   if (ticket.prize_tier === null) {
-    if (drawn) {
-      const hits = ticket.main_numbers.filter((n) => drawn.mains.includes(n)).length
-        + (drawn.bonus === ticket.bonus_number ? 1 : 0);
-      result.textContent = hits > 0 ? `${hits} ball${hits === 1 ? '' : 's'} hit!` : 'No hits yet';
-      if (hits > 0) result.classList.add('is-hitting');
-    } else {
-      result.textContent = `Draw #${ticket.draw_id}`;
-    }
+    if (!drawn) return item;
+    const hits = ticket.main_numbers.filter((n) => drawn.mains.includes(n)).length
+      + (drawn.bonus === ticket.bonus_number ? 1 : 0);
+    result.textContent = hits > 0 ? `${hits} ball${hits === 1 ? '' : 's'} hit!` : 'No hits yet';
+    if (hits > 0) result.classList.add('is-hitting');
   } else if ((ticket.prize_amount ?? 0) > 0) {
     const labels = { 0: 'JACKPOT!', 1: 'Match 4', 2: 'Match 3 + Bonus', 3: 'Match 3', 4: 'Match 2 + Bonus' };
     result.appendChild(el('span', '', labels[ticket.prize_tier] || 'Winner'));
@@ -550,7 +760,9 @@ function renderMyCurrent() {
     return;
   }
   const drawn = currentDrawnInfo();
-  for (const ticket of state.myCurrent) currentList.appendChild(ticketItem(ticket, drawn));
+  for (const ticket of ticketsForDisplay(state.myCurrent, drawn)) {
+    currentList.appendChild(ticketItem(ticket, drawn));
+  }
 }
 
 async function loadMyTickets() {
@@ -561,7 +773,7 @@ async function loadMyTickets() {
   }
   state.myCurrent = result.data.current;
   renderMyCurrent();
-  $('my-tickets-hint').textContent = `${result.data.current.length} in this draw`;
+  $('my-tickets-hint').textContent = String(result.data.current.length);
   state.myTicketsByDraw = new Map();
   for (const ticket of result.data.past) {
     const bucket = state.myTicketsByDraw.get(ticket.draw_id) || [];
@@ -707,7 +919,7 @@ function historyDetails(draw) {
   } else {
     body.appendChild(el('p', 'picker-caption', `Your tickets (${mine.length})`));
     const mineList = el('ul', 'ticket-list');
-    for (const ticket of mine) mineList.appendChild(ticketItem(ticket, drawn));
+    for (const ticket of ticketsForDisplay(mine, drawn)) mineList.appendChild(ticketItem(ticket, drawn));
     body.appendChild(mineList);
   }
   return body;
@@ -989,6 +1201,8 @@ async function refreshCurrent() {
   renderHeader();
   renderPrizes();
   renderBuyPanel();
+  syncLuckyBatch();
+  syncAddLine();
   const newResultId = result.data.previous_result?.draw_id ?? null;
   const settledTransition = !isFirstLoad && newResultId !== null && newResultId !== hadResultId;
   syncMachine(result.data, settledTransition);
@@ -998,7 +1212,10 @@ async function refreshCurrent() {
     state.winnersByDraw.delete(newResultId);
     loadHistory();
     lotteryClient.getStats().then((stats) => stats.ok && renderStats(stats.data));
-    if (state.signedIn) loadMyTickets();
+    if (state.signedIn) {
+      loadMyTickets();
+      refreshWallet();
+    }
   }
   maybeShowWinnerPopup();
   schedulePoll();
@@ -1057,7 +1274,20 @@ async function boot() {
   renderPickers();
   renderBasket();
 
+  $('sort-best').addEventListener('click', () => setSortBest(true));
+  $('sort-bought').addEventListener('click', () => setSortBest(false));
+  setSortBest(readSortBest());
   $('lucky-dip').addEventListener('click', pickForMe);
+  $('lucky-minus').addEventListener('click', () => stepLuckyCount(-1));
+  $('lucky-plus').addEventListener('click', () => stepLuckyCount(1));
+  $('lucky-count').addEventListener('change', syncLuckyBatch);
+  $('lucky-count').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addLuckyDips();
+    }
+  });
+  $('lucky-batch').addEventListener('click', addLuckyDips);
   $('add-line').addEventListener('click', addLine);
   $('buy-button').addEventListener('click', buyBasket);
   $('history-more').addEventListener('click', () => {
@@ -1093,10 +1323,13 @@ async function boot() {
   $('signin-button').addEventListener('click', () =>
     openLoginModal({
       intro: 'Sign in with your OOF account token to buy lottery tickets.',
-      onSuccess: () => setSignedIn(true)
+      onSuccess: (wallet) => setWallet(wallet)
     })
   );
-  window.addEventListener('oof-wallet-changed', (event) => setSignedIn(Boolean(event.detail)));
+  window.addEventListener('oof-wallet-changed', (event) => setWallet(event.detail));
+  window.addEventListener('oof-wallet-live', (event) => {
+    if (event.detail) setWallet(event.detail);
+  });
 
   renderHosts(null);
   getLotteryHosts().then(renderHosts);
@@ -1117,7 +1350,8 @@ async function boot() {
   if (stats.ok) renderStats(stats.data);
   if (hasRecentSession()) {
     const wallet = await walletClient.getWallet();
-    setSignedIn(wallet.ok);
+    if (wallet.ok) announceWallet(wallet.data);
+    else setWallet(null);
   }
 }
 

@@ -89,11 +89,16 @@
 
           <section id="my-tickets-panel" class="panel hidden">
             <div class="card-head">
-              <h2>My Tickets</h2>
-              <span id="my-tickets-hint" class="card-head__hint"></span>
+              <h2>My Tickets - <span id="my-tickets-hint">0</span></h2>
+              <div class="card-head__actions">
+                <div class="sort-toggle" role="group" aria-label="Ticket order">
+                  <button type="button" id="sort-bought" class="sort-toggle__btn">As bought</button>
+                  <button type="button" id="sort-best" class="sort-toggle__btn">Best first</button>
+                </div>
+              </div>
             </div>
             <div class="my-tickets-body">
-              <ul id="my-current" class="ticket-list"></ul>
+              <ul id="my-current" class="ticket-grid"></ul>
               <p class="my-tickets-note">Tickets from previous draws are inside <button id="open-history-inline" type="button" class="link-button">past results</button>.</p>
             </div>
           </section>
@@ -127,9 +132,21 @@
                   <button id="lucky-dip" type="button" class="btn-ghost">🎲 Lucky Dip</button>
                   <button id="add-line" type="button" class="btn-primary btn-sm" disabled>Add ticket</button>
                 </div>
+                <div class="lucky-batch">
+                  <p class="picker-caption lucky-batch__caption">Or add several lucky dips</p>
+                  <div class="lucky-batch__row">
+                    <div class="lucky-batch__stepper">
+                      <button type="button" id="lucky-minus" class="lucky-batch__step" aria-label="Fewer lucky dips">−</button>
+                      <input id="lucky-count" type="number" min="1" max="50" value="5" inputmode="numeric" aria-label="Number of lucky dip tickets" />
+                      <button type="button" id="lucky-plus" class="lucky-batch__step" aria-label="More lucky dips">+</button>
+                    </div>
+                    <button id="lucky-batch" type="button" class="btn-ghost">Add 5 to basket</button>
+                  </div>
+                  <p id="lucky-afford-hint" class="lucky-batch__hint"></p>
+                </div>
                 <div id="basket-wrap" class="basket-wrap hidden">
                   <p class="picker-caption">Your ticket basket</p>
-                  <ul id="basket" class="basket-list"></ul>
+                  <ul id="basket" class="ticket-grid basket-list"></ul>
                   <div class="basket-total">
                     <span id="basket-total-label">Total: 0 gil</span>
                     <button id="buy-button" type="button" class="btn-primary btn-sm">Buy tickets</button>

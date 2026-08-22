@@ -67,6 +67,28 @@
     }
   }
 
+  [data-account-pill] .account-pill__gil {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-neon-gold, #ffcf4d);
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+  }
+
+  [data-account-pill] .account-pill__gil.is-up {
+    color: var(--color-neon-green, #00d44a);
+    text-shadow: 0 0 14px rgba(0, 212, 74, 0.45);
+  }
+
+  [data-account-pill] .account-pill__gil.is-down {
+    color: var(--color-neon-magenta, #ff2bd6);
+    text-shadow: 0 0 14px rgba(255, 43, 214, 0.4);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-account-pill] .account-pill__gil {
+      transition: none;
+    }
+  }
+
   .neon-select option {
     background-color: var(--color-night-panel);
     color: var(--color-slate-100, #f1f5f9);

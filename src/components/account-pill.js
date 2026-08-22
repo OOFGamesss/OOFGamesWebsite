@@ -15,6 +15,24 @@ function el(tag, className = '', text = '') {
   return node;
 }
 
+function fmtGil(n) {
+  return `${Number(n || 0).toLocaleString('en-GB')} Gil`;
+}
+
+function asAmount(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.floor(value);
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(/,/g, ''));
+    if (Number.isFinite(parsed)) return Math.floor(parsed);
+  }
+  return undefined;
+}
+
+function parseGilText(text) {
+  const digits = String(text ?? '').replace(/\D/g, '');
+  return digits ? Number(digits) : null;
+}
+
 function readCache() {
   try {
     const raw = sessionStorage.getItem(CACHE_KEY);
@@ -23,6 +41,20 @@ function readCache() {
   } catch {
     return undefined;
   }
+}
+
+function mergeWallet(incoming) {
+  if (!incoming) return null;
+  const prev = readCache() || {};
+  const balance = asAmount(incoming.balance) ?? asAmount(prev.balance);
+  const available =
+    asAmount(incoming.available) ?? asAmount(incoming.balance) ?? asAmount(prev.available) ?? balance;
+  return {
+    name: incoming.name ?? prev.name,
+    world: incoming.world ?? prev.world,
+    balance: balance ?? available,
+    available: available ?? balance
+  };
 }
 
 function writeCache(wallet) {
@@ -60,6 +92,11 @@ function mountPill() {
 
   let disconnect = null;
   let signedIn = false;
+  let displayedGil = null;
+  let gilAnim = null;
+  let gilNode = null;
+  let identityNode = null;
+  let refreshId = 0;
 
   link.addEventListener('click', (event) => {
     if (signedIn || onAccountPage) return;
@@ -67,31 +104,95 @@ function mountPill() {
     openLoginModal();
   });
 
-  const render = (wallet) => {
-    signedIn = Boolean(wallet);
+  const cancelGilAnim = () => {
+    if (gilAnim) {
+      cancelAnimationFrame(gilAnim);
+      gilAnim = null;
+    }
+  };
+
+  const setGilInstant = (value) => {
+    cancelGilAnim();
+    displayedGil = value;
+    if (gilNode) {
+      gilNode.textContent = fmtGil(value);
+      gilNode.classList.remove('is-up', 'is-down');
+    }
+  };
+
+  const animateGil = (to) => {
+    if (!gilNode) return;
+    const target = Math.max(0, Math.floor(Number(to) || 0));
+    const from = displayedGil ?? parseGilText(gilNode.textContent);
+    if (from == null || from === target) {
+      setGilInstant(target);
+      return;
+    }
+
+    cancelGilAnim();
+    const start = performance.now();
+    const delta = target - from;
+    const dur = Math.min(1100, Math.max(450, 380 + Math.log10(Math.abs(delta) + 1) * 160));
+    gilNode.classList.toggle('is-up', delta > 0);
+    gilNode.classList.toggle('is-down', delta < 0);
+
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - (1 - t) ** 3;
+      const cur = Math.round(from + delta * eased);
+      displayedGil = cur;
+      gilNode.textContent = fmtGil(cur);
+      if (t < 1) {
+        gilAnim = requestAnimationFrame(tick);
+        return;
+      }
+      displayedGil = target;
+      gilNode.textContent = fmtGil(target);
+      gilNode.classList.remove('is-up', 'is-down');
+      gilAnim = null;
+    };
+    gilAnim = requestAnimationFrame(tick);
+  };
+
+  const paintSignedOut = () => {
+    cancelGilAnim();
+    displayedGil = null;
+    gilNode = null;
+    identityNode = null;
     while (link.firstChild) link.removeChild(link.firstChild);
     link.appendChild(el('span', 'text-base leading-none', '💰'));
-    if (!wallet) {
-      link.appendChild(el('span', 'text-sm font-semibold text-slate-200', 'Sign in'));
-    } else {
+    link.appendChild(el('span', 'text-sm font-semibold text-slate-200', 'Sign in'));
+  };
+
+  const paintSignedIn = (wallet) => {
+    if (!gilNode) {
+      while (link.firstChild) link.removeChild(link.firstChild);
+      link.appendChild(el('span', 'text-base leading-none', '💰'));
       const details = el('span', 'flex flex-col items-start leading-tight');
-      details.appendChild(el('span', 'text-[11px] text-slate-400', `${wallet.name} · ${wallet.world}`));
-      details.appendChild(
-        el(
-          'span',
-          'text-sm font-bold text-neon-gold',
-          `${(wallet.available ?? wallet.balance).toLocaleString('en-GB')} Gil`
-        )
-      );
+      identityNode = el('span', 'text-[11px] text-slate-400');
+      gilNode = el('span', 'account-pill__gil text-sm font-bold');
+      details.appendChild(identityNode);
+      details.appendChild(gilNode);
       link.appendChild(details);
     }
+    const identity = [wallet.name, wallet.world].filter(Boolean).join(' · ');
+    if (identity) identityNode.textContent = identity;
+    animateGil(asAmount(wallet.available) ?? asAmount(wallet.balance) ?? 0);
+  };
+
+  const render = (wallet) => {
+    signedIn = Boolean(wallet);
+    if (!wallet) paintSignedOut();
+    else paintSignedIn(wallet);
     link.classList.remove('invisible');
   };
 
   const onLiveWallet = (wallet) => {
-    render(wallet);
-    writeCache(wallet);
-    window.dispatchEvent(new CustomEvent('oof-wallet-live', { detail: wallet }));
+    refreshId += 1;
+    const merged = mergeWallet(wallet);
+    render(merged);
+    writeCache(merged);
+    window.dispatchEvent(new CustomEvent('oof-wallet-live', { detail: merged }));
   };
 
   const startLive = () => {
@@ -106,7 +207,9 @@ function mountPill() {
   };
 
   const refresh = async () => {
+    const id = refreshId;
     const result = await walletClient.getWallet();
+    if (id !== refreshId) return;
     if (result.ok) {
       render(result.data);
       writeCache(result.data);
@@ -135,9 +238,11 @@ function mountPill() {
     }
   });
   window.addEventListener('oof-wallet-changed', (event) => {
-    render(event.detail);
-    writeCache(event.detail);
-    if (event.detail) startLive();
+    refreshId += 1;
+    const next = event.detail ? mergeWallet(event.detail) : null;
+    render(next);
+    writeCache(next);
+    if (next) startLive();
     else stopLive();
   });
 }
