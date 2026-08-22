@@ -98,7 +98,9 @@
 .prize-table td { padding: 8px 10px; border-bottom: 1px solid rgba(139, 92, 255, 0.12); color: #e2e8f0; }
 .prize-table tr:last-child td { border-bottom: none; }
 .prize-table th:last-child,
-.prize-table td:last-child { text-align: right; }
+.prize-table td:last-child { text-align: right; padding-right: 31px; }
+.prize-table td:last-child { position: relative; }
+.prize-table td:last-child .infotip { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin-left: 0; }
 .prize-table .prize-amount { color: var(--color-neon-gold, #ffcf4d); font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .prize-table .prize-jackpot { color: var(--color-neon-magenta, #ff2bd6); font-weight: 900; }
 
