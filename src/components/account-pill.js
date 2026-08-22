@@ -52,7 +52,7 @@ function mountPill() {
 
   const link = el(
     'a',
-    'fixed right-4 top-4 z-50 flex items-center gap-3 rounded-full border border-neon-violet/40 bg-night-deep/85 px-4 py-2 shadow-lg shadow-night-deep/50 backdrop-blur transition hover:border-neon-cyan invisible'
+    'fixed right-4 top-4 z-50 flex items-center gap-3 rounded-full border border-neon-violet/40 bg-night-deep/92 px-4 py-2 shadow-lg shadow-night-deep/50 transition hover:border-neon-cyan invisible'
   );
   link.href = '/account/';
   link.setAttribute('aria-label', 'OOF Games wallet');

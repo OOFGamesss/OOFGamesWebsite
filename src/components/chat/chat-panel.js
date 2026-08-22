@@ -151,6 +151,7 @@ export function mountChat({
     if (isOpen && state.blocked) return;
     state.open = isOpen;
     root.classList.toggle('oof-chat--open', isOpen);
+    document.body.classList.toggle('oof-chat-pushed', isOpen);
     handle.setAttribute('aria-expanded', String(isOpen));
     if (persist) writeOpen(isOpen);
     if (isOpen) {
@@ -493,6 +494,7 @@ export function mountChat({
           state.socket.close();
         } catch {}
       }
+      document.body.classList.remove('oof-chat-pushed');
       root.remove();
     }
   };

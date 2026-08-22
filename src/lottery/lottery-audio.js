@@ -1,8 +1,6 @@
+import { getAudioSettings, onAudioChange } from '../components/audio-settings.js';
+
 const THEME_SRC = '/game-assets/lottery/audio/theme.mp3';
-const LS_MUSIC_ON = 'lot_music_on';
-const LS_SFX_ON = 'lot_sfx_on';
-const LS_MUSIC_VOL = 'lot_music_vol';
-const LS_SFX_VOL = 'lot_sfx_vol';
 
 const THEME_BASE = 0.7;
 const THEME_FADE_MS = 1400;
@@ -12,30 +10,6 @@ const MACHINE_TAIL_MS = 2200;
 const SFX_TRIM = 3.2;
 const BED_TRIM = 1.1;
 const LOCK_RATIOS = [1, 1.1225, 1.2599, 1.4142];
-
-function loadBool(key, fallback) {
-  try {
-    const value = localStorage.getItem(key);
-    return value === null ? fallback : value === '1';
-  } catch {
-    return fallback;
-  }
-}
-
-function loadVol(key) {
-  try {
-    const value = parseFloat(localStorage.getItem(key));
-    return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0.5;
-  } catch {
-    return 0.5;
-  }
-}
-
-function save(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {}
-}
 
 function now() {
   return (typeof performance !== 'undefined' ? performance : Date).now();
@@ -56,12 +30,12 @@ function envelope(param, t0, attack, dur, peak) {
 }
 
 const audio = {
-  musicOn: loadBool(LS_MUSIC_ON, true),
-  sfxOn: loadBool(LS_SFX_ON, true),
-  musicVol: loadVol(LS_MUSIC_VOL),
-  sfxVol: loadVol(LS_SFX_VOL),
+  get musicOn() { return getAudioSettings().musicOn; },
+  get sfxOn() { return getAudioSettings().sfxOn; },
+  get musicVol() { return getAudioSettings().musicVol; },
+  get sfxVol() { return getAudioSettings().sfxVol; },
   unlocked: false,
-  onChange: null,
+  musicWas: null,
 
   ctx: null,
   sfxGain: null,
@@ -564,45 +538,26 @@ const audio = {
     this.bedGain.gain.setTargetAtTime(level * BED_TRIM, this.ctx.currentTime, 0.05);
   },
 
-  toggleMusic() {
-    this.musicOn = !this.musicOn;
-    save(LS_MUSIC_ON, this.musicOn ? '1' : '0');
+  syncSettings() {
     this.unlock();
-    if (this.musicOn && this.themeWanted) this.fadeThemeIn();
-    if (!this.musicOn) {
-      this.cancelThemeFade();
-      this.themeMix = 0;
-      if (this.themeEl) {
-        this.themeEl.volume = 0;
-        this.themeEl.pause();
+    const musicOn = this.musicOn;
+    if (musicOn !== this.musicWas) {
+      this.musicWas = musicOn;
+      if (musicOn && this.themeWanted) this.fadeThemeIn();
+      if (!musicOn) {
+        this.cancelThemeFade();
+        this.themeMix = 0;
+        if (this.themeEl) {
+          this.themeEl.volume = 0;
+          this.themeEl.pause();
+        }
       }
     }
-    if (this.onChange) this.onChange();
-  },
-
-  toggleSfx() {
-    this.sfxOn = !this.sfxOn;
-    save(LS_SFX_ON, this.sfxOn ? '1' : '0');
-    this.unlock();
-    this.applySfxVolume();
-    if (this.onChange) this.onChange();
-  },
-
-  setMusicVolume(value) {
-    this.musicVol = Math.min(1, Math.max(0, value));
-    save(LS_MUSIC_VOL, String(this.musicVol));
-    this.unlock();
     if (this.themeEl) this.themeEl.volume = THEME_BASE * this.musicVol * this.themeMix;
-    if (this.onChange) this.onChange();
-  },
-
-  setSfxVolume(value) {
-    this.sfxVol = Math.min(1, Math.max(0, value));
-    save(LS_SFX_VOL, String(this.sfxVol));
-    this.unlock();
     this.applySfxVolume();
-    if (this.onChange) this.onChange();
   }
 };
+
+onAudioChange(() => audio.syncSettings());
 
 export default audio;

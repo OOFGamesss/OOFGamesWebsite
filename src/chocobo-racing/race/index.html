@@ -150,22 +150,6 @@
             <div id="track-status" class="track-status hidden"><span class="track-status__text">-</span></div>
             <div id="podium-overlay" class="podium-overlay hidden"></div>
             <div id="countdown" class="countdown hidden" aria-hidden="true"></div>
-            <div class="track-audio">
-              <div class="track-audio__row">
-                <button id="toggle-music" type="button" class="audio-btn" aria-pressed="true" title="Music">
-                  <span class="audio-btn__on" aria-hidden="true">♪</span>
-                  <span class="audio-btn__off" aria-hidden="true">♪</span>
-                </button>
-                <input id="vol-music" class="audio-vol" type="range" min="0" max="100" value="50" aria-label="Music volume" />
-              </div>
-              <div class="track-audio__row">
-                <button id="toggle-sfx" type="button" class="audio-btn" aria-pressed="true" title="Sound effects">
-                  <span class="audio-btn__on" aria-hidden="true">🔊</span>
-                  <span class="audio-btn__off" aria-hidden="true">🔈</span>
-                </button>
-                <input id="vol-sfx" class="audio-vol" type="range" min="0" max="100" value="50" aria-label="Sound effects volume" />
-              </div>
-            </div>
           </div>
         </section>
 
@@ -290,7 +274,7 @@
       </div>
     </div>
 
-    <script type="module" src="/components/console-guard.js"></script><script type="module" src="/components/neon-background.js"></script>
+    <script type="module" src="/components/console-guard.js"></script><script type="module" src="/components/neon-background.js"></script><script type="module" src="/components/settings-panel.js"></script>
     <script type="module" src="/components/discord-widget.js"></script>
     <script type="module" src="./race.js"></script>
   </body>

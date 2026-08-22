@@ -1,5 +1,8 @@
-.oof-chat {
+:root {
   --oof-chat-width: 340px;
+}
+
+.oof-chat {
   --oof-chat-bg: rgba(20, 10, 38, 0.94);
   --oof-chat-panel: rgba(29, 18, 53, 0.9);
   --oof-chat-border: rgba(139, 92, 255, 0.35);
@@ -41,7 +44,6 @@
   writing-mode: vertical-rl;
   cursor: pointer;
   pointer-events: auto;
-  backdrop-filter: blur(6px);
   transition: border-color 0.2s ease, color 0.2s ease;
 }
 
@@ -80,7 +82,6 @@
   border-left: 1px solid var(--oof-chat-border);
   background: var(--oof-chat-bg);
   color: var(--oof-chat-text);
-  backdrop-filter: blur(10px);
   transform: translateX(100%);
   transition: transform 0.25s ease;
   pointer-events: auto;
@@ -399,8 +400,31 @@
   }
 }
 
+body {
+  transition: padding-right 0.25s ease;
+}
+
+[data-discord-widget] {
+  transition-property: right, background-color;
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
+}
+
+@media (min-width: 768px) {
+  body.oof-chat-pushed {
+    padding-right: var(--oof-chat-width);
+  }
+
+  body.oof-chat-pushed [data-discord-widget] {
+    right: calc(1rem + var(--oof-chat-width));
+    max-width: calc(100vw - 2rem - var(--oof-chat-width));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .oof-chat__panel {
+  .oof-chat__panel,
+  body,
+  [data-discord-widget] {
     transition: none;
   }
 }

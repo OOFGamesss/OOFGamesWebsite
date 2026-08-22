@@ -273,33 +273,12 @@ function playResultSting(result) {
   }
 }
 
-function renderAudioControls() {
-  const apply = (button, slider, on, volume, label) => {
-    if (button) {
-      button.classList.toggle('is-off', !on);
-      button.setAttribute('aria-pressed', String(on));
-      button.title = `${label}: ${on ? 'on' : 'off'}`;
-    }
-    if (slider) slider.value = String(Math.round(volume * 100));
-  };
-  apply($('toggle-music'), $('vol-music'), lotteryAudio.musicOn, lotteryAudio.musicVol, 'Music');
-  apply($('toggle-sfx'), $('vol-sfx'), lotteryAudio.sfxOn, lotteryAudio.sfxVol, 'Sound effects');
-}
-
 function wireAudio() {
   lotteryAudio.init();
-  lotteryAudio.onChange = renderAudioControls;
   state.machine.onEvent((type, detail) => {
     const handler = MACHINE_SOUNDS[type];
     if (handler) handler(detail);
   });
-  $('toggle-music').addEventListener('click', () => lotteryAudio.toggleMusic());
-  $('toggle-sfx').addEventListener('click', () => lotteryAudio.toggleSfx());
-  $('vol-music').addEventListener('input', (event) =>
-    lotteryAudio.setMusicVolume(Number(event.target.value) / 100));
-  $('vol-sfx').addEventListener('input', (event) =>
-    lotteryAudio.setSfxVolume(Number(event.target.value) / 100));
-  renderAudioControls();
 }
 
 function drawnOrder(result) {
@@ -516,9 +495,7 @@ function renderBuyPanel() {
   $('buy-closed').classList.toggle('hidden', open);
   $('buy-signin').classList.toggle('hidden', state.signedIn);
   $('buy-form').classList.toggle('hidden', !open || !state.signedIn);
-  $('buy-hint').textContent = open && state.current
-    ? `${gil(state.current.ticket_price)} per ticket`
-    : 'Sales closed';
+  $('buy-hint').textContent = open ? '' : 'Sales closed';
 }
 
 function setSignedIn(signedIn) {

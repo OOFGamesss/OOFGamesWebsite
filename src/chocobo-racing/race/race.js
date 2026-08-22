@@ -158,6 +158,9 @@ let available = 0;
 const selection = new Map();
 let myBets = [];
 let trackSig = '';
+let standingsSig = '';
+let yalmsSuffix = null;
+let yalmsLead = null;
 let venueSig = '';
 let ws = null;
 let reconnectDelay = 1000;
@@ -173,9 +176,11 @@ let placingBet = false;
 
 const RAFFLE_MS_PER_YALM = 1000;
 const RAFFLE_COUNTDOWN_MS = 3000;
+const RAFFLE_RENDER_MS = 33;
 let raffleStartTimer = null;
 let rafflePlan = [];
 let raffleRaf = 0;
+let raffleLastRender = 0;
 let raffleStartTs = 0;
 let raffleDurationMs = 20000;
 let raffleLastPhase = null;
@@ -297,31 +302,61 @@ function ensureTrack(s) {
     return `
       <div class="runner" data-runner="${c.number}" data-lane-top="${laneTop}" data-pack-top="${packTop}"
            style="top:${laneTop}px; --jamp:${jamp}px; --jdur:${jdur}s; --jdelay:${jdelay}s; --janim:${janim}">
-        <span class="runner__label">
-          <span class="runner__num" style="background:${color}">${c.number}</span>
-          <span class="runner__name" style="color:${color}">${escapeHtml(c.name)}</span>
-        </span>
-        <div class="runner__body"><div class="runner__bob">
-          <div class="dust"><span></span><span></span><span></span></div>
-          <div class="runner-sprite" style="--hue:${tint.hue}deg; --sat:${tint.sat}"></div>
-          ${runnerSvg(color)}
-        </div></div>
+        <div class="runner__jostle">
+          <span class="runner__label">
+            <span class="runner__num" style="background:${color}">${c.number}</span>
+            <span class="runner__name" style="color:${color}">${escapeHtml(c.name)}</span>
+          </span>
+          <div class="runner__body"><div class="runner__bob">
+            <div class="dust"><span></span><span></span><span></span></div>
+            <div class="runner-sprite" style="--hue:${tint.hue}deg; --sat:${tint.sat}"></div>
+            ${runnerSvg(color)}
+          </div></div>
+        </div>
       </div>`;
   }).join('');
   fitRunnerNames();
+  measureTrack();
+  watchTrackWidth();
+}
+
+let trackWidth = 0;
+let trackResizeObserver = null;
+
+function measureTrack() {
+  const track = el('track');
+  if (track) trackWidth = track.clientWidth || trackWidth;
+}
+
+function watchTrackWidth() {
+  if (trackResizeObserver || typeof ResizeObserver === 'undefined') return;
+  const track = el('track');
+  if (!track) return;
+  trackResizeObserver = new ResizeObserver(() => {
+    const before = trackWidth;
+    measureTrack();
+    if (trackWidth !== before && currentState) updateRunners(currentState);
+  });
+  trackResizeObserver.observe(track);
 }
 
 function fitRunnerNames() {
   const LABEL_MAX = 88;
-  el('runners-layer').querySelectorAll('.runner__label').forEach((label) => {
-    const name = label.querySelector('.runner__name');
-    if (!name) return;
-    name.style.fontSize = '';
-    let size = 0.9;
-    while (label.scrollWidth > LABEL_MAX && size > 0.55) {
-      size = Math.round((size - 0.05) * 100) / 100;
-      name.style.fontSize = `${size}rem`;
-    }
+  const BASE_REM = 0.9;
+  const labels = [...el('runners-layer').querySelectorAll('.runner__label')];
+  const names = labels.map((label) => label.querySelector('.runner__name'));
+  names.forEach((name) => { if (name) name.style.fontSize = ''; });
+  const measured = labels.map((label, i) => ({
+    label: label.scrollWidth,
+    name: names[i] ? names[i].scrollWidth : 0,
+  }));
+  names.forEach((name, i) => {
+    const { label, name: nameWidth } = measured[i];
+    if (!name || label <= LABEL_MAX || nameWidth <= 0) return;
+    const room = LABEL_MAX - (label - nameWidth);
+    const wanted = room > 0 ? (BASE_REM * room) / nameWidth : 0;
+    const size = Math.max(0.55, Math.min(BASE_REM, Math.floor(wanted * 20) / 20));
+    name.style.fontSize = `${size}rem`;
   });
 }
 
@@ -329,6 +364,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitRunnerN
 
 function updateRunners(s) {
   const track = el('track');
+  if (!trackWidth) measureTrack();
   const racing = s.phase === 'Racing' && !countdownActive;
   track.classList.toggle('is-racing', racing);
   const finish = s.finishLine || 1;
@@ -336,7 +372,7 @@ function updateRunners(s) {
     const r = track.querySelector(`.runner[data-runner="${c.number}"]`);
     if (!r) return;
     const p = countdownActive ? 0 : Math.max(0, Math.min(1, finish ? c.position / finish : 0));
-    r.style.left = `calc((100% - 86px) * ${p} + 6px)`;
+    r.style.transform = `translate3d(${(Math.max(0, trackWidth - 86) * p + 6).toFixed(2)}px, -50%, 0)`;
 
     r.style.top = `${racing ? r.dataset.packTop : r.dataset.laneTop}px`;
     r.classList.toggle('won', s.winningChocobo === c.number);
@@ -372,6 +408,10 @@ function renderStandings(s) {
   const medals = ['podium--1', 'podium--2', 'podium--3'];
   const shown = isRaffle(s) ? order.slice(0, 5) : order;
 
+  const sig = `${s.mode || 'classic'}|` + shown.map((c) => `${c.number}:${c.name}`).join('|');
+  if (sig === standingsSig) { renderYalms(s, order); return; }
+  standingsSig = sig;
+
   standings.innerHTML = shown.map((c, i) => {
     if (i < 3) {
       return `
@@ -390,9 +430,29 @@ function renderStandings(s) {
       </span>`;
   }).join('');
 
+  renderYalms(s, order);
+}
+
+function renderYalms(s, order) {
+  const box = el('yalms');
   const finish = s.finishLine || 0;
-  const lead = order.length ? order[0].position : 0;
-  el('yalms').innerHTML = (!isRaffle(s) && finish) ? `<b>${Math.floor(Math.min(lead, finish))}</b>/${finish} yalms` : '';
+  if (isRaffle(s) || !finish) {
+    if (yalmsSuffix !== null) { box.textContent = ''; yalmsSuffix = null; yalmsLead = null; }
+    return;
+  }
+  const suffix = `/${finish} yalms`;
+  if (suffix !== yalmsSuffix) {
+    yalmsSuffix = suffix;
+    yalmsLead = null;
+    box.textContent = '';
+    box.appendChild(document.createElement('b'));
+    box.appendChild(document.createTextNode(suffix));
+  }
+  const lead = Math.floor(Math.min(order.length ? order[0].position : 0, finish));
+  if (lead !== yalmsLead) {
+    yalmsLead = lead;
+    box.firstChild.textContent = String(lead);
+  }
 }
 
 function renderPodiumOverlay(s) {
@@ -923,6 +983,11 @@ function hideLoader() {
   if (l) l.remove();
 }
 
+function renderHot(s) {
+  updateRunners(s);
+  renderStandings(s);
+}
+
 function renderAll(s) {
   hideLoader();
   currentState = s;
@@ -1119,6 +1184,7 @@ function startRaffleRace(s) {
   rafflePos.clear();
   (s.runners || []).forEach((r) => rafflePos.set(r.number, 0));
   raffleStartTs = (typeof performance !== 'undefined' ? performance : Date).now();
+  raffleLastRender = 0;
   raffleRaf = requestAnimationFrame(raffleFrame);
 }
 
@@ -1141,13 +1207,15 @@ function raffleFrame(now) {
   if (!currentState || !isRaffle(currentState) || currentState.phase !== 'Racing') { raffleRaf = 0; return; }
   const finish = currentState.finishLine || 20;
   const t = Math.max(0, Math.min(1, (now - raffleStartTs) / raffleDurationMs));
-  for (const p of rafflePlan) {
-    const pos = Math.max(0, Math.min(finish, rafflePosAtT(p.points, t)));
-    rafflePos.set(p.number, pos);
+  if (now - raffleLastRender >= RAFFLE_RENDER_MS || t >= 1) {
+    raffleLastRender = now;
+    for (const p of rafflePlan) {
+      const pos = Math.max(0, Math.min(finish, rafflePosAtT(p.points, t)));
+      rafflePos.set(p.number, pos);
+    }
+    syncRaffleChocobos(currentState);
+    renderHot(currentState);
   }
-  syncRaffleChocobos(currentState);
-  updateRunners(currentState);
-  renderStandings(currentState);
   raffleRaf = t < 1 ? requestAnimationFrame(raffleFrame) : 0;
 }
 
@@ -1256,7 +1324,8 @@ function applyCallCounts(data) {
   if (data.phase) currentState.phase = data.phase;
   if (data.finishLine) currentState.finishLine = data.finishLine;
   if (currentState.phase === 'Racing' && !countdownActive && !finishPending) maybeKweh(currentState, 5);
-  renderAll(currentState);
+  if (currentState.phase !== lastPhase) { renderAll(currentState); return; }
+  renderHot(currentState);
 }
 
 function currentLeaderNum(s) {
@@ -1351,7 +1420,7 @@ function scheduleFinishReveal() {
     audio.playWin();
     if (currentState) renderAll(currentState);
   };
-  function onEnd(e) { if (e.propertyName === 'left') reveal(); }
+  function onEnd(e) { if (e.propertyName === 'transform') reveal(); }
   if (winnerEl) winnerEl.addEventListener('transitionend', onEnd);
   finishTimer = setTimeout(reveal, FINISH_REVEAL_MS);
 }
@@ -1514,39 +1583,12 @@ function wireUi() {
   el('place-bet').addEventListener('click', placeBets);
 }
 
-function renderAudioControls() {
-  const apply = (btn, slider, on, vol, label) => {
-    if (btn) {
-      btn.classList.toggle('is-off', !on);
-      btn.setAttribute('aria-pressed', String(on));
-      btn.title = on ? `${label} on` : `${label} off`;
-    }
-    if (slider) slider.value = String(Math.round(vol * 100));
-  };
-  apply(el('toggle-music'), el('vol-music'), audio.musicOn, audio.musicVol, 'Music');
-  apply(el('toggle-sfx'), el('vol-sfx'), audio.sfxOn, audio.sfxVol, 'Sound effects');
-}
-
-function wireAudio() {
-  audio.onChange = renderAudioControls;
-  const m = el('toggle-music');
-  const s = el('toggle-sfx');
-  const vm = el('vol-music');
-  const vs = el('vol-sfx');
-  if (m) m.addEventListener('click', () => audio.toggleMusic());
-  if (s) s.addEventListener('click', () => audio.toggleSfx());
-  if (vm) vm.addEventListener('input', () => audio.setMusicVolume(parseInt(vm.value, 10) / 100));
-  if (vs) vs.addEventListener('input', () => audio.setSfxVolume(parseInt(vs.value, 10) / 100));
-  renderAudioControls();
-}
-
 async function init() {
   if (!sessionId) { showCodeEntry(); return; }
   if (isHouse) document.body.classList.add('is-house');
   el('race-view').classList.remove('hidden');
   audio.init();
   wireUi();
-  wireAudio();
   renderPlayer();
   probeSpriteSheet();
   probeBackdrop();

@@ -1,3 +1,5 @@
+import { getSettings, onChange } from './graphics-settings.js';
+
 const GLOWS = {
   magenta: '#ff2bd6',
   violet: '#8b5cff',
@@ -70,11 +72,17 @@ const SHAPES = {
     <text x="50" y="62" text-anchor="middle" font-family="Trebuchet MS, sans-serif" font-weight="bold" font-size="30" fill="currentColor">?</text>`
 };
 
+
 const SUITS = ['spade', 'heart', 'diamond', 'club'];
 const TARGET_COLUMN_PX = 150;
-const MAX_COLUMNS = 10;
+const MAX_COLUMNS = 7;
 const SYMBOL_MIN_PX = 70;
+const SYMBOL_MAX_PX = 110;
+const MAX_SYMBOLS_PER_SET = 7;
 const BASE_DURATION = 26;
+const GLOW_BLUR_PX = 6;
+const MAX_BAKE_DPR = 2;
+const GLYPH_SOURCE_PX = 256;
 
 let COLUMNS, COLUMN_VW, SYMBOL_VW, SYMBOL_SIZE_PX, SYMBOLS_PER_SET;
 
@@ -83,7 +91,7 @@ function computeLayout() {
   COLUMN_VW = 100 / COLUMNS;
   SYMBOL_VW = COLUMN_VW * 0.78;
   SYMBOL_SIZE_PX = Math.max(SYMBOL_MIN_PX, (SYMBOL_VW / 100) * window.innerWidth);
-  SYMBOLS_PER_SET = Math.max(4, Math.round(window.innerHeight / SYMBOL_SIZE_PX));
+  SYMBOLS_PER_SET = Math.min(MAX_SYMBOLS_PER_SET, Math.max(4, Math.round(window.innerHeight / SYMBOL_SIZE_PX)));
 }
 
 const SHAPE_POOL = Object.keys(SHAPES).concat(SUITS);
@@ -106,12 +114,12 @@ function pickAvoiding(list, forbidden) {
 }
 
 function makeItem(shape, avoidGlows) {
-  const widthVw = (SYMBOL_VW * randomBetween(0.9, 1.04)).toFixed(2);
+  const wanted = (SYMBOL_VW * randomBetween(0.9, 1.04) / 100) * window.innerWidth;
   return {
     shape,
     glow: pickAvoiding(GLOW_KEYS, avoidGlows),
-    width: `clamp(${SYMBOL_MIN_PX}px, ${widthVw}vw, 110px)`,
-    opacity: randomBetween(0.20, 0.35).toFixed(2)
+    size: Math.min(SYMBOL_MAX_PX, Math.max(SYMBOL_MIN_PX, wanted)),
+    opacity: randomBetween(0.20, 0.35)
   };
 }
 
@@ -132,36 +140,78 @@ function buildSequence(count) {
   return sequence;
 }
 
-function buildGlyph(item) {
-  const cell = document.createElement('div');
-  cell.className = 'neon-cell';
-  cell.style.height = `${(100 / SYMBOLS_PER_SET).toFixed(4)}vh`;
-  const glyph = document.createElement('div');
-  glyph.className = 'neon-glyph';
-  glyph.style.cssText = `--glow:${GLOWS[item.glow]};opacity:${item.opacity}`;
-  glyph.innerHTML =
-    `<svg viewBox="0 0 100 100" style="width:${item.width};height:auto" aria-hidden="true">${SHAPES[item.shape]}</svg>`;
-  cell.appendChild(glyph);
-  return cell;
+const glyphImages = new Map();
+
+function glyphImage(shape, colour) {
+  const key = `${shape}|${colour}`;
+  let pending = glyphImages.get(key);
+  if (pending) return pending;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${GLYPH_SOURCE_PX}" height="${GLYPH_SOURCE_PX}" style="color:${colour}">${SHAPES[shape]}</svg>`;
+  pending = new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  });
+  glyphImages.set(key, pending);
+  return pending;
 }
 
-function buildColumn(columnIndex) {
+async function bakeReel(sequence, columnWidth, cellHeight, withGlow) {
+  const dpr = Math.min(MAX_BAKE_DPR, window.devicePixelRatio || 1);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(columnWidth * dpr));
+  canvas.height = Math.max(1, Math.round(cellHeight * sequence.length * dpr));
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  for (let index = 0; index < sequence.length; index += 1) {
+    const item = sequence[index];
+    const colour = GLOWS[item.glow];
+    const image = await glyphImage(item.shape, colour);
+    const x = (columnWidth - item.size) / 2;
+    const y = index * cellHeight + (cellHeight - item.size) / 2;
+    ctx.globalAlpha = item.opacity;
+    ctx.shadowColor = withGlow ? colour : 'transparent';
+    ctx.shadowBlur = withGlow ? GLOW_BLUR_PX : 0;
+    ctx.drawImage(image, x, y, item.size, item.size);
+  }
+
+  return new Promise((resolve) => {
+    try {
+      canvas.toBlob((blob) => resolve(blob ? URL.createObjectURL(blob) : null), 'image/png');
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+let mountedUrls = [];
+
+async function buildColumn(columnIndex, cellHeight, animate, withGlow, urls) {
   const column = document.createElement('div');
   column.className = 'neon-column';
   column.style.cssText = `left:${(columnIndex / COLUMNS) * 100}%;width:${(100 / COLUMNS).toFixed(4)}%`;
 
-  const track = document.createElement('div');
-  track.className = 'neon-track';
-  const rollsDown = columnIndex % 2 === 0;
-  const duration = (BASE_DURATION * randomBetween(0.82, 1.22)).toFixed(2);
-  track.style.animation = `${rollsDown ? 'reelDown' : 'reelUp'} ${duration}s linear infinite`;
+  const columnWidth = window.innerWidth / COLUMNS;
+  const tileHeight = cellHeight * SYMBOLS_PER_SET;
+  const url = await bakeReel(buildSequence(SYMBOLS_PER_SET), columnWidth, cellHeight, withGlow);
+  if (!url) return column;
+  urls.push(url);
 
-  const sequence = buildSequence(SYMBOLS_PER_SET);
-  for (let copy = 0; copy < 2; copy += 1) {
-    sequence.forEach((item) => track.appendChild(buildGlyph(item)));
+  const reel = document.createElement('div');
+  reel.className = 'neon-reel';
+  reel.style.setProperty('--tile', `${tileHeight}px`);
+  reel.style.backgroundImage = `url("${url}")`;
+  reel.style.backgroundSize = `100% ${tileHeight}px`;
+  reel.style.height = `calc(100% + ${tileHeight}px)`;
+  if (animate) {
+    const rollsDown = columnIndex % 2 === 0;
+    const duration = (BASE_DURATION * randomBetween(0.82, 1.22)).toFixed(2);
+    reel.style.animation = `${rollsDown ? 'reelDown' : 'reelUp'} ${duration}s linear infinite`;
   }
 
-  column.appendChild(track);
+  column.appendChild(reel);
   return column;
 }
 
@@ -170,21 +220,49 @@ function syncLayerPlayback(layer) {
   layer.classList.toggle('is-paused', document.visibilityState === 'hidden');
 }
 
-function mountBackground() {
-  const existing = document.querySelector('[data-neon-background]');
-  if (existing) existing.remove();
+let mountToken = 0;
+
+async function mountBackground() {
+  const token = (mountToken += 1);
   computeLayout();
+
+  const { quality, backgroundMotion } = getSettings();
+  const animate = backgroundMotion;
+  const withGlow = quality !== 'low';
+  const cellHeight = window.innerHeight / SYMBOLS_PER_SET;
+
   const layer = document.createElement('div');
   layer.className = 'neon-layer';
   layer.dataset.neonBackground = 'true';
-  for (let columnIndex = 0; columnIndex < COLUMNS; columnIndex += 1) {
-    layer.appendChild(buildColumn(columnIndex));
+
+  const urls = [];
+  const columns = [];
+  try {
+    for (let columnIndex = 0; columnIndex < COLUMNS; columnIndex += 1) {
+      columns.push(await buildColumn(columnIndex, cellHeight, animate, withGlow, urls));
+    }
+  } catch {
+    for (const url of urls) URL.revokeObjectURL(url);
+    return;
   }
+  if (token !== mountToken) {
+    for (const url of urls) URL.revokeObjectURL(url);
+    return;
+  }
+
+  for (const column of columns) layer.appendChild(column);
+
   const scrim = document.createElement('div');
   scrim.className = 'neon-scrim';
   layer.appendChild(scrim);
+
+  const existing = document.querySelector('[data-neon-background]');
+  if (existing) existing.remove();
   document.body.prepend(layer);
   syncLayerPlayback(layer);
+
+  for (const url of mountedUrls) URL.revokeObjectURL(url);
+  mountedUrls = urls;
 }
 
 if (document.readyState === 'loading') {
@@ -202,3 +280,5 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(mountBackground, 200);
 });
+
+onChange(mountBackground);

@@ -43,7 +43,6 @@ function ensureStyles() {
       justify-content: center;
       padding: 3.5rem 1rem;
       background: rgba(5, 3, 10, 0.92);
-      backdrop-filter: blur(6px);
       animation: carouselFadeIn 0.18s ease-out both;
     }
     .carousel-lightbox-img {
@@ -86,11 +85,11 @@ function openLightbox(gameId, images, startIndex, accent) {
   root.style.setProperty('--accent', accent);
 
   root.innerHTML = `
-    <button class="carousel-arrow absolute right-4 top-4 rounded-full border border-neon-violet/40 bg-night-panel/80 text-3xl text-slate-300 backdrop-blur-sm transition" data-close aria-label="Close viewer">&times;</button>
+    <button class="carousel-arrow absolute right-4 top-4 rounded-full border border-neon-violet/40 bg-night-panel/92 text-3xl text-slate-300 transition" data-close aria-label="Close viewer">&times;</button>
     <img class="carousel-lightbox-img" src="${IMAGE_BASE}/${gameId}/${images[current]}" alt="Screenshot ${current + 1} of ${total}" />
     ${total > 1 ? `
-      <button class="carousel-arrow absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-neon-violet/40 bg-night-panel/80 text-slate-300 backdrop-blur-sm transition" data-prev aria-label="Previous screenshot">${CHEVRON_LEFT}</button>
-      <button class="carousel-arrow absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-neon-violet/40 bg-night-panel/80 text-slate-300 backdrop-blur-sm transition" data-next aria-label="Next screenshot">${CHEVRON_RIGHT}</button>
+      <button class="carousel-arrow absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-neon-violet/40 bg-night-panel/92 text-slate-300 transition" data-prev aria-label="Previous screenshot">${CHEVRON_LEFT}</button>
+      <button class="carousel-arrow absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-neon-violet/40 bg-night-panel/92 text-slate-300 transition" data-next aria-label="Next screenshot">${CHEVRON_RIGHT}</button>
       <div class="absolute bottom-5 left-1/2 flex -translate-x-1/2 gap-2" data-dots>
         ${images.map((_, i) => `<button class="carousel-dot h-2.5 w-2.5 rounded-full ${i === current ? 'is-active' : 'bg-slate-600'}" aria-label="Go to screenshot ${i + 1}"></button>`).join('')}
       </div>
@@ -187,8 +186,8 @@ async function initCarousel(el) {
         class="carousel-img h-full w-full object-contain"
       />
       ${total > 1 ? `
-        <button class="carousel-arrow carousel-prev absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-neon-violet/40 bg-night-panel/80 text-slate-300 backdrop-blur-sm transition" aria-label="Previous screenshot">${CHEVRON_LEFT}</button>
-        <button class="carousel-arrow carousel-next absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-neon-violet/40 bg-night-panel/80 text-slate-300 backdrop-blur-sm transition" aria-label="Next screenshot">${CHEVRON_RIGHT}</button>
+        <button class="carousel-arrow carousel-prev absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-neon-violet/40 bg-night-panel/92 text-slate-300 transition" aria-label="Previous screenshot">${CHEVRON_LEFT}</button>
+        <button class="carousel-arrow carousel-next absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-neon-violet/40 bg-night-panel/92 text-slate-300 transition" aria-label="Next screenshot">${CHEVRON_RIGHT}</button>
         <div class="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2" data-dots>
           ${images.map((_, i) => `<button class="carousel-dot h-2.5 w-2.5 rounded-full ${i === 0 ? 'is-active' : 'bg-slate-600'}" aria-label="Go to screenshot ${i + 1}"></button>`).join('')}
         </div>

@@ -1,8 +1,6 @@
+import { getAudioSettings, onAudioChange } from '../../components/audio-settings.js';
+
 const AUDIO_BASE = '/game-assets/chocobo-racing/audio';
-const LS_MUSIC_ON = 'cr_music_on';
-const LS_SFX_ON = 'cr_sfx_on';
-const LS_MUSIC_VOL = 'cr_music_vol';
-const LS_SFX_VOL = 'cr_sfx_vol';
 
 const THEME_BASE = 0.5;
 const LOBBY_BASE = 0.25;
@@ -16,41 +14,19 @@ const TRACK_BASE = { theme: THEME_BASE, lobby: LOBBY_BASE };
 const TRACK_FADE_MS = 1200;
 const INTRO_HOLD_MS = 900;
 
-function loadBool(key, fallback) {
-  try {
-    const v = localStorage.getItem(key);
-    return v === null ? fallback : v === '1';
-  } catch {
-    return fallback;
-  }
-}
-
-function loadVol(key) {
-  try {
-    const v = parseFloat(localStorage.getItem(key));
-    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5;
-  } catch {
-    return 1;
-  }
-}
-
-function save(key, value) {
-  try { localStorage.setItem(key, value); } catch {}
-}
-
 function now() {
   return (typeof performance !== 'undefined' ? performance : Date).now();
 }
 
 const audio = {
-  musicOn: loadBool(LS_MUSIC_ON, true),
-  sfxOn: loadBool(LS_SFX_ON, true),
-  musicVol: loadVol(LS_MUSIC_VOL),
-  sfxVol: loadVol(LS_SFX_VOL),
+  get musicOn() { return getAudioSettings().musicOn; },
+  get sfxOn() { return getAudioSettings().sfxOn; },
+  get musicVol() { return getAudioSettings().musicVol; },
+  get sfxVol() { return getAudioSettings().sfxVol; },
   unlocked: false,
   wantTheme: false,
   lobbyOn: false,
-  onChange: null,
+  musicWas: null,
 
   tracks: { theme: null, lobby: null },
   mix: { theme: 0, lobby: 0 },
@@ -253,43 +229,24 @@ const audio = {
     this.playVoice(this.kwehVoices, 'kwehSlot', this.sfxOn);
   },
 
-  toggleMusic() {
-    this.musicOn = !this.musicOn;
-    save(LS_MUSIC_ON, this.musicOn ? '1' : '0');
+  syncSettings() {
     this.unlock();
-    if (this.musicOn) {
-      if (this.activeTrack) this.fadeIn(this.activeTrack);
-    } else {
-      this.pauseTrack('theme');
-      this.pauseTrack('lobby');
-      this.stopWin();
+    const musicOn = this.musicOn;
+    if (musicOn !== this.musicWas) {
+      this.musicWas = musicOn;
+      if (musicOn) {
+        if (this.activeTrack) this.fadeIn(this.activeTrack);
+      } else {
+        this.pauseTrack('theme');
+        this.pauseTrack('lobby');
+        this.stopWin();
+      }
     }
-    if (this.onChange) this.onChange();
-  },
-
-  toggleSfx() {
-    this.sfxOn = !this.sfxOn;
-    save(LS_SFX_ON, this.sfxOn ? '1' : '0');
-    this.unlock();
-    if (this.onChange) this.onChange();
-  },
-
-  setMusicVolume(v) {
-    this.musicVol = Math.min(1, Math.max(0, v));
-    save(LS_MUSIC_VOL, String(this.musicVol));
-    this.unlock();
     this.applyTrackVolumes();
     this.applyVoiceVolumes();
-    if (this.onChange) this.onChange();
-  },
-
-  setSfxVolume(v) {
-    this.sfxVol = Math.min(1, Math.max(0, v));
-    save(LS_SFX_VOL, String(this.sfxVol));
-    this.unlock();
-    this.applyVoiceVolumes();
-    if (this.onChange) this.onChange();
   },
 };
+
+onAudioChange(() => audio.syncSettings());
 
 export default audio;

@@ -25,7 +25,7 @@
 
 @layer components {
   .panel {
-    @apply rounded-2xl border border-neon-violet/30 bg-night-panel/70 backdrop-blur-sm;
+    @apply rounded-2xl border border-neon-violet/30 bg-night-panel/85;
     box-shadow: 0 0 20px rgba(139, 92, 255, 0.18), 0 0 1px rgba(139, 92, 255, 0.35), 0 8px 32px rgba(0, 0, 0, 0.5);
   }
 
@@ -117,26 +117,16 @@
     overflow: hidden;
   }
 
-  .neon-track {
-    display: flex;
-    flex-direction: column;
+  .neon-reel {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    align-self: flex-start;
+    background-repeat: repeat-y;
+    background-position: top center;
   }
 
-  .neon-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .neon-glyph {
-    color: var(--glow);
-    /* Single soft glow - dual drop-shadows were the main GPU cost */
-    filter: drop-shadow(0 0 6px var(--glow));
-  }
-
-  .neon-layer.is-paused .neon-track {
+  .neon-layer.is-paused .neon-reel {
     animation-play-state: paused !important;
   }
 
@@ -159,10 +149,16 @@
 
 @keyframes reelUp {
   from { transform: translateY(0); }
-  to { transform: translateY(-50%); }
+  to { transform: translateY(calc(var(--tile) * -1)); }
 }
 
 @keyframes reelDown {
-  from { transform: translateY(-50%); }
+  from { transform: translateY(calc(var(--tile) * -1)); }
   to { transform: translateY(0); }
 }
+
+[data-gfx="low"] .panel { box-shadow: none; }
+[data-gfx="low"] .neon-heading { text-shadow: none; }
+[data-gfx="low"] .neon-logo { filter: none; }
+
+[data-bg-motion="off"] .neon-reel { animation: none !important; }
