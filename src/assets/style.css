@@ -13,13 +13,25 @@
 }
 
 @layer base {
+  html {
+    background-color: var(--color-night-base);
+  }
+
   body {
-    @apply bg-night-base text-slate-100 antialiased;
+    @apply text-slate-100 antialiased;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -11;
+    pointer-events: none;
     background-image:
       radial-gradient(circle at 15% 20%, rgba(139, 92, 255, 0.18), transparent 45%),
       radial-gradient(circle at 85% 10%, rgba(255, 43, 214, 0.16), transparent 40%),
       radial-gradient(circle at 50% 100%, rgba(24, 224, 255, 0.12), transparent 55%);
-    min-height: 100vh;
   }
 }
 
@@ -128,6 +140,7 @@
     overflow: hidden;
     pointer-events: none;
     animation: neonFadeIn 3s ease-out both;
+    contain: layout paint style;
   }
 
   .neon-column {
@@ -137,6 +150,7 @@
     display: flex;
     justify-content: center;
     overflow: hidden;
+    contain: layout paint style;
   }
 
   .neon-reel {
@@ -146,6 +160,11 @@
     width: 100%;
     background-repeat: repeat-y;
     background-position: top center;
+  }
+
+  .neon-reel.is-animated {
+    will-change: transform;
+    backface-visibility: hidden;
   }
 
   .neon-layer.is-paused .neon-reel {
@@ -184,3 +203,9 @@
 [data-gfx="low"] .neon-logo { filter: none; }
 
 [data-bg-motion="off"] .neon-reel { animation: none !important; }
+
+[data-gfx-tier="static"] .neon-layer { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .neon-layer { animation: none; }
+}
