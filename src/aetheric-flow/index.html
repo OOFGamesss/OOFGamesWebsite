@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0612" />
+    <meta name="description" content="Teleport to any FFXIV map link in chat with one click. Aetheric Flow finds the nearest attuned aetheryte, adds a clickable teleport link, drops a map flag on arrival, and works from a macro for controller players." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OOF Games" />
+    <meta property="og:title" content="Aetheric Flow | OOF Games" />
+    <meta property="og:description" content="Teleport to any FFXIV map link in chat with one click. Aetheric Flow finds the nearest attuned aetheryte, adds a clickable teleport link, drops a map flag on arrival, and works from a macro for controller players." />
+    <meta property="og:url" content="https://oofgames.fyi/aetheric-flow/" />
+    <meta property="og:image" content="https://oofgames.fyi/images/oofgameslogo.png" />
+    <meta property="og:image:alt" content="OOF Games logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Aetheric Flow | OOF Games" />
+    <meta name="twitter:description" content="Teleport to any FFXIV map link in chat with one click. Aetheric Flow finds the nearest attuned aetheryte, adds a clickable teleport link, drops a map flag on arrival, and works from a macro for controller players." />
+    <meta name="twitter:image" content="https://oofgames.fyi/images/oofgameslogo.png" />
+    <meta name="twitter:image:alt" content="OOF Games logo" />
+    <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -- SRI does not apply to canonical links; the browser never fetches this as a subresource. -->
+    <link rel="canonical" href="https://oofgames.fyi/aetheric-flow/" />
+    <link rel="icon" type="image/png" href="/images/oofgameslogo.png" />
+    <title>Aetheric Flow | OOF Games</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Aetheric Flow",
+        "url": "https://oofgames.fyi/aetheric-flow/",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Windows",
+        "image": "https://oofgames.fyi/images/aethericflow.png",
+        "description": "Teleport to any FFXIV map link in chat with one click. Aetheric Flow finds the nearest attuned aetheryte, adds a clickable teleport link, drops a map flag on arrival, and works from a macro for controller players.",
+        "publisher": { "@id": "https://oofgames.fyi/#organization" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+    <link rel="stylesheet" href="/assets/style.css" />
+  </head>
+  <body>
+    <main class="relative z-0 mx-auto flex max-w-4xl flex-col gap-10 px-4 py-12">
+      <nav class="text-sm">
+        <a href="/" class="text-neon-cyan hover:underline">⇠ Back to the hub</a>
+      </nav>
+
+      <header class="text-center">
+        <h1 class="neon-heading text-3xl font-black sm:text-5xl" style="color: #148f77; -webkit-text-stroke: 2px #000; text-shadow: 0 0 8px rgba(20, 143, 119, 1), 0 0 20px rgba(20, 143, 119, 0.85), 0 0 50px rgba(20, 143, 119, 0.55), 0 0 100px rgba(20, 143, 119, 0.25);">Aetheric Flow</h1>
+        <p class="mt-3 text-slate-300">Teleport to any map link in chat with one click.</p>
+      </header>
+
+      <section data-game-id="aethericflow" data-accent="#1abc9c" class="w-full">
+        <div class="panel flex aspect-video w-full flex-col items-center justify-center gap-3">
+          <p class="text-sm uppercase tracking-widest text-slate-400">Screenshots coming soon</p>
+        </div>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #1abc9c; text-shadow: 0 0 10px rgba(26, 188, 156, 0.9), 0 0 25px rgba(26, 188, 156, 0.6), 0 0 50px rgba(26, 188, 156, 0.3);">About the plugin</h2>
+        <p class="text-slate-300">
+          Aetheric Flow is a Dalamud plugin that watches your chat for map links, works out the nearest aetheryte in
+          that zone, and adds a clickable teleport link right after the coordinates. Hunt calls, hunt trains, treasure
+          maps, anything with a map link in it becomes a single click. It measures the real distance from the link's
+          coordinates to every aetheryte in the zone, offers only the crystals you have already attuned to, and
+          teleports through the game's own system with no other plugin required. Teleporting drops a map flag on the
+          destination so it is waiting on your map, minimap, and compass the moment you land, and <code>/aftp</code>
+          does the same job from a macro for anyone playing on a controller.
+        </p>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-6 text-2xl font-semibold" style="color: #1abc9c; text-shadow: 0 0 10px rgba(26, 188, 156, 0.9), 0 0 25px rgba(26, 188, 156, 0.6), 0 0 50px rgba(26, 188, 156, 0.3);">Key Features</h2>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">A Teleport Link on Every Map Link</span>
+            <p class="mt-1 text-sm text-slate-400">Any chat message carrying a map link gains a clickable link beside it, marked with the aetheryte icon and labelled <code>Teleport to &lt;aetheryte&gt;</code>.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">The Nearest Crystal, Every Time</span>
+            <p class="mt-1 text-sm text-slate-400">The plugin measures the distance from the map link's coordinates to every aetheryte in that zone and picks the closest one, rather than defaulting to whichever crystal the zone is named after.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Attuned Aetherytes Only</span>
+            <p class="mt-1 text-sm text-slate-400">Crystals you have not attuned to are filtered out before the nearest one is chosen, so a teleport link never fails when you click it.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Stays Out of the Way</span>
+            <p class="mt-1 text-sm text-slate-400">When a zone has no aetheryte you can reach, the message is left exactly as it was. No error, no placeholder, and no clutter in your chat log.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Quicker on Foot Notice</span>
+            <p class="mt-1 text-sm text-slate-400">When you are already in the zone and standing closer to the link than the aetheryte is, a quiet grey <span class="font-semibold text-slate-200">Quicker on foot</span> note is added so you do not waste a teleport.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Automatic Map Flag</span>
+            <p class="mt-1 text-sm text-slate-400">The destination is flagged as you teleport, so it is on your map, minimap, and compass the moment you land instead of needing the original link opened again.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Controller and Macro Friendly</span>
+            <p class="mt-1 text-sm text-slate-400"><code>/aftp</code> teleports to the most recent map link exactly as if you had clicked its link, so a single hotbar macro replaces reaching for the mouse.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Twelve Link Colours</span>
+            <p class="mt-1 text-sm text-slate-400">Pick the colour of the teleport link from a row of swatches drawn straight out of the game's own chat palette, so it sits naturally alongside the colours you already use.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Per-Channel Scanning</span>
+            <p class="mt-1 text-sm text-slate-400">Choose exactly which channels are watched, from Say, Shout, and Yell through party, alliance, free company, PvP team, novice network, echo, tells in both directions, and all eight linkshells and cross-world linkshells.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">City Districts Covered</span>
+            <p class="mt-1 text-sm text-slate-400">Districts served only by aethernet shards fall back to the teleportable crystal for that network, so a map link dropped in a city sub-zone still gets a working link.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">Four Languages</span>
+            <p class="mt-1 text-sm text-slate-400">Every line the plugin writes, from the link label to the settings window, is translated into English, Japanese, German, and French.</p>
+          </div>
+          <div class="install-step flex-col items-start gap-1">
+            <span class="font-semibold text-slate-200">No Dependencies</span>
+            <p class="mt-1 text-sm text-slate-400">Teleports run through the game's own teleport system. There is no companion plugin to install and nothing to keep in sync.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #1abc9c; text-shadow: 0 0 10px rgba(26, 188, 156, 0.9), 0 0 25px rgba(26, 188, 156, 0.6), 0 0 50px rgba(26, 188, 156, 0.3);">Interface</h2>
+        <p class="mb-6 text-sm text-slate-400">
+          The window opens with <code>/aethericflow</code> and holds two tabs. Settings is split into General, Channels, and Appearance. Support carries the FAQ and the Discord link.
+        </p>
+
+        <div class="flex flex-col gap-8">
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #7fe0cd; text-shadow: 0 0 8px rgba(127, 224, 205, 0.9), 0 0 20px rgba(127, 224, 205, 0.6), 0 0 40px rgba(127, 224, 205, 0.25);">Settings: General</h3>
+            <p class="text-sm text-slate-300">
+              Two switches that decide what happens around the teleport itself.
+              <span class="font-semibold text-slate-200">Tell me when walking would be quicker</span> adds the grey
+              <span class="font-semibold text-slate-200">Quicker on foot</span> note whenever you are in the zone
+              already and nearer the link than the aetheryte is.
+              <span class="font-semibold text-slate-200">Place a map flag when I teleport</span> drops the flag on the
+              destination as the teleport fires. Both are on by default, and both apply to clicked links and
+              <code>/aftp</code> alike.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #7fe0cd; text-shadow: 0 0 8px rgba(127, 224, 205, 0.9), 0 0 20px rgba(127, 224, 205, 0.6), 0 0 40px rgba(127, 224, 205, 0.25);">Settings: Channels</h3>
+            <p class="text-sm text-slate-300">
+              A two-column grid of tick boxes covering every channel the plugin can scan for map links: Say, Shout,
+              Yell, incoming and outgoing tells, party, cross-world party, alliance, free company, PvP team, novice
+              network, echo, linkshells 1 to 8, and cross-world linkshells 1 to 8. Everything is enabled to begin
+              with, so switching a channel off is how you keep a busy shout channel or an unrelated linkshell from
+              filling your log with links.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #7fe0cd; text-shadow: 0 0 8px rgba(127, 224, 205, 0.9), 0 0 20px rgba(127, 224, 205, 0.6), 0 0 40px rgba(127, 224, 205, 0.25);">Settings: Appearance</h3>
+            <p class="text-sm text-slate-300">
+              Twelve colour swatches, laid out in two rows of six and read straight from the game's own interface
+              colour table, so the teleport link matches the palette the rest of your chat already uses. The chosen
+              swatch is outlined, and the change applies to every link added from that point on.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-semibold" style="color: #7fe0cd; text-shadow: 0 0 8px rgba(127, 224, 205, 0.9), 0 0 20px rgba(127, 224, 205, 0.6), 0 0 40px rgba(127, 224, 205, 0.25);">Support</h3>
+            <p class="text-sm text-slate-300">
+              A short FAQ covering how to use the plugin, why a particular map link did not get a teleport link, which
+              is almost always a channel switched off or a zone with nothing attuned, and how to report a bug or ask
+              for a feature. A button at the bottom opens the OOF Games Discord.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #1abc9c; text-shadow: 0 0 10px rgba(26, 188, 156, 0.9), 0 0 25px rgba(26, 188, 156, 0.6), 0 0 50px rgba(26, 188, 156, 0.3);">Commands</h2>
+        <ul class="flex flex-col gap-3">
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">/aethericflow</code>
+            <span class="ml-2 text-slate-300">Open the configuration window.</span>
+          </li>
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">/aftp</code>
+            <span class="ml-2 text-slate-300">Teleport to the aetheryte from the most recent map link in chat, exactly as if you had clicked its link.</span>
+          </li>
+          <li class="install-step">
+            <code class="font-bold text-neon-cyan">/aethericflowtp</code>
+            <span class="ml-2 text-slate-300">Alias for /aftp.</span>
+          </li>
+        </ul>
+        <p class="mt-4 text-sm text-slate-400">
+          Controller players can drop <code>/aftp</code> into a macro and put that macro on a hotbar. The plugin
+          remembers the most recent map link it added a link to, on any channel you have enabled, and holds that
+          target until a newer map link comes in, so there is no rush to press it. The target is cleared when you log
+          out.
+        </p>
+      </section>
+
+      <section class="panel p-6">
+        <h2 class="mb-4 text-2xl font-semibold" style="color: #1abc9c; text-shadow: 0 0 10px rgba(26, 188, 156, 0.9), 0 0 25px rgba(26, 188, 156, 0.6), 0 0 50px rgba(26, 188, 156, 0.3);">How to install</h2>
+        <p class="mb-6 text-sm text-slate-400">
+          Aetheric Flow is on the official Dalamud plugin list, so there is no custom repository to add.
+        </p>
+        <ol class="flex flex-col gap-3">
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">1.</span>
+            <span>Type <code>/xlplugins</code> in the in-game chat to open the plugin installer.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">2.</span>
+            <span>Search for <span class="font-semibold text-slate-200">Aetheric Flow</span>.</span>
+          </li>
+          <li class="install-step">
+            <span class="font-bold text-neon-cyan">3.</span>
+            <span>Click <span class="font-semibold text-slate-200">Install</span>.</span>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <script type="module" src="/components/console-guard.js"></script><script type="module" src="/components/neon-background.js"></script><script type="module" src="/components/settings-panel.js"></script>
+    <script type="module" src="/components/discord-widget.js"></script>
+    <script type="module" src="/components/game-carousel.js"></script>
+    <script type="module" src="/components/account-pill.js"></script>
+  </body>
+</html>

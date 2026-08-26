@@ -130,6 +130,7 @@ export default defineConfig({
         account: resolve(root, 'account/index.html'),
         admin: resolve(root, 'admin/index.html'),
         developer: resolve(root, 'developer/index.html'),
+        aethericFlow: resolve(root, 'aetheric-flow/index.html'),
         gambaWhere: resolve(root, 'gamba-where/index.html'),
         truthOrDare: resolve(root, 'truth-or-dare/index.html'),
         // venue-live sources are not committed yet; restore these on release.
@@ -142,7 +143,7 @@ export default defineConfig({
         eightBallPool: resolve(root, 'mini-games-emporium/8ballpool/index.html'),
         bar777: resolve(root, 'mini-games-emporium/bar777/index.html'),
         beerpong: resolve(root, 'mini-games-emporium/beerpong/index.html'),
-        coinskipper: resolve(root, 'mini-games-emporium/coinskipper/index.html'),
+        coincollector: resolve(root, 'mini-games-emporium/coincollector/index.html'),
         darts: resolve(root, 'mini-games-emporium/darts/index.html'),
         dealornodeal: resolve(root, 'mini-games-emporium/dealornodeal/index.html'),
         drt: resolve(root, 'mini-games-emporium/drt/index.html'),
