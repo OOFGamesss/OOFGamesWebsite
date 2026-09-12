@@ -2,7 +2,8 @@ const DISCORD_INVITE = 'https://discord.gg/vM6ff4h5Ym';
 
 const PITCH_PAGES = [
   { path: '/chocobo-racing/race', game: 'Chocobo Racing' },
-  { path: '/mini-games-emporium/drt/bracket', game: 'Deathroll Tournament' }
+  { path: '/mini-games-emporium/drt/bracket', game: 'Deathroll Tournament' },
+  { path: '/ishgardian-vaults/vault', game: 'Ishgardian Vaults' }
 ];
 
 function pitchGame() {

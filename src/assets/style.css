@@ -9,6 +9,11 @@
   --color-neon-cyan: #18e0ff;
   --color-neon-gold: #ffcf4d;
   --color-neon-green: #00d44a;
+  --color-vault-common: #9aa0a6;
+  --color-vault-uncommon: #3ddc84;
+  --color-vault-rare: #2f7fff;
+  --color-vault-epic: #a855f7;
+  --color-vault-legendary: #ffcf4d;
   --font-display: "Trebuchet MS", "Segoe UI", sans-serif;
 }
 

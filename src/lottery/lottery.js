@@ -1,12 +1,3 @@
-// Eorzea Lottery page controller: renders the current draw (pot, countdown,
-// prize table), the number picker and basket for wallet purchases, the
-// player's tickets, past results, pick-a-number statistics and the canvas
-// draw machine. A WebSocket on /lottery/ws nudges the page the instant the
-// draw state changes (live balls, settlement, sales, schedule), with the
-// /lottery/current polling kept as a fallback; when the open draw changes
-// while watching, the machine re-enacts the new result with full suspense,
-// otherwise the latest result is parked instantly.
-
 import { getLotteryHosts } from '../api/lottery-hosts-client.js';
 import { lotteryClient } from '../api/lottery-client.js';
 import { apiBaseUrl, walletClient } from '../api/wallet-client.js';
@@ -19,11 +10,18 @@ import lotteryAudio from './lottery-audio.js';
 const POLL_IDLE_MS = 60_000;
 const POLL_HOT_MS = 10_000;
 const POLL_LIVE_MS = 6_000;
+const POLL_ERROR_BASE_MS = 3_000;
+const POLL_ERROR_MAX_MS = 30_000;
+const FANOUT_SPREAD_MS = 3_000;
 const MAIN_COUNT = 4;
 const BASKET_LIMIT = 50;
 const SORT_BEST_KEY = 'oof-lottery-sort-best';
 
 const $ = (id) => document.getElementById(id);
+
+const jitter = (ms) => Math.round(ms * (0.7 + Math.random() * 0.6));
+
+const spread = (run) => setTimeout(run, Math.random() * FANOUT_SPREAD_MS);
 
 const gil = (value) => `${Number(value).toLocaleString('en-GB')} gil`;
 
@@ -127,6 +125,9 @@ const state = {
   historyPage: 1,
   machine: null,
   pollTimer: null,
+  pollFailures: 0,
+  refreshInFlight: null,
+  refreshEpoch: 0,
   machineDraw: null,
   myCurrent: [],
   myTicketsByDraw: new Map(),
@@ -154,9 +155,10 @@ function renderHeader() {
   for (const node of document.querySelectorAll('[data-close-text]')) {
     node.textContent = `${minutes} minute${minutes === 1 ? '' : 's'}`;
   }
+  const stalled = state.pollFailures > 0 ? ' · reconnecting…' : '';
   $('header-sub').textContent = `Draw #${data.draw_id} · ${scheduled.toLocaleString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-  })}`;
+  })}${stalled}`;
 }
 
 function tickCountdown() {
@@ -1145,6 +1147,8 @@ async function showWinnerPopup(result, expiresAtMs) {
     $('winner-overlay').classList.add('hidden');
   }, Math.max(1000, expiresAtMs - Date.now()));
 
+  await new Promise((resolve) => spread(resolve));
+  if (state.winnerPopupFor !== result.draw_id) return;
   const response = await lotteryClient.getWinners(result.draw_id);
   if (state.winnerPopupFor !== result.draw_id) return;
   content.replaceChildren();
@@ -1192,37 +1196,68 @@ async function showWinnerPopup(result, expiresAtMs) {
 }
 
 
-async function refreshCurrent() {
-  const result = await lotteryClient.getCurrent();
-  if (!result.ok) return;
+function applyCurrent(data) {
   const isFirstLoad = state.current === null;
   const hadResultId = state.current?.previous_result?.draw_id ?? null;
-  state.current = result.data;
+  state.current = data;
   renderHeader();
   renderPrizes();
   renderBuyPanel();
   syncLuckyBatch();
   syncAddLine();
-  const newResultId = result.data.previous_result?.draw_id ?? null;
+  const newResultId = data.previous_result?.draw_id ?? null;
   const settledTransition = !isFirstLoad && newResultId !== null && newResultId !== hadResultId;
-  syncMachine(result.data, settledTransition);
+  syncMachine(data, settledTransition);
   if (state.signedIn) renderMyCurrent();
   if (settledTransition) {
     state.historyPage = 1;
     state.winnersByDraw.delete(newResultId);
-    loadHistory();
-    lotteryClient.getStats().then((stats) => stats.ok && renderStats(stats.data));
+    spread(() => loadHistory());
+    spread(() => lotteryClient.getStats().then((stats) => stats.ok && renderStats(stats.data)));
     if (state.signedIn) {
-      loadMyTickets();
-      refreshWallet();
+      spread(() => loadMyTickets());
+      spread(() => refreshWallet());
     }
   }
   maybeShowWinnerPopup();
+}
+
+function applyPushedCurrent(data) {
+  state.pollFailures = 0;
+  state.refreshEpoch += 1;
+  applyCurrent(data);
   schedulePoll();
+}
+
+function refreshCurrent() {
+  if (state.refreshInFlight) return state.refreshInFlight;
+  const epoch = state.refreshEpoch;
+  state.refreshInFlight = (async () => {
+    try {
+      const result = await lotteryClient.getCurrent();
+      if (epoch !== state.refreshEpoch) return;
+      if (!result.ok) {
+        state.pollFailures += 1;
+        if (state.current) renderHeader();
+        return;
+      }
+      state.pollFailures = 0;
+      applyCurrent(result.data);
+    } finally {
+      state.refreshInFlight = null;
+      schedulePoll();
+    }
+  })();
+  return state.refreshInFlight;
 }
 
 function schedulePoll() {
   clearTimeout(state.pollTimer);
+  if (state.pollFailures > 0) {
+    const backoff = POLL_ERROR_BASE_MS * 2 ** (state.pollFailures - 1);
+    state.pollTimer = setTimeout(refreshCurrent, jitter(Math.min(POLL_ERROR_MAX_MS, backoff)));
+    return;
+  }
   if (!state.current) {
     state.pollTimer = setTimeout(refreshCurrent, POLL_HOT_MS);
     return;
@@ -1252,11 +1287,13 @@ function connectLotterySocket() {
       } catch {
         return;
       }
-      if (data.event === 'update') refreshCurrent();
+      if (data.event !== 'update') return;
+      if (data.current) applyPushedCurrent(data.current);
+      else refreshCurrent();
     };
     socket.onclose = () => {
       attempts += 1;
-      setTimeout(open, Math.min(30_000, 1000 * 2 ** attempts));
+      setTimeout(open, jitter(Math.min(30_000, 1000 * 2 ** attempts)));
     };
   };
   open();

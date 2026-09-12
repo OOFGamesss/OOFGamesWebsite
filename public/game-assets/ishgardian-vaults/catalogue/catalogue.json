@@ -1,0 +1,98 @@
+[
+  {
+    "id": "gil-pouch",
+    "name": "Gil pouch",
+    "file": "gil-pouch.png",
+    "suggestedTier": 1
+  },
+  {
+    "id": "gil-sack",
+    "name": "Gil sack",
+    "file": "gil-sack.png",
+    "suggestedTier": 2
+  },
+  {
+    "id": "crystal",
+    "name": "Crystal",
+    "file": "crystal.png",
+    "suggestedTier": 2
+  },
+  {
+    "id": "gemstone",
+    "name": "Gemstone",
+    "file": "gemstone.png",
+    "suggestedTier": 3
+  },
+  {
+    "id": "triple-triad",
+    "name": "Triple Triad card",
+    "file": "triple-triad.png",
+    "suggestedTier": 2
+  },
+  {
+    "id": "potion",
+    "name": "Potion",
+    "file": "potion.png",
+    "suggestedTier": 1
+  },
+  {
+    "id": "elixir",
+    "name": "Elixir",
+    "file": "elixir.png",
+    "suggestedTier": 4
+  },
+  {
+    "id": "crown",
+    "name": "Crown",
+    "file": "crown.png",
+    "suggestedTier": 5
+  },
+  {
+    "id": "chocobo-feather",
+    "name": "Chocobo feather",
+    "file": "chocobo-feather.png",
+    "suggestedTier": 1
+  },
+  {
+    "id": "minion-orb",
+    "name": "Minion",
+    "file": "minion-orb.png",
+    "suggestedTier": 3
+  },
+  {
+    "id": "mount-whistle",
+    "name": "Mount whistle",
+    "file": "mount-whistle.png",
+    "suggestedTier": 4
+  },
+  {
+    "id": "glamour-scroll",
+    "name": "Glamour set",
+    "file": "glamour-scroll.png",
+    "suggestedTier": 4
+  },
+  {
+    "id": "housing-deed",
+    "name": "Housing item",
+    "file": "housing-deed.png",
+    "suggestedTier": 5
+  },
+  {
+    "id": "wildcard",
+    "name": "Host's choice",
+    "file": "wildcard.png",
+    "suggestedTier": 1
+  },
+  {
+    "id": "no-win",
+    "name": "No win",
+    "file": "no-win.png",
+    "suggestedTier": 1
+  },
+  {
+    "id": "bonus-game",
+    "name": "Bonus game",
+    "file": "bonus-game.png",
+    "suggestedTier": 5
+  }
+]

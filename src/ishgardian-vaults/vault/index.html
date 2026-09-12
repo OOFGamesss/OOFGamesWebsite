@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0612" />
+    <meta name="description" content="Open your vault and see what you have won." />
+    <meta name="robots" content="noindex" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OOF Games" />
+    <meta property="og:title" content="Open Your Vault | Ishgardian Vaults" />
+    <meta property="og:description" content="Open your vault and see what you have won." />
+    <meta property="og:url" content="https://oofgames.fyi/ishgardian-vaults/vault/" />
+    <meta property="og:image" content="https://oofgames.fyi/images/ishgardianvaults.png" />
+    <meta property="og:image:alt" content="Ishgardian Vaults" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Open Your Vault | Ishgardian Vaults" />
+    <meta name="twitter:description" content="Open your vault and see what you have won." />
+    <meta name="twitter:image" content="https://oofgames.fyi/images/ishgardianvaults.png" />
+    <meta name="twitter:image:alt" content="Ishgardian Vaults" />
+    <link rel="icon" type="image/png" href="/images/ishgardianvaults.png" />
+    <title>Open Your Vault | Ishgardian Vaults</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700;900&display=swap"
+    />
+    <link rel="stylesheet" href="/assets/style.css" />
+    <link rel="stylesheet" href="./vault.css" />
+  </head>
+  <body>
+    <div id="vault-loader" class="vault-loader">
+      <div class="vault-loader__ring" aria-hidden="true"></div>
+      <p class="vault-loader__text" id="vault-loader-text">Opening the vault</p>
+    </div>
+
+    <main class="vault-main" id="vault-main" hidden>
+      <nav class="vault-nav text-sm" id="vault-nav">
+        <a href="/" id="vault-back" class="text-neon-cyan hover:underline">⇠ Back<span class="vault-back__long"> to OOF Games</span></a>
+      </nav>
+
+      <header class="panel race-header">
+        <div class="race-header__title">
+          <img src="/images/ishgardianvaults.png" alt="" class="race-header__logo" />
+          <div class="race-header__names">
+            <h1 class="neon-heading race-header__h1">Ishgardian Vaults</h1>
+            <p id="vault-venue" class="race-header__sub">Loading…</p>
+          </div>
+          <div class="race-header__actions" id="vault-actions">
+            <button id="open-howto" type="button" class="howto-btn btn-sm" aria-haspopup="dialog">
+              How to Play
+            </button>
+            <button id="open-fair" type="button" class="howto-btn btn-sm" aria-haspopup="dialog">
+              Provably Fair
+            </button>
+          </div>
+        </div>
+        <div class="track-stats">
+          <div class="track-stat track-stat--spins">
+            <span class="track-stat__label">Spins Left</span>
+            <span class="track-stat__figure">
+              <span id="vault-spins" class="track-stat__value">-</span>
+              <span id="vault-spins-total" class="track-stat__total"></span>
+            </span>
+            <span class="track-stat__meter" aria-hidden="true">
+              <span id="vault-spins-bar" class="track-stat__fill"></span>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <div class="vault-body">
+        <aside class="panel vault-panel vault-guide" aria-label="Win guide">
+          <div class="vault-panel__head">
+            <h2 class="vault-panel__title" id="vault-guide-title">Win Guide</h2>
+          </div>
+          <div class="vault-panel__body">
+            <div class="vault-guide__tiers" id="vault-guide"></div>
+            <p class="vault-guide__note" id="vault-guide-note">Prizes and odds are set by your host, not by the game.</p>
+          </div>
+        </aside>
+
+        <section class="panel vault-panel vault-stage" aria-label="Vault reels">
+          <div class="vault-stage__well">
+            <div class="vault-reels" id="vault-reels"></div>
+            <div class="vault-marker" aria-hidden="true"></div>
+          </div>
+
+          <div class="vault-controls">
+            <div class="vault-controls__count" id="vault-count-group">
+              <span class="vault-controls__label">Coffers</span>
+              <div class="vault-stepper-group">
+                <button type="button" class="vault-stepper" id="vault-count-down" aria-label="Fewer coffers">-</button>
+                <span class="vault-controls__value" id="vault-count">1</span>
+                <button type="button" class="vault-stepper" id="vault-count-up" aria-label="More coffers">+</button>
+              </div>
+            </div>
+
+            <button type="button" class="vault-spin" id="vault-spin">
+              <svg class="vault-spin__cog" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <g fill="currentColor">
+                  <rect x="10.7" y="0.9" width="2.6" height="4.4" rx="1.1" />
+                  <rect x="10.7" y="0.9" width="2.6" height="4.4" rx="1.1" transform="rotate(45 12 12)" />
+                  <rect x="10.7" y="0.9" width="2.6" height="4.4" rx="1.1" transform="rotate(90 12 12)" />
+                  <rect x="10.7" y="0.9" width="2.6" height="4.4" rx="1.1" transform="rotate(135 12 12)" />
+                  <rect x="10.7" y="0.9" width="2.6" height="4.4" rx="1.1" transform="rotate(180 12 12)" />
+                  <rect x="10.7" y="0.9" width="2.6" height="4.4" rx="1.1" transform="rotate(225 12 12)" />
+                  <rect x="10.7" y="0.9" width="2.6" height="4.4" rx="1.1" transform="rotate(270 12 12)" />
+                  <rect x="10.7" y="0.9" width="2.6" height="4.4" rx="1.1" transform="rotate(315 12 12)" />
+                </g>
+                <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="3" />
+              </svg>
+              <span class="vault-spin__label" id="vault-spin-label">Spin</span>
+            </button>
+
+            <p class="vault-controls__status" id="vault-status" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <aside class="panel vault-panel vault-history" aria-label="Your wins">
+          <div class="vault-panel__head">
+            <h2 class="vault-panel__title">Your Wins</h2>
+            <span class="vault-panel__count" id="vault-history-count">0</span>
+          </div>
+          <div class="vault-panel__body">
+            <ul class="vault-history__list" id="vault-history"></ul>
+            <p class="vault-history__empty" id="vault-history-empty">Nothing won yet. Open a coffer.</p>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <canvas id="vault-gold" class="vault-gold" aria-hidden="true"></canvas>
+
+    <div id="howto-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="howto-title">
+      <div class="panel modal__card howto-card">
+        <h2 id="howto-title" class="howto-card__title">How to Play</h2>
+        <ol class="howto-steps" id="howto-steps"></ol>
+        <button id="howto-close" type="button" class="btn-primary howto-card__cta">Let's Play!</button>
+      </div>
+    </div>
+
+    <div id="open-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="open-title">
+      <div class="panel modal__card open-card">
+        <h2 id="open-title" class="howto-card__title">Your Coffers</h2>
+        <p class="open-card__note" id="open-note">Tap a coffer to open it.</p>
+        <div class="open-grid" id="open-grid"></div>
+        <div class="open-card__actions">
+          <button id="open-all" type="button" class="btn-primary howto-card__cta open-all-btn" hidden>Open All</button>
+          <button id="open-close" type="button" class="btn-primary howto-card__cta open-collect-btn" hidden>Collect</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="fair-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="fair-title">
+      <div class="panel modal__card fair-card">
+        <h2 id="fair-title" class="howto-card__title">Provably Fair</h2>
+        <p class="fair-card__note">
+          Every spin is decided by the server before the reel moves. You are shown a
+          fingerprint of the secret when the reel starts, and the secret itself when
+          it stops, so you can check afterwards that the result was not chosen to
+          suit the house.
+        </p>
+        <div class="vault-fairness__rows" id="vault-fairness"></div>
+        <p class="fair-card__foot" id="fair-foot"></p>
+        <button id="fair-close" type="button" class="btn-primary howto-card__cta">Close</button>
+      </div>
+    </div>
+
+    <div class="vault-closed" id="vault-closed" hidden>
+      <h1 class="neon-heading vault-closed__title" id="vault-closed-title">This vault has closed</h1>
+      <p class="vault-closed__text" id="vault-closed-text">
+        Speak to your host if you would like another go.
+      </p>
+    </div>
+
+    <script type="module" src="/components/console-guard.js"></script>
+    <script type="module" src="/components/neon-background.js"></script>
+    <script type="module" src="/components/settings-panel.js"></script>
+    <script type="module" src="/components/discord-widget.js"></script>
+    <script type="module" src="./vault.js"></script>
+  </body>
+</html>

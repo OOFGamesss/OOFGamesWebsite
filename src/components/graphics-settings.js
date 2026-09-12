@@ -10,6 +10,7 @@ const GAME_PATHS = [
   '/lottery',
   '/mini-games-emporium/drt/bracket',
   '/venue-live',
+  '/ishgardian-vaults/vault',
 ];
 
 export function motionLocked() {
@@ -118,6 +119,7 @@ function apply() {
   const root = document.documentElement;
   const settings = getSettings();
   root.dataset.gfx = settings.quality;
+  root.dataset.gfxChoice = explicit.quality ? state.quality : 'auto';
   root.dataset.bgMotion = settings.backgroundMotion ? 'on' : 'off';
   root.dataset.gfxTier = settings.tier;
 }
@@ -135,6 +137,7 @@ export function getSettings() {
   const motionAllowed = explicit.backgroundMotion || state.tier !== 'static';
   return {
     quality,
+    qualityChosen: explicit.quality,
     backgroundMotion: state.backgroundMotion && motionAllowed && !motionLocked(),
     tier: state.tier
   };

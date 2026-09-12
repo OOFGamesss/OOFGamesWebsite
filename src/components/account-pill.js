@@ -4,6 +4,7 @@ import { connectWalletSocket } from '../api/wallet-live.js';
 import { openLoginModal } from './login-modal.js';
 
 const RACE_PATH_PREFIX = '/chocobo-racing/race';
+const VAULT_PATH_PREFIX = '/ishgardian-vaults/vault';
 const ACCOUNT_PATH_PREFIX = '/account';
 const DEVELOPER_PATH_PREFIX = '/developer';
 const CACHE_KEY = 'oof-wallet-pill';
@@ -79,7 +80,8 @@ function writeCache(wallet) {
 
 function mountPill() {
   const path = window.location.pathname;
-  if (path.startsWith(RACE_PATH_PREFIX) || path.startsWith(DEVELOPER_PATH_PREFIX)) return;
+  if (path.startsWith(RACE_PATH_PREFIX) || path.startsWith(VAULT_PATH_PREFIX)
+      || path.startsWith(DEVELOPER_PATH_PREFIX)) return;
   const onAccountPage = path.startsWith(ACCOUNT_PATH_PREFIX);
 
   const link = el(

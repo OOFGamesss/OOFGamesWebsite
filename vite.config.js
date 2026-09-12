@@ -55,6 +55,8 @@ const chocoboRaceDevFallback = () =>
   prettyPathDevFallback('chocobo-race-dev-fallback', '/chocobo-racing/race/');
 const drtBracketDevFallback = () =>
   prettyPathDevFallback('drt-bracket-dev-fallback', '/mini-games-emporium/drt/bracket/', ['demo']);
+const vaultDevFallback = () =>
+  prettyPathDevFallback('vault-dev-fallback', '/ishgardian-vaults/vault/');
 
 // /venue-live/<slug> is a venue page, but /venue-live/ itself is the plugin
 // information page, so this cannot reuse prettyPathDevFallback: only the
@@ -119,7 +121,7 @@ function sitemap() {
 export default defineConfig({
   root,
   publicDir,
-  plugins: [tailwindcss(), gameImageManifests(), chocoboRaceDevFallback(), drtBracketDevFallback(), venueLiveDevFallback(), devCspAllowsViteClient(), sitemap()],
+  plugins: [tailwindcss(), gameImageManifests(), chocoboRaceDevFallback(), drtBracketDevFallback(), vaultDevFallback(), venueLiveDevFallback(), devCspAllowsViteClient(), sitemap()],
   build: {
     outDir,
     emptyOutDir: true,
@@ -139,6 +141,8 @@ export default defineConfig({
         lottery: resolve(root, 'lottery/index.html'),
         chocoboRacing: resolve(root, 'chocobo-racing/index.html'),
         chocoboRace: resolve(root, 'chocobo-racing/race/index.html'),
+        ishgardianVaults: resolve(root, 'ishgardian-vaults/index.html'),
+        ishgardianVaultsVault: resolve(root, 'ishgardian-vaults/vault/index.html'),
         minigamesEmporium: resolve(root, 'mini-games-emporium/index.html'),
         eightBallPool: resolve(root, 'mini-games-emporium/8ballpool/index.html'),
         bar777: resolve(root, 'mini-games-emporium/bar777/index.html'),
