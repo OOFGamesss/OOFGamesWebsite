@@ -225,8 +225,12 @@ function loadImage(src) {
   });
 }
 
+function tierView(outcome) {
+  return state.session.tiers.find((tier) => tier.tier === outcome);
+}
+
 function cofferUrl(outcome) {
-  const view = state.session.tiers.find((tier) => tier.tier === outcome);
+  const view = tierView(outcome);
   const own = view && view.imageRef ? imageUrl(view.imageRef) : '';
   return own || defaultUrl(outcome);
 }
@@ -239,11 +243,14 @@ function defaultUrl(outcome) {
 
 function openChestUrl(outcome) {
   if (outcome < 1 || outcome > 5) return '';
+  const view = tierView(outcome);
+  const own = view && view.openImageRef ? imageUrl(view.openImageRef) : '';
+  if (own) return own;
   return onSiteDefault(outcome) ? CHEST_OPEN_SRC(outcome) : '';
 }
 
 function onSiteDefault(outcome) {
-  const view = state.session.tiers.find((tier) => tier.tier === outcome);
+  const view = tierView(outcome);
   return !(view && view.imageRef);
 }
 
@@ -262,7 +269,8 @@ async function preload(session) {
   const sources = session.preloadImages.map(imageUrl).filter(Boolean);
   for (let tier = 1; tier <= 5; tier += 1) {
     sources.push(CHEST_SRC(tier));
-    if (onSiteDefault(tier)) sources.push(CHEST_OPEN_SRC(tier));
+    const open = openChestUrl(tier);
+    if (open) sources.push(open);
   }
   sources.push(BONUS_SRC);
 
