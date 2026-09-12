@@ -5,8 +5,9 @@ const BONUS_OUTCOME = 6;
 const NO_WIN_OUTCOME = 0;
 
 function glyphFor(outcome, art) {
-  if (outcome === NO_WIN_OUTCOME) return 'cross';
-  if (outcome === BONUS_OUTCOME) return art ? 'art' : 'burst';
+  const usable = Boolean(art && art.complete && art.naturalWidth > 0);
+  if (outcome === NO_WIN_OUTCOME) return usable ? 'art' : 'cross';
+  if (outcome === BONUS_OUTCOME) return usable ? 'art' : 'burst';
   return 'art';
 }
 
