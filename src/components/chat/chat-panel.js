@@ -4,6 +4,12 @@ import { createEmojiPicker, createShortcodeMenu, insertIntoField } from './emoji
 
 const OPEN_KEY = 'oof-chat-open';
 const RECONNECT_STEPS = [1000, 2000, 4000, 8000, 15000];
+const PENCIL_ICON =
+  '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+  '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor" />' +
+  '<path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 ' +
+  '3.75 3.75 1.83-1.83z" fill="currentColor" />' +
+  '</svg>';
 
 function el(tag, className = '', text = '') {
   const node = document.createElement(tag);
@@ -73,6 +79,7 @@ export function mountChat({
     closed: false,
     blocked: false,
     reopenAfterBlock: false,
+    renaming: false,
     destroyed: false
   };
 
@@ -123,9 +130,29 @@ export function mountChat({
   const composerRow = el('div', 'oof-chat__composer-row');
   const identity = el('div', 'oof-chat__identity');
   const identityName = el('span', '', '');
+  const rename = el('button', 'oof-chat__rename');
+  rename.type = 'button';
+  rename.innerHTML = PENCIL_ICON;
+  rename.title = 'Change your name';
+  rename.setAttribute('aria-label', 'Change your name');
+  const renameBox = el('div', 'oof-chat__rename-box oof-chat__hidden');
+  const renameInput = el('input', 'oof-chat__rename-input');
+  renameInput.type = 'text';
+  renameInput.autocomplete = 'off';
+  renameInput.maxLength = 24;
+  renameInput.setAttribute('aria-label', 'Your name');
+  const renameSave = el('button', 'oof-chat__rename-action', '✓');
+  renameSave.type = 'button';
+  renameSave.title = 'Save name';
+  renameSave.setAttribute('aria-label', 'Save name');
+  const renameCancel = el('button', 'oof-chat__rename-action', '✕');
+  renameCancel.type = 'button';
+  renameCancel.title = 'Cancel';
+  renameCancel.setAttribute('aria-label', 'Cancel name change');
+  renameBox.append(renameInput, renameSave, renameCancel);
   const recolour = el('button', 'oof-chat__recolour', 'Colour');
   recolour.type = 'button';
-  identity.append(identityName, recolour);
+  identity.append(identityName, rename, renameBox, recolour);
   const counter = el('div', 'oof-chat__counter', '');
   composerRow.append(identity, counter);
   const textInput = el('textarea', '');
@@ -269,12 +296,69 @@ export function mountChat({
     }
   }
 
+  function canRename() {
+    return Boolean(state.member && state.member.tier === 'guest' && !state.member.isHost);
+  }
+
+  function renderIdentity() {
+    const editing = state.renaming;
+    const isHost = Boolean(state.member && state.member.isHost);
+    identityName.classList.toggle('oof-chat__hidden', editing);
+    rename.classList.toggle('oof-chat__hidden', editing || !canRename());
+    recolour.classList.toggle('oof-chat__hidden', editing || isHost);
+    renameBox.classList.toggle('oof-chat__hidden', !editing);
+  }
+
+  function setRenaming(on) {
+    if (on && !canRename()) return;
+    state.renaming = on;
+    if (on) {
+      renameInput.value = state.member.name;
+      composerSwatches.classList.add('oof-chat__hidden');
+    }
+    renderIdentity();
+    if (on) {
+      renameInput.focus();
+      renameInput.select();
+    }
+  }
+
+  async function submitRename() {
+    const next = renameInput.value.trim();
+    if (!next) {
+      setStatus('Enter a name first.', true);
+      renameInput.focus();
+      return;
+    }
+    if (next === state.member.name) {
+      setRenaming(false);
+      setStatus('');
+      return;
+    }
+    renameSave.disabled = true;
+    setStatus('Saving…');
+    const result = await client.join(next, state.colour);
+    renameSave.disabled = false;
+    if (!result.ok) {
+      setStatus(result.error, true);
+      renameInput.focus();
+      renameInput.select();
+      return;
+    }
+    state.member = result.data;
+    state.colour = result.data.colour;
+    writeSession(sessionStore, result.data);
+    showComposer();
+    setStatus('');
+  }
+
   function showComposer() {
     joinForm.classList.add('oof-chat__hidden');
     composer.classList.remove('oof-chat__hidden');
     identityName.textContent = state.member.name;
     identityName.style.color = state.member.colourHex || '#e2e8f0';
-    recolour.classList.toggle('oof-chat__hidden', Boolean(state.member.isHost));
+    state.renaming = false;
+    renderIdentity();
     updateCounter();
   }
 
@@ -469,6 +553,26 @@ export function mountChat({
     composerSwatches.classList.toggle('oof-chat__hidden');
   });
 
+  rename.addEventListener('click', () => setRenaming(true));
+  renameSave.addEventListener('click', submitRename);
+  renameCancel.addEventListener('click', () => {
+    setRenaming(false);
+    setStatus('');
+  });
+  renameInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      submitRename();
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      setRenaming(false);
+      setStatus('');
+    }
+  });
+
   function handleDocumentClick(event) {
     if (!picker.isOpen()) return;
     if (picker.popup.contains(event.target) || picker.button.contains(event.target)) return;
@@ -490,6 +594,7 @@ export function mountChat({
     state.limits = info.data.limits || state.limits;
     titleNode.textContent = info.data.label || title;
     nameInput.maxLength = state.limits.nameMaxChars;
+    renameInput.maxLength = state.limits.nameMaxChars;
     textInput.maxLength = state.limits.messageMaxChars;
     updateViewers(info.data.viewers);
 

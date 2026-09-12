@@ -334,6 +334,77 @@
   cursor: pointer;
 }
 
+.oof-chat__rename {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--oof-chat-muted);
+  line-height: 0;
+  cursor: pointer;
+}
+
+.oof-chat__rename:hover {
+  color: var(--oof-chat-accent);
+}
+
+.oof-chat__rename svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.oof-chat__rename-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.oof-chat__rename-input {
+  flex: 1 1 100px;
+  min-width: 60px;
+  padding: 3px 7px;
+  border: 1px solid var(--oof-chat-border);
+  border-radius: 8px;
+  background: var(--oof-chat-panel);
+  color: var(--oof-chat-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.oof-chat__rename-input:focus {
+  outline: none;
+  border-color: var(--oof-chat-accent);
+}
+
+.oof-chat__rename-action {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid var(--oof-chat-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--oof-chat-muted);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.oof-chat__rename-action:hover {
+  color: var(--oof-chat-text);
+}
+
+.oof-chat__rename-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .oof-chat__emoji-toggle,
 .oof-chat__emoji-tab,
 .oof-chat__emoji,
@@ -554,6 +625,7 @@
 
   .oof-chat__input,
   .oof-chat__composer textarea,
+  .oof-chat__rename-input,
   .oof-chat__emoji-search {
     font-size: 16px;
   }
