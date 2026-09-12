@@ -4,6 +4,9 @@ import audio from './vault-audio.js';
 import gold from './vault-gold.js';
 
 const VAULT_PREFIX = '/ishgardian-vaults/vault/';
+const VAULT_HOME = '/ishgardian-vaults/';
+const BATCH_TTL_MS = 15 * 60 * 1000;
+const REPLAY_LEAD_MS = 2000;
 const CHEST_SRC = (tier) => `/game-assets/ishgardian-vaults/chests/tier${tier}.webp`;
 const CHEST_OPEN_SRC = (tier) => `/game-assets/ishgardian-vaults/chests/tier${tier}-open.webp`;
 const BONUS_SRC = '/game-assets/ishgardian-vaults/chests/bonus.webp';
@@ -19,6 +22,9 @@ const MAX_RUN = 2;
 const PANEL_MIN_SCALE = 0.75;
 const PANEL_NEAR_MISS = 1.06;
 const FAIRNESS_ROWS = 5;
+const POLL_MS = 15000;
+const MAX_POLLS = 40;
+const PULL_THROTTLE_MS = 3000;
 
 const LOCK_ICON =
   '<svg class="vault-reel__lock-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
@@ -36,6 +42,41 @@ function getToken() {
     if (rest) return decodeURIComponent(rest);
   }
   return new URLSearchParams(window.location.search).get('s');
+}
+
+function batchKey(token) {
+  return `vault:inflight:${token}`;
+}
+
+function rememberBatch(spinIds) {
+  if (!state.token) return;
+  try {
+    window.localStorage.setItem(
+      batchKey(state.token),
+      JSON.stringify({ spinIds, at: Date.now() })
+    );
+  } catch {}
+}
+
+function readBatch() {
+  if (!state.token) return null;
+  try {
+    const raw = window.localStorage.getItem(batchKey(state.token));
+    if (!raw) return null;
+    const record = JSON.parse(raw);
+    if (!record || !Array.isArray(record.spinIds)) return null;
+    if (Date.now() - Number(record.at || 0) > BATCH_TTL_MS) return null;
+    return record;
+  } catch {
+    return null;
+  }
+}
+
+function forgetBatch() {
+  if (!state.token) return;
+  try {
+    window.localStorage.removeItem(batchKey(state.token));
+  } catch {}
 }
 
 const dom = {
@@ -98,6 +139,12 @@ const state = {
   results: [],
   revealed: new Set(),
   bonus: false,
+  refreshing: false,
+  checking: false,
+  announced: false,
+  lastPull: 0,
+  polls: 0,
+  ended: false,
   transition: '',
   reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
 };
@@ -105,6 +152,8 @@ const state = {
 const actionsHome = dom.actions ? dom.actions.parentElement : null;
 
 const fairness = [];
+
+let pollTimer = 0;
 
 function placeActions() {
   if (!dom.actions || !actionsHome || !dom.nav) return;
@@ -124,11 +173,18 @@ function setStatus(message, isError) {
 }
 
 function showClosed(title, text) {
+  stopPolling();
   dom.loader.hidden = true;
   dom.main.hidden = true;
   dom.closed.hidden = false;
   if (title) dom.closedTitle.textContent = title;
   if (text) dom.closedText.textContent = text;
+}
+
+function redirectEnded(reason) {
+  state.ended = true;
+  stopPolling();
+  window.location.replace(`${VAULT_HOME}?ended=${encodeURIComponent(reason || 'ended')}`);
 }
 
 function imageUrl(ref) {
@@ -551,8 +607,18 @@ function setBusy(element, busy) {
   else element.removeAttribute('aria-busy');
 }
 
+function spinAllowance() {
+  if (!state.session) return 0;
+  return state.bonus ? state.session.bonusCredits || 0 : state.session.spinsRemaining;
+}
+
+function inCheckMode() {
+  if (!state.session || state.bonus || state.spinning || state.transition) return false;
+  return spinAllowance() <= 0;
+}
+
 function updateSpinControls() {
-  const remaining = state.bonus ? state.session.bonusCredits : state.session.spinsRemaining;
+  const remaining = spinAllowance();
   const max = maxSelectable();
   if (state.count > max) state.count = max;
   dom.count.textContent = String(state.count);
@@ -568,20 +634,25 @@ function updateSpinControls() {
   const held = state.spinning || !!state.transition;
   setOff(dom.countUp, state.bonus || held || state.count >= max);
   setOff(dom.countDown, state.bonus || held || state.count <= 1);
-  setOff(dom.spinButton, held || remaining <= 0);
-  setBusy(dom.spinButton, state.spinning);
+  const checking = inCheckMode();
+  setOff(dom.spinButton, held || (remaining <= 0 && !checking));
+  setBusy(dom.spinButton, state.spinning || state.checking);
+  dom.spinButton.classList.toggle('is-check', checking);
   if (state.transition === 'enter') {
     dom.spinLabel.textContent = 'Bonus!';
   } else if (state.spinning) {
     dom.spinLabel.textContent = 'Spinning';
+  } else if (state.checking) {
+    dom.spinLabel.textContent = 'Checking';
   } else if (remaining <= 0) {
-    dom.spinLabel.textContent = state.bonus ? 'Bonus over' : 'No spins left';
+    dom.spinLabel.textContent = state.bonus ? 'Bonus over' : 'Check for Spins';
   } else if (state.bonus) {
     dom.spinLabel.textContent = state.count > 1 ? `Spin ${state.count} Free` : 'Spin Free';
   } else {
     dom.spinLabel.textContent = state.count > 1 ? `Spin ${state.count}` : 'Spin';
   }
   updateLocks();
+  schedulePoll();
 }
 
 function remeasure() {
@@ -632,7 +703,12 @@ function afterTransition() {
 
 function announceIfDone() {
   if (state.spinning || state.transition || state.bonus || !state.session) return;
-  if ((state.session.bonusCredits || 0) > 0 || state.session.spinsRemaining > 0) return;
+  if ((state.session.bonusCredits || 0) > 0 || state.session.spinsRemaining > 0) {
+    state.announced = false;
+    return;
+  }
+  if (state.announced) return;
+  state.announced = true;
   setStatus('That is all your spins. Your host will trade you shortly.');
   audio.spinsDone();
 }
@@ -891,6 +967,89 @@ function closeBoxes() {
   renderHistory(state.results);
   setModal(dom.open, false);
   syncBonus();
+  schedulePoll();
+}
+
+function applySession(session) {
+  state.session = session;
+  state.results = session.results;
+  state.lastPull = performance.now();
+  renderGuide();
+}
+
+function stopPolling() {
+  window.clearTimeout(pollTimer);
+  pollTimer = 0;
+}
+
+function schedulePoll() {
+  stopPolling();
+  if (state.ended) return;
+  if (!inCheckMode() || state.refreshing || document.hidden) return;
+  if (!dom.open.classList.contains('hidden')) return;
+  if (state.polls >= MAX_POLLS) return;
+  pollTimer = window.setTimeout(() => {
+    pollTimer = 0;
+    state.polls += 1;
+    refreshSession();
+  }, POLL_MS);
+}
+
+async function refreshSession({ manual = false } = {}) {
+  if (state.ended || state.refreshing || state.spinning || state.transition || !state.session) return;
+  if (!dom.open.classList.contains('hidden')) return;
+  if (!manual && performance.now() - state.lastPull < PULL_THROTTLE_MS) return;
+
+  stopPolling();
+  state.refreshing = true;
+  if (manual) {
+    state.checking = true;
+    state.polls = 0;
+    setStatus('');
+  }
+  updateSpinControls();
+
+  const before = state.session.spinsRemaining;
+  const response = await getPlayState(state.token);
+  state.lastPull = performance.now();
+  state.refreshing = false;
+  state.checking = false;
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      redirectEnded('notfound');
+      return;
+    }
+    if (manual) setStatus(response.error || 'Could not reach the vault. Try again in a moment.', true);
+    updateSpinControls();
+    return;
+  }
+
+  if (response.data.status === 'closed') {
+    redirectEnded('ended');
+    return;
+  }
+
+  applySession(response.data);
+  renderHistory(state.results);
+
+  const gained = state.session.spinsRemaining - before;
+  if (gained > 0) {
+    state.polls = 0;
+    setStatus(gained === 1 ? 'Your host added a spin. Good luck!' : `Your host added ${gained} spins. Good luck!`);
+    audio.vaultOpen();
+  } else if (manual) {
+    setStatus('No new spins yet. Your host will trade you shortly.');
+  }
+
+  updateSpinControls();
+  syncBonus();
+  announceIfDone();
+}
+
+function checkForSpins() {
+  audio.click();
+  refreshSession({ manual: true });
 }
 
 async function doSpin() {
@@ -906,6 +1065,10 @@ async function doSpin() {
 
   const response = await spin(state.token, state.count, uuid(), state.bonus);
   if (!response.ok) {
+    if (response.status === 410) {
+      redirectEnded('ended');
+      return;
+    }
     state.spinning = false;
     state.batch = 0;
     setStatus(response.error || 'Could not start the spin.', true);
@@ -914,6 +1077,7 @@ async function doSpin() {
   }
 
   const views = response.data;
+  rememberBatch(views.map((view) => view.spinId));
   if (state.bonus) state.session.bonusCredits -= views.length;
   else state.session.spinsRemaining -= views.length;
   state.batch = views.length;
@@ -928,6 +1092,7 @@ async function doSpin() {
   trackFairness(views);
 
   const results = await Promise.all(live.map((slot, index) => runReel(slot, stopTime(views, index))));
+  forgetBatch();
   await finishBatch(results.filter(Boolean));
 }
 
@@ -951,11 +1116,7 @@ async function finishBatch(landed) {
 
 async function settleBatch() {
   const refreshed = await getPlayState(state.token);
-  if (refreshed.ok) {
-    state.session = refreshed.data;
-    state.results = refreshed.data.results;
-    renderGuide();
-  }
+  if (refreshed.ok) applySession(refreshed.data);
   renderHistory(state.results);
 
   state.spinning = false;
@@ -965,27 +1126,83 @@ async function settleBatch() {
   announceIfDone();
 }
 
+function replayView(result) {
+  const strip = idleStrip();
+  const landing = Number(result.landingIndex);
+  const index = Number.isInteger(landing) && landing >= 0 && landing < strip.length
+    ? landing
+    : Math.floor(strip.length / 2);
+  strip[index] = result.tier;
+  return {
+    spinId: result.spinId,
+    reel: strip,
+    revealAfterMs: REPLAY_LEAD_MS,
+    seedHash: result.seedHash,
+    fromBonus: result.fromBonus,
+    landingIndex: index,
+  };
+}
+
+async function replayReel(slot, result, stopAt) {
+  audio.reelStarted(slot);
+  slot.reel.start();
+
+  await new Promise((resolve) => window.setTimeout(resolve, REPLAY_LEAD_MS));
+
+  const landed = new Promise((resolve) => slot.reel.onLanded(resolve));
+  slot.reel.land(slot.spinView.landingIndex, stopAt - performance.now());
+  await landed;
+
+  audio.reelEnded(slot);
+  if (slot.detached) return result;
+  audio.reelStop();
+  audio.rarity(result.tier);
+  return result;
+}
+
 async function restore(session) {
-  session.results.forEach((result) => state.revealed.add(result.spinId));
+  const record = readBatch();
+  const inflight = record ? new Set(record.spinIds) : null;
+  const replays = inflight
+    ? session.results.filter((result) => inflight.has(result.spinId))
+    : [];
+  const replaying = new Set(replays.map((result) => result.spinId));
+
+  session.results.forEach((result) => {
+    if (!replaying.has(result.spinId)) state.revealed.add(result.spinId);
+  });
   state.results = session.results;
   renderHistory(state.results);
-  if (!session.pending.length) {
+
+  if (!session.pending.length && !replays.length) {
+    forgetBatch();
     syncBonus({ animate: false });
     return;
   }
 
-  if (session.pending[0].fromBonus) enterBonus(session.pending.length, { animate: false });
+  const total = replays.length + session.pending.length;
+  const fromBonus = replays.length ? replays[0].fromBonus : session.pending[0].fromBonus;
+  if (fromBonus) enterBonus(total, { animate: false });
 
+  const views = replays.map(replayView).concat(session.pending).slice(0, SLOTS);
+  const replayCount = Math.min(replays.length, views.length);
   state.spinning = true;
-  state.batch = session.pending.length;
-  state.count = Math.min(session.pending.length, SLOTS);
-  const live = session.pending.map((view, index) => armSlot(state.slots[index], view));
+  state.batch = views.length;
+  state.count = views.length;
+  const live = views.map((view, index) => armSlot(state.slots[index], view));
   updateSpinControls();
-  trackFairness(session.pending);
+  trackFairness(views);
+  replays.forEach((result) => {
+    const entry = fairness.find((item) => item.spinId === result.spinId);
+    if (entry) entry.seed = result.seed;
+  });
 
   const results = await Promise.all(
-    live.map((slot, index) => runReel(slot, stopTime(session.pending, index)))
+    live.map((slot, index) => (index < replayCount
+      ? replayReel(slot, replays[index], stopTime(views, index))
+      : runReel(slot, stopTime(views, index))))
   );
+  forgetBatch();
   await finishBatch(results.filter(Boolean));
 }
 
@@ -1074,7 +1291,10 @@ function step(delta) {
 
 dom.countUp.addEventListener('click', () => step(1));
 dom.countDown.addEventListener('click', () => step(-1));
-dom.spinButton.addEventListener('click', doSpin);
+dom.spinButton.addEventListener('click', () => {
+  if (inCheckMode()) checkForSpins();
+  else doSpin();
+});
 dom.spinButton.addEventListener('pointerenter', () => audio.hover());
 dom.countUp.addEventListener('pointerenter', () => audio.hover());
 dom.countDown.addEventListener('pointerenter', () => audio.hover());
@@ -1091,6 +1311,16 @@ function fitStage() {
   const height = Math.max(360, window.innerHeight - chrome);
   dom.main.style.setProperty('--stage-h', `${height}px`);
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopPolling();
+    return;
+  }
+  state.polls = 0;
+  refreshSession();
+  schedulePoll();
+});
 
 let resizeTimer = 0;
 window.addEventListener('resize', () => {
@@ -1114,7 +1344,7 @@ async function init() {
   const response = await getPlayState(state.token);
   if (!response.ok) {
     if (response.status === 404) {
-      showClosed('This vault link is not valid', 'It may have expired. Ask your host for a new one.');
+      redirectEnded('notfound');
     } else {
       showClosed('Could not reach the vault', response.error || 'Please try again in a moment.');
     }
@@ -1123,15 +1353,19 @@ async function init() {
 
   state.session = response.data;
   if (state.session.status === 'closed') {
-    showClosed('This vault has closed', 'Speak to your host if you would like another go.');
+    redirectEnded('ended');
     return;
   }
 
   await preload(state.session);
 
-  dom.venue.textContent = state.session.venueName
-    ? `${state.session.venueName} presents a vault for ${state.session.playerName}`
-    : `A vault for ${state.session.playerName}`;
+  const host = state.session.hostName || '';
+  const venue = state.session.venueName || '';
+  dom.venue.textContent = host && venue
+    ? `Hosted by ${host} · ${venue}`
+    : host || venue
+      ? `Hosted by ${host || venue}`
+      : `A vault for ${state.session.playerName}`;
   renderGuide();
 
   dom.loader.hidden = true;

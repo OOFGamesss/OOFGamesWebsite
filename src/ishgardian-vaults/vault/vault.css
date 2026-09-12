@@ -601,6 +601,18 @@
   text-shadow: none;
 }
 
+.vault-spin.is-check {
+  color: var(--gold);
+  background: linear-gradient(180deg, #3b2a63 0%, #2c1c4c 48%, #20133a 100%);
+  border-color: rgba(216, 180, 99, 0.5);
+  text-shadow: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+.vault-spin.is-check.is-busy { color: var(--gold); }
+
 .vault-spin__cog {
   width: 17px;
   height: 17px;
@@ -754,6 +766,7 @@
 
 .vault-guide__note {
   margin: 6px 2px 0;
+  padding-top: 8px;
   text-align: center;
   font-size: 0.6rem;
   line-height: 1.35;
@@ -935,7 +948,13 @@
     align-items: start;
   }
 
-  .vault-guide { grid-column: 1; grid-row: 1; }
+  .vault-guide {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
   .vault-stage { grid-column: 2; grid-row: 1; }
   .vault-history { grid-column: 3; grid-row: 1; }
 
@@ -952,6 +971,15 @@
   .vault-history .vault-panel__body {
     zoom: var(--panel-scale, 1);
   }
+
+  .vault-guide .vault-panel__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .vault-guide__note { margin-top: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
