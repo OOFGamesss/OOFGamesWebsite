@@ -42,6 +42,7 @@
   #bracket-panel { order: 4; }
   #join-panel { order: 5; }
   #bets-panel { order: 6; }
+  .roll-log { height: 200px; max-height: none; }
 }
 @container page (min-width: 1000px) {
   .drt-view {

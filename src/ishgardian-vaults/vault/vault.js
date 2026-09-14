@@ -373,15 +373,14 @@ function renderGuide() {
       .forEach((prize) => {
         const item = document.createElement('li');
         item.className = 'vault-prize';
-        if (prize.unlimited) item.classList.add('vault-prize--unlimited');
-        else if (!prize.inStock) item.classList.add('is-out');
+        if (!prize.prizeId) item.classList.add('vault-prize--bookend');
+        else if (!prize.unlimited && !prize.inStock) item.classList.add('is-out');
         if (prize.inBonus) item.classList.add('is-in-bonus');
 
         const url = imageUrl(prize.imageRef);
         const thumb = url
           ? `<img class="vault-prize__image" src="${escapeHtml(url)}" alt="" loading="eager" />`
           : '<span class="vault-prize__image vault-prize__image--empty" aria-hidden="true"></span>';
-
         const stock = prize.unlimited
           ? ''
           : `<span class="vault-prize__stock">${prize.inStock ? `x${prize.stockRemaining}` : 'Gone'}</span>`;

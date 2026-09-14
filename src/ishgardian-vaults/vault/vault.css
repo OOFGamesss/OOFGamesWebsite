@@ -752,7 +752,7 @@
 .vault-prize.is-out { opacity: 0.35; }
 .vault-prize.is-out .vault-prize__name { text-decoration: line-through; }
 
-.vault-prize--unlimited {
+.vault-prize--bookend {
   font-style: italic;
   color: var(--faint);
 }
