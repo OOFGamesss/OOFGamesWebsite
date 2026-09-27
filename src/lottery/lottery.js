@@ -137,7 +137,8 @@ const state = {
   winnerPopupTimer: null,
   winnerPopupWaiter: null,
   machineResetTimer: null,
-  sortBest: true
+  sortBest: true,
+  rebuy: null
 };
 
 
@@ -519,32 +520,40 @@ function addLine() {
   renderBasket();
 }
 
+function basketItem(line, onRemove) {
+  const item = el('li');
+  item.appendChild(ballRow(line.main_numbers, line.bonus_number));
+  const remove = el('button', 'basket-remove', '✕');
+  remove.type = 'button';
+  remove.setAttribute('aria-label', 'Remove ticket');
+  remove.addEventListener('click', onRemove);
+  item.appendChild(remove);
+  return item;
+}
+
+function basketTotalText(count) {
+  const total = count * (state.current?.ticket_price ?? 0);
+  return `Total: ${gil(total)} (${count} ticket${count === 1 ? '' : 's'})`;
+}
+
 function renderBasket() {
   const wrap = $('basket-wrap');
   const list = $('basket');
   list.replaceChildren();
   wrap.classList.toggle('hidden', state.basket.length === 0);
   state.basket.forEach((line, index) => {
-    const item = el('li');
-    item.appendChild(ballRow(line.main_numbers, line.bonus_number));
-    const remove = el('button', 'basket-remove', '✕');
-    remove.type = 'button';
-    remove.setAttribute('aria-label', 'Remove ticket');
-    remove.addEventListener('click', () => {
+    list.appendChild(basketItem(line, () => {
       state.basket.splice(index, 1);
       renderBasket();
-    });
-    item.appendChild(remove);
-    list.appendChild(item);
+    }));
   });
-  const total = state.basket.length * (state.current?.ticket_price ?? 0);
-  $('basket-total-label').textContent = `Total: ${gil(total)} (${state.basket.length} ticket${state.basket.length === 1 ? '' : 's'})`;
+  $('basket-total-label').textContent = basketTotalText(state.basket.length);
   syncLuckyBatch();
   syncAddLine();
 }
 
-function setBuyStatus(message, kind = '') {
-  const node = $('buy-status');
+function setBuyStatus(message, kind = '', id = 'buy-status') {
+  const node = $(id);
   node.textContent = message;
   node.className = `buy-status${kind ? ` is-${kind}` : ''}`;
 }
@@ -574,6 +583,24 @@ function showPurchaseToast(tickets) {
   setTimeout(() => toast.remove(), 8000);
 }
 
+function completePurchase(data) {
+  const count = data.tickets.length;
+  const spent = count * ticketPrice();
+  const available = asGil(data.available)
+    ?? (typeof state.available === 'number' ? Math.max(0, state.available - spent) : null);
+  const balance = asGil(data.balance) ?? available;
+  if (available != null || balance != null) {
+    announceWallet({ available, balance });
+  }
+  lotteryAudio.purchase();
+  showPurchaseToast(data.tickets);
+  state.current.pot = data.pot;
+  state.current.ticket_count += count;
+  renderHeader();
+  renderPrizes();
+  loadMyTickets();
+}
+
 async function buyBasket() {
   if (state.basket.length === 0) return;
   const button = $('buy-button');
@@ -590,25 +617,11 @@ async function buyBasket() {
     setBuyStatus(result.error, 'error');
     return;
   }
-  const count = result.data.tickets.length;
-  const spent = count * ticketPrice();
-  const available = asGil(result.data.available)
-    ?? (typeof state.available === 'number' ? Math.max(0, state.available - spent) : null);
-  const balance = asGil(result.data.balance) ?? available;
-  if (available != null || balance != null) {
-    announceWallet({ available, balance });
-  }
-  setBuyStatus('');
-  lotteryAudio.purchase();
-  showPurchaseToast(result.data.tickets);
   state.basket = [];
+  completePurchase(result.data);
+  setBuyStatus('');
   renderBasket();
   renderPickers();
-  state.current.pot = result.data.pot;
-  state.current.ticket_count += count;
-  renderHeader();
-  renderPrizes();
-  loadMyTickets();
 }
 
 function renderBuyPanel() {
@@ -640,6 +653,7 @@ function setWallet(wallet) {
     syncLuckyBatch();
   }
   syncAddLine();
+  syncRebuy();
 }
 
 function asGil(value) {
@@ -782,6 +796,136 @@ async function loadMyTickets() {
     bucket.push(ticket);
     state.myTicketsByDraw.set(ticket.draw_id, bucket);
   }
+  syncRebuy();
+}
+
+
+function lineKey(line) {
+  return `${[...line.main_numbers].sort((a, b) => a - b).join('-')}+${line.bonus_number}`;
+}
+
+function rebuyDrawId() {
+  const drawIds = [...state.myTicketsByDraw.keys()];
+  return drawIds.length > 0 ? Math.max(...drawIds) : null;
+}
+
+function rebuySplit(drawId) {
+  const held = new Map();
+  for (const ticket of state.myCurrent) {
+    const key = lineKey(ticket);
+    held.set(key, (held.get(key) || 0) + 1);
+  }
+  const lines = [];
+  const entered = [];
+  for (const ticket of state.myTicketsByDraw.get(drawId) || []) {
+    const key = lineKey(ticket);
+    const line = { main_numbers: ticket.main_numbers, bonus_number: ticket.bonus_number };
+    if ((held.get(key) || 0) > 0) {
+      held.set(key, held.get(key) - 1);
+      entered.push(line);
+    } else {
+      lines.push(line);
+    }
+  }
+  return { lines, entered };
+}
+
+function syncRebuy() {
+  const drawId = rebuyDrawId();
+  const offer = state.signedIn && (state.current?.sales_open ?? false) && drawId !== null
+    && rebuySplit(drawId).lines.length > 0;
+  $('open-rebuy').classList.toggle('hidden', !offer);
+  if (state.rebuy) syncRebuyStatus();
+}
+
+async function openRebuy() {
+  const button = $('open-rebuy');
+  button.disabled = true;
+  await loadMyTickets();
+  button.disabled = false;
+  const drawId = rebuyDrawId();
+  if (!state.signedIn || drawId === null) return;
+  const { lines, entered } = rebuySplit(drawId);
+  state.rebuy = {
+    drawId,
+    ticketCount: lines.length + entered.length,
+    lines: lines.slice(0, BASKET_LIMIT),
+    entered,
+    overflow: Math.max(0, lines.length - BASKET_LIMIT),
+    busy: false,
+    error: ''
+  };
+  renderRebuy();
+  openModal('rebuy-modal');
+}
+
+function rebuyStatus(rebuy) {
+  if (rebuy.busy) return { message: 'Buying tickets…', kind: '', blocked: true };
+  if (!state.signedIn) return { message: 'Please sign in again.', kind: 'error', blocked: true };
+  if (!state.current?.sales_open) {
+    return { message: 'Ticket sales are closed for this draw.', kind: 'error', blocked: true };
+  }
+  const affordable = affordableTickets();
+  if (affordable !== null && affordable < rebuy.lines.length) {
+    const message = affordable <= 0
+      ? `Not enough gil - each ticket costs ${gil(ticketPrice())}.`
+      : `Your balance covers ${affordable} ticket${affordable === 1 ? '' : 's'} - remove some to continue.`;
+    return { message, kind: 'error', blocked: true };
+  }
+  if (rebuy.error) return { message: rebuy.error, kind: 'error', blocked: false };
+  const message = typeof state.available === 'number' ? `Available balance: ${gil(state.available)}` : '';
+  return { message, kind: '', blocked: false };
+}
+
+function renderRebuy() {
+  const rebuy = state.rebuy;
+  let intro = `Your ${rebuy.ticketCount} ticket${rebuy.ticketCount === 1 ? '' : 's'} from draw #${rebuy.drawId}. Buy the same numbers again for draw #${state.current.draw_id}.`;
+  if (rebuy.entered.length > 0) intro += ' Tickets already in this draw are marked and will not be bought twice.';
+  if (rebuy.overflow > 0) intro += ` Up to ${BASKET_LIMIT} tickets per purchase - rebuy again afterwards for the other ${rebuy.overflow}.`;
+  $('rebuy-intro').textContent = intro;
+  const list = $('rebuy-list');
+  list.replaceChildren();
+  rebuy.lines.forEach((line, index) => {
+    list.appendChild(basketItem(line, () => {
+      rebuy.lines.splice(index, 1);
+      rebuy.error = '';
+      renderRebuy();
+    }));
+  });
+  for (const line of rebuy.entered) {
+    const item = el('li', 'is-entered');
+    item.appendChild(ballRow(line.main_numbers, line.bonus_number));
+    item.appendChild(el('span', 'ticket-result', 'Already entered'));
+    list.appendChild(item);
+  }
+  if (list.children.length === 0) list.appendChild(el('li', 'ticket-empty', 'No tickets left to rebuy.'));
+  $('rebuy-total-label').textContent = basketTotalText(rebuy.lines.length);
+  syncRebuyStatus();
+}
+
+function syncRebuyStatus() {
+  const rebuy = state.rebuy;
+  const status = rebuyStatus(rebuy);
+  setBuyStatus(status.message, status.kind, 'rebuy-status');
+  $('rebuy-buy').disabled = status.blocked || rebuy.lines.length === 0;
+}
+
+async function buyRebuy() {
+  const rebuy = state.rebuy;
+  if (!rebuy || rebuy.busy || rebuy.lines.length === 0) return;
+  rebuy.busy = true;
+  rebuy.error = '';
+  syncRebuyStatus();
+  const result = await lotteryClient.buyTickets(rebuy.lines);
+  rebuy.busy = false;
+  if (!result.ok) {
+    if (result.status === 401) setSignedIn(false);
+    else rebuy.error = result.error;
+    if (state.rebuy === rebuy) syncRebuyStatus();
+    return;
+  }
+  if (state.rebuy === rebuy) closeModals();
+  completePurchase(result.data);
 }
 
 
@@ -1100,6 +1244,8 @@ function closeModals() {
   $('howto-modal').classList.add('hidden');
   $('history-modal').classList.add('hidden');
   $('hosts-modal').classList.add('hidden');
+  $('rebuy-modal').classList.add('hidden');
+  state.rebuy = null;
   document.removeEventListener('keydown', onModalKeydown);
 }
 
@@ -1205,6 +1351,7 @@ function applyCurrent(data) {
   renderBuyPanel();
   syncLuckyBatch();
   syncAddLine();
+  syncRebuy();
   const newResultId = data.previous_result?.draw_id ?? null;
   const settledTransition = !isFirstLoad && newResultId !== null && newResultId !== hadResultId;
   syncMachine(data, settledTransition);
@@ -1343,8 +1490,11 @@ async function boot() {
   $('history-close').addEventListener('click', closeModals);
   $('open-hosts').addEventListener('click', () => openModal('hosts-modal'));
   $('hosts-close').addEventListener('click', closeModals);
+  $('open-rebuy').addEventListener('click', openRebuy);
+  $('rebuy-close').addEventListener('click', closeModals);
+  $('rebuy-buy').addEventListener('click', buyRebuy);
   $('winner-close').addEventListener('click', dismissWinnerOverlay);
-  for (const id of ['howto-modal', 'history-modal', 'hosts-modal']) {
+  for (const id of ['howto-modal', 'history-modal', 'hosts-modal', 'rebuy-modal']) {
     $(id).addEventListener('click', (event) => {
       if (event.target === $(id)) closeModals();
     });

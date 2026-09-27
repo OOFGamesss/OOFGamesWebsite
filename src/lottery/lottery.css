@@ -117,6 +117,7 @@
 
 .howto-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; font-weight: 700; cursor: pointer; border: 1px solid color-mix(in srgb, var(--color-neon-gold, #ffcf4d) 55%, transparent); color: var(--color-neon-gold, #ffcf4d); background: transparent; transition: background 0.12s; }
 .howto-btn:hover { background: color-mix(in srgb, var(--color-neon-gold, #ffcf4d) 14%, transparent); }
+.howto-btn svg { flex: none; width: 1.1em; height: 1.1em; }
 
 .howto-card { max-width: 28rem; gap: 18px; }
 .howto-card__title { text-align: center; font-family: "Trebuchet MS", "Segoe UI", sans-serif; font-weight: 800; font-size: 1.8rem; color: var(--color-neon-gold, #ffcf4d); text-shadow: 0 0 12px rgba(255, 207, 77, 0.4); }
@@ -142,7 +143,7 @@
 }
 
 .hosts-card { max-width: 32rem; gap: 12px; }
-.hosts-intro { margin: 0; font-size: 0.84rem; line-height: 1.5; color: #94a3b8; }
+.hosts-intro, .rebuy-intro { margin: 0; font-size: 0.84rem; line-height: 1.5; color: #94a3b8; }
 .hosts-body { max-height: min(60vh, 520px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--color-neon-violet, #8b5cff) transparent; }
 .hosts-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .host-card { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(10, 6, 18, 0.5); border: 1px solid rgba(139, 92, 255, 0.25); }
@@ -155,6 +156,9 @@
 .host-card__copy { flex: none; align-self: center; padding: 6px 12px !important; font-size: 0.75rem; white-space: nowrap; }
 .hosts-empty { padding: 14px 12px; border-radius: 12px; background: rgba(10, 6, 18, 0.5); text-align: center; color: #94a3b8; font-size: 0.86rem; line-height: 1.5; }
 .hosts-empty strong { display: block; margin-bottom: 4px; color: #e2e8f0; font-size: 0.92rem; }
+
+.rebuy-card { max-width: 32rem; gap: 12px; }
+.rebuy-card .buy-status { margin: 0; }
 
 .stats-body { padding: 0 16px 16px; }
 .stats-empty { color: #94a3b8; font-size: 0.9rem; margin: 0 0 8px; }
@@ -234,7 +238,7 @@
 .basket-remove { position: absolute; top: 2px; right: 2px; border: none; background: transparent; color: #64748b; cursor: pointer; font-size: 0.92rem; padding: 2px 6px; line-height: 1; }
 .basket-remove:hover { color: var(--color-neon-magenta, #ff2bd6); }
 .basket-total { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
-#basket-total-label { color: var(--color-neon-gold, #ffcf4d); font-weight: 800; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+#basket-total-label, #rebuy-total-label { color: var(--color-neon-gold, #ffcf4d); font-weight: 800; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
 .buy-status { min-height: 1.2em; margin: 10px 0 0; font-size: 0.85rem; color: #94a3b8; }
 .buy-status.is-error { color: #f87171; }
 .buy-status.is-success { color: var(--color-neon-green, #00d44a); }
@@ -249,6 +253,7 @@
 .ticket-grid .ball-row { gap: 5px; }
 .ticket-grid .ball { width: 26px; height: 26px; font-size: 0.78rem; }
 .ticket-grid li.is-winner { border: 1px solid rgba(255, 207, 77, 0.5); background: rgba(60, 42, 5, 0.35); }
+.ticket-grid li.is-entered { opacity: 0.5; }
 .ticket-grid .ticket-result { text-align: center; white-space: normal; }
 .ticket-grid .ticket-empty { grid-column: 1 / -1; padding: 14px 9px; }
 .ticket-result { font-size: 0.76rem; color: #94a3b8; text-align: right; white-space: nowrap; }

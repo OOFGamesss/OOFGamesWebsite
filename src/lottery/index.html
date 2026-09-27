@@ -108,6 +108,15 @@
               <h2>Buy Tickets</h2>
               <div class="card-head__actions">
                 <span id="buy-hint" class="card-head__hint"></span>
+                <button id="open-rebuy" type="button" class="howto-btn btn-sm hidden" aria-haspopup="dialog">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <path d="m17 2 4 4-4 4" />
+                    <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+                    <path d="m7 22-4-4 4-4" />
+                    <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+                  </svg>
+                  Rebuy previous tickets
+                </button>
                 <button id="open-hosts" type="button" class="howto-btn btn-sm" aria-haspopup="dialog">
                   🔎 Find a host in game
                   <span id="hosts-count" class="hosts-count hidden"></span>
@@ -254,6 +263,22 @@
         <div class="hosts-body">
           <ul id="hosts-list" class="hosts-list"></ul>
         </div>
+      </div>
+    </div>
+
+    <div id="rebuy-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="rebuy-title">
+      <div class="panel modal__card rebuy-card">
+        <div class="modal__head">
+          <h2 id="rebuy-title">Rebuy Tickets</h2>
+          <button id="rebuy-close" class="modal__close" aria-label="Close">✕</button>
+        </div>
+        <p id="rebuy-intro" class="rebuy-intro"></p>
+        <ul id="rebuy-list" class="ticket-grid basket-list"></ul>
+        <div class="basket-total">
+          <span id="rebuy-total-label">Total: 0 gil</span>
+          <button id="rebuy-buy" type="button" class="btn-primary btn-sm">Buy tickets</button>
+        </div>
+        <p id="rebuy-status" class="buy-status"></p>
       </div>
     </div>
 
