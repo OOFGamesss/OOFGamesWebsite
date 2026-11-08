@@ -133,6 +133,7 @@ export default defineConfig({
         admin: resolve(root, 'admin/index.html'),
         developer: resolve(root, 'developer/index.html'),
         aethericFlow: resolve(root, 'aetheric-flow/index.html'),
+        bardicMemory: resolve(root, 'bardic-memory/index.html'),
         gambaWhere: resolve(root, 'gamba-where/index.html'),
         truthOrDare: resolve(root, 'truth-or-dare/index.html'),
         // venue-live sources are not committed yet; restore these on release.
