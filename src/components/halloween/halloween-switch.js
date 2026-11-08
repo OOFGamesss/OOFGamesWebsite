@@ -1,3 +1,3 @@
-const HALLOWEEN_ON = true;
+const HALLOWEEN_ON = false;
 
 if (HALLOWEEN_ON) import('./halloween.js');
